@@ -90,6 +90,10 @@ button.link { background: none; border: none; color: var(--accent); padding: 0; 
 .pill.sample { background: var(--accent-soft); color: var(--accent); }
 .pill.warn { color: var(--warn); }
 
+[hidden] { display: none !important; }
+.stack { display: grid; gap: 10px; min-width: 0; }
+.modes { display: grid; gap: 6px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
+.modes input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: .85rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
@@ -120,6 +124,8 @@ table.sheet thead th { position: sticky; top: 0; background: var(--surface-2); c
 table.sheet th.rn { background: var(--surface-2); color: var(--muted); font-weight: 400; text-align: right; position: sticky; left: 0; z-index: 1; min-width: 3em; }
 table.sheet thead th.rn { z-index: 3; }
 table.sheet tr.hdr td { font-weight: 600; background: var(--accent-soft); }
+table.sheet td.ttl { font: 600 .95rem/1.4 var(--font-body); max-width: none; }
+table.sheet td.ttl2 { font-weight: 600; }
 table.sheet td { background: var(--surface); }
 table.sheet td.num { text-align: right; }
 .more { padding: 8px 16px; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line); }
@@ -143,7 +149,7 @@ table.sheet td.num { text-align: right; }
   <header class="top">
     <div>
       <h1>CSV σε Φύλλα <span>Excel</span></h1>
-      <p class="lede">Φόρτωσε ένα αρχείο CSV, κράτησε μόνο τις γραμμές που θέλεις και μοίρασέ τες σε φύλλα. Κάθε φύλλο παίρνει το όνομά του από την τιμή της στήλης που διαλέγεις. Η επεξεργασία γίνεται τοπικά, στον browser σου.</p>
+      <p class="lede">Φόρτωσε ένα αρχείο CSV, κράτησε μόνο τις γραμμές που θέλεις και μοίρασέ τες σε φύλλα. Τα φύλλα παίρνουν όνομα είτε από τις τιμές μιας στήλης είτε από τους τίτλους των στηλών που επιλέγεις, π.χ. ένα φύλλο ανά δράση με όσους δήλωσαν «Συμμετοχή». Η επεξεργασία γίνεται τοπικά, στον browser σου.</p>
     </div>
   </header>
 
@@ -205,22 +211,41 @@ table.sheet td.num { text-align: right; }
       </section>
 
       <section class="step" aria-labelledby="s3">
-        <h2 id="s3"><span class="n">3</span>Ονόματα φύλλων</h2>
-        <p class="hint">Διάλεξε τη στήλη (ή τις στήλες) που δίνει όνομα σε κάθε φύλλο. Κάθε διαφορετική τιμή γίνεται ένα φύλλο.</p>
-        <div class="chips" id="sheetCols"></div>
-        <div class="grid2">
+        <h2 id="s3"><span class="n">3</span>Φύλλα</h2>
+        <div class="modes" role="radiogroup" aria-label="Πώς δημιουργούνται τα φύλλα">
+          <label class="check"><input type="radio" name="mode" id="modeValues" value="values" checked> Ένα φύλλο για κάθε τιμή μιας στήλης</label>
+          <label class="check"><input type="radio" name="mode" id="modeColumns" value="columns"> Ένα φύλλο για κάθε στήλη που επιλέγω, με όσους πληρούν μια συνθήκη</label>
+        </div>
+        <div class="stack" id="byValues">
+          <p class="hint">Διάλεξε τη στήλη (ή τις στήλες) που δίνει όνομα σε κάθε φύλλο. Κάθε διαφορετική τιμή γίνεται ένα φύλλο, π.χ. ένα φύλλο ανά περιοχή.</p>
+          <div class="chips" id="sheetCols"></div>
           <div class="field">
             <label class="lbl" for="sep">Ένωση πολλών στηλών με</label>
             <input type="text" id="sep" value=" - " maxlength="5">
           </div>
-          <div class="field">
-            <label class="lbl" for="sheetOrder">Σειρά φύλλων</label>
-            <select id="sheetOrder">
-              <option value="alpha">Αλφαβητική</option>
-              <option value="count">Περισσότερες γραμμές πρώτα</option>
-              <option value="first">Όπως εμφανίζονται στο CSV</option>
-            </select>
+        </div>
+        <div class="stack" id="byColumns" hidden>
+          <p class="hint">Κάθε στήλη που επιλέγεις γίνεται φύλλο με όνομα τον τίτλο της. Στο φύλλο μπαίνουν οι γραμμές που πληρούν τη συνθήκη σε αυτή τη στήλη, π.χ. όσοι δήλωσαν «Συμμετοχή». Μια γραμμή μπορεί να μπει σε πολλά φύλλα.</p>
+          <div class="grid2">
+            <div class="field">
+              <label class="lbl" for="colOp">Η τιμή της στήλης</label>
+              <select id="colOp"></select>
+            </div>
+            <div class="field">
+              <label class="lbl" for="colVal">Τιμή</label>
+              <input type="text" id="colVal" value="Συμμετοχή">
+            </div>
           </div>
+          <div class="row"><button type="button" id="autoCols">Επίλεξε τις στήλες όπου υπάρχει η τιμή</button></div>
+          <div class="chips" id="colSheets"></div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="sheetOrder">Σειρά φύλλων</label>
+          <select id="sheetOrder">
+            <option value="alpha">Αλφαβητική</option>
+            <option value="count">Περισσότερες γραμμές πρώτα</option>
+            <option value="first">Όπως εμφανίζονται στο CSV</option>
+          </select>
         </div>
         <label class="check"><input type="checkbox" id="allSheet"> Πρόσθεσε και φύλλο «Όλα» με όλες τις γραμμές</label>
       </section>
@@ -263,6 +288,7 @@ table.sheet td.num { text-align: right; }
         <div class="opts">
           <label class="check"><input type="checkbox" id="optFilter" checked> Φίλτρο στη γραμμή τίτλων</label>
           <label class="check"><input type="checkbox" id="optWidths" checked> Αυτόματο πλάτος στηλών</label>
+          <label class="check"><input type="checkbox" id="optTitle" checked> Τίτλος και πλήθος στην κορυφή κάθε φύλλου</label>
         </div>
         <p class="status" id="status" role="status"></p>
       </div>
@@ -309,6 +335,7 @@ const state = {
   sheetCols: [], cols: [], filters: [], fmode: "and",
   sortCol: -1, sortDir: "asc", sheetOrder: "alpha", sep: " - ", allSheet: false,
   decimal: ",", active: 0, sheets: [], filteredCount: 0,
+  mode: "values", colSheets: [], colOp: "contains", colVal: "Συμμετοχή",
 };
 
 const $ = (s) => document.querySelector(s);
@@ -337,6 +364,7 @@ function toNum(s, dec) {
   let t = String(s ?? "").trim().replace(/[\s ]/g, "");
   if (!t || t.length > 18) return null;
   if (/^[-+]?0\d/.test(t)) return null; // κωδικοί με αρχικό 0 (ΑΦΜ, ΤΚ) μένουν κείμενο
+  if (/^\d{9,}$/.test(t)) return null; // τηλέφωνα, ΑΦΜ κ.λπ. μένουν κείμενο
   const re = dec === ","
     ? /^[-+]?(\d{1,3}(\.\d{3})+|\d+)(,\d+)?$/
     : /^[-+]?(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$/;
@@ -392,8 +420,12 @@ function passes(row, f) {
 }
 
 /* ---------- Ονόματα φύλλων κατά τους κανόνες του Excel ---------- */
+// Τίτλος στήλης χωρίς τα [ ] και τα εισαγωγικά των φορμών Google
+const cleanTitle = (t) => String(t).replace(/^[\s\["'«]+|[\s\]"'»]+$/g, "").replace(/\s+/g, " ");
 function sheetName(base, used) {
-  let n = String(base).replace(/[\[\]:*?\/\\]/g, "-").replace(/[\u0000-\u001f]/g, "").trim()
+  let n = String(base).replace(/\s*:\s*/g, " - ");
+  if (n.trim().length > 31) n = n.replace(/\s*\([^)]*\)/g, "");
+  n = n.replace(/[\[\]:*?\/\\]/g, "-").replace(/[\u0000-\u001f]/g, "").trim()
     .replace(/^'+|'+$/g, "");
   if (!n) n = "(Κενό)";
   if (norm(n) === "history") n = "History-";
@@ -420,23 +452,33 @@ function compute() {
     const c = state.sortCol, dir = state.sortDir === "desc" ? -1 : 1;
     rows = rows.map((r, i) => [r, i]).sort((x, y) => dir * compareValues(x[0][c] ?? "", y[0][c] ?? "") || x[1] - y[1]).map((x) => x[0]);
   }
-  const groups = new Map();
-  if (state.sheetCols.length) {
-    for (const r of rows) {
-      const key = state.sheetCols.map((i) => (r[i] ?? "").trim()).join(state.sep);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(r);
-    }
+  let entries;
+  if (state.mode === "columns") {
+    entries = state.colSheets.map((c) => ({
+      key: cleanTitle(state.headers[c]), col: c,
+      rows: rows.filter((r) => passes(r, { col: c, op: state.colOp, val: state.colVal })),
+    }));
+    if (state.sheetOrder === "first") entries.sort((a, b) => a.col - b.col);
   } else {
-    groups.set("Δεδομένα", rows);
+    const groups = new Map();
+    if (state.sheetCols.length) {
+      for (const r of rows) {
+        const key = state.sheetCols.map((i) => (r[i] ?? "").trim()).join(state.sep);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      }
+    } else {
+      groups.set("Δεδομένα", rows);
+    }
+    entries = [...groups.entries()].map(([key, rs]) => ({ key, rows: rs }));
   }
-  let entries = [...groups.entries()];
-  if (state.sheetOrder === "alpha") entries.sort((a, b) => a[0].localeCompare(b[0], "el", { numeric: true }));
-  else if (state.sheetOrder === "count") entries.sort((a, b) => b[1].length - a[1].length);
+  if (state.sheetOrder === "alpha") entries.sort((a, b) => a.key.localeCompare(b.key, "el", { numeric: true }));
+  else if (state.sheetOrder === "count") entries.sort((a, b) => b.rows.length - a.rows.length);
   const used = new Set();
   const sheets = [];
-  if (state.allSheet && state.sheetCols.length) sheets.push({ name: sheetName("Όλα", used), rows, all: true });
-  for (const [key, rs] of entries) sheets.push({ name: sheetName(key, used), rows: rs, key });
+  const grouped = state.mode === "columns" ? state.colSheets.length : state.sheetCols.length;
+  if (state.allSheet && grouped) sheets.push({ name: sheetName("Όλα", used), title: "Όλα", rows, all: true });
+  for (const e of entries) sheets.push({ name: sheetName(e.key, used), title: e.key, rows: e.rows });
   state.sheets = sheets;
   if (state.active >= sheets.length) state.active = 0;
 }
@@ -476,6 +518,11 @@ function parse(resetConfig) {
     state.decimal = $("#dec").value;
     state.cols = headers.map((_, idx) => ({ idx, on: true }));
     state.sheetCols = guessSheetCol();
+    const found = matchingColumns();
+    state.mode = found.length ? "columns" : "values";
+    state.colSheets = found;
+    for (const c of state.cols) if (found.includes(c.idx)) c.on = false;
+    if (found.length) { state.sheetOrder = "first"; $("#sheetOrder").value = "first"; }
     state.filters = [];
     state.sortCol = -1;
     state.active = 0;
@@ -483,9 +530,19 @@ function parse(resetConfig) {
     state.cols = state.cols.filter((c) => c.idx < headers.length);
     for (let i = 0; i < headers.length; i++) if (!state.cols.some((c) => c.idx === i)) state.cols.push({ idx: i, on: true });
     state.sheetCols = state.sheetCols.filter((i) => i < headers.length);
+    state.colSheets = state.colSheets.filter((i) => i < headers.length);
     state.filters = state.filters.filter((f) => f.col < headers.length);
   }
   renderAll();
+}
+// Στήλες όπου τουλάχιστον μία γραμμή πληροί τη συνθήκη του βήματος 3
+function matchingColumns() {
+  if (!NO_VALUE.has(state.colOp) && !state.colVal.trim()) return [];
+  const out = [];
+  for (let i = 0; i < state.headers.length; i++) {
+    if (state.rows.some((r) => passes(r, { col: i, op: state.colOp, val: state.colVal }))) out.push(i);
+  }
+  return out;
 }
 function guessSheetCol() {
   // Η στήλη κειμένου με τις λιγότερες (τουλάχιστον 2) διαφορετικές τιμές
@@ -547,6 +604,24 @@ function renderSheetCols() {
       },
     }, pos >= 0 && state.sheetCols.length > 1 ? h("span", { class: "ord", text: String(pos + 1) }) : null, name);
   }));
+}
+function renderMode() {
+  $("#modeValues").checked = state.mode === "values";
+  $("#modeColumns").checked = state.mode === "columns";
+  $("#byValues").hidden = state.mode !== "values";
+  $("#byColumns").hidden = state.mode !== "columns";
+  $("#colOp").value = state.colOp;
+  $("#colVal").value = state.colVal;
+  $("#colVal").disabled = NO_VALUE.has(state.colOp);
+  const box = $("#colSheets");
+  box.replaceChildren(...state.headers.map((name, i) => h("button", {
+    type: "button", class: "chip", "aria-pressed": String(state.colSheets.includes(i)), title: name,
+    onclick: () => {
+      const p = state.colSheets.indexOf(i);
+      if (p >= 0) state.colSheets.splice(p, 1); else state.colSheets.push(i);
+      state.active = 0; renderMode(); update();
+    },
+  }, cleanTitle(name) || `Στήλη ${colLetter(i)}`)));
 }
 function renderCols() {
   const list = $("#cols");
@@ -618,12 +693,19 @@ function renderPreview() {
   if (more) more.remove();
   if (!cols.length) { box.replaceChildren(h("p", { class: "empty", text: "Δεν έχεις επιλέξει στήλες. Τσέκαρε τουλάχιστον μία στο βήμα 4." })); return; }
   const sh = s[state.active];
+  if (state.mode === "columns" && !state.colSheets.length) { box.replaceChildren(h("p", { class: "empty", text: "Επίλεξε στο βήμα 3 τις στήλες που θα γίνουν φύλλα." })); return; }
   if (!sh || !sh.rows.length) { box.replaceChildren(h("p", { class: "empty", text: "Καμία γραμμή δεν περνά τα φίλτρα. Χαλάρωσε ένα φίλτρο στο βήμα 2." })); return; }
   const LIMIT = 200;
   const thead = h("thead", {}, h("tr", {}, h("th", { class: "rn" }), ...cols.map((_, j) => h("th", { text: colLetter(j) }))));
-  const body = h("tbody", {}, h("tr", { class: "hdr" }, h("th", { class: "rn", text: "1" }), ...cols.map((c) => h("td", { text: state.headers[c], title: state.headers[c] }))));
+  const off = $("#optTitle").checked ? 2 : 0;
+  const body = h("tbody");
+  if (off) {
+    body.append(h("tr", {}, h("th", { class: "rn", text: "1" }), h("td", { class: "ttl", colspan: String(cols.length), text: sh.title })));
+    body.append(h("tr", {}, h("th", { class: "rn", text: "2" }), h("td", { class: "ttl2", text: "Πλήθος:" }), h("td", { class: "num ttl2", text: String(sh.rows.length) }), ...cols.slice(2).map(() => h("td"))));
+  }
+  body.append(h("tr", { class: "hdr" }, h("th", { class: "rn", text: String(off + 1) }), ...cols.map((c) => h("td", { text: state.headers[c], title: state.headers[c] }))));
   sh.rows.slice(0, LIMIT).forEach((r, i) => {
-    body.append(h("tr", {}, h("th", { class: "rn", text: String(i + 2) }), ...cols.map((c) => {
+    body.append(h("tr", {}, h("th", { class: "rn", text: String(i + off + 2) }), ...cols.map((c) => {
       const v = r[c] ?? "";
       return h("td", { class: toNum(v, state.decimal) !== null ? "num" : "", text: v, title: v.length > 40 ? v : null });
     })));
@@ -634,24 +716,26 @@ function renderPreview() {
 }
 const stat = (v, l) => h("div", { class: "stat" }, h("b", { text: v }), h("small", { text: l }));
 function update() { compute(); renderPreview(); }
-function renderAll() { renderFileInfo(); renderSheetCols(); renderCols(); renderFilters(); update(); }
+function renderAll() { renderFileInfo(); renderMode(); renderSheetCols(); renderCols(); renderFilters(); update(); }
 
 /* ---------- Εξαγωγή σε Excel ---------- */
 function buildWorkbook() {
   const cols = includedCols();
   const wb = XLSX.utils.book_new();
   for (const sh of state.sheets) {
-    const aoa = [cols.map((c) => state.headers[c])];
+    const off = $("#optTitle").checked ? 2 : 0;
+    const aoa = off ? [[sh.title], ["Πλήθος:", sh.rows.length]] : [];
+    aoa.push(cols.map((c) => state.headers[c]));
     for (const r of sh.rows) aoa.push(cols.map((c) => { const v = r[c] ?? ""; const n = toNum(v, state.decimal); return n !== null ? n : v; }));
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     if ($("#optWidths").checked) {
       ws["!cols"] = cols.map((_, j) => {
         let w = 6;
-        for (let i = 0; i < Math.min(aoa.length, 2000); i++) w = Math.max(w, String(aoa[i][j] ?? "").length + 2);
+        for (let i = off; i < Math.min(aoa.length, 2000); i++) w = Math.max(w, String(aoa[i][j] ?? "").length + 2);
         return { wch: Math.min(w, 60) };
       });
     }
-    if ($("#optFilter").checked && aoa.length > 1) ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: cols.length - 1 } }) };
+    if ($("#optFilter").checked && aoa.length > off + 1) ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: off, c: 0 }, e: { r: aoa.length - 1, c: cols.length - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, sh.name);
   }
   return wb;
@@ -717,6 +801,21 @@ $("#colsAll").addEventListener("click", () => { state.cols.forEach((c) => (c.on 
 $("#colsNone").addEventListener("click", () => { state.cols.forEach((c) => (c.on = false)); renderCols(); update(); });
 $("#colsReset").addEventListener("click", () => { state.cols.sort((a, b) => a.idx - b.idx); renderCols(); update(); });
 $("#exportBtn").addEventListener("click", exportXlsx);
+$("#optTitle").addEventListener("change", renderPreview);
+$("#colOp").replaceChildren(...OPS.map(([v, t]) => h("option", { value: v, text: t })));
+document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", (e) => {
+  state.mode = e.target.value; state.active = 0; renderMode(); update();
+}));
+$("#colOp").addEventListener("change", (e) => { state.colOp = e.target.value; renderMode(); update(); });
+$("#colVal").addEventListener("input", (e) => { state.colVal = e.target.value; update(); });
+$("#autoCols").addEventListener("click", () => {
+  const found = matchingColumns();
+  state.colSheets = found;
+  for (const c of state.cols) if (found.includes(c.idx)) c.on = false;
+  state.active = 0;
+  setStatus(found.length ? `Επιλέχθηκαν ${found.length} στήλες. Αφαιρέθηκαν από τις στήλες του βήματος 4.` : "Καμία στήλη δεν περιέχει αυτή την τιμή.", found.length ? "ok" : "err");
+  renderMode(); renderCols(); update();
+});
 
 /* ---------- Εκκίνηση με το δείγμα ---------- */
 state.raw = SAMPLE; state.fileName = "pwliseis_deigma.csv"; state.isSample = true;
