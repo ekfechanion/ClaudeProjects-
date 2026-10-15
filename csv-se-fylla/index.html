@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CSV σε Φύλλα Excel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Fira+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: settings column of numbered steps on the left, spreadsheet-like preview with sheet tabs on the right; stacks on phones. */
+:root {
+  --bg: #f3f5f2;
+  --surface: #ffffff;
+  --surface-2: #e9eee8;
+  --line: #d3dbd2;
+  --fg: #17201b;
+  --muted: #56655c;
+  --accent: #1c6a4b;
+  --accent-fg: #ffffff;
+  --accent-soft: #dbeae2;
+  --warn: #8f5400;
+  --danger: #b3261e;
+  --font-display: "Commissioner", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Fira Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101513; --surface: #17201b; --surface-2: #1f2a24; --line: #2d3a33;
+    --fg: #e3eae5; --muted: #95a59b; --accent: #5ec39a; --accent-fg: #0b1711;
+    --accent-soft: #1e3a2d; --warn: #e3ab4f; --danger: #f2877f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101513; --surface: #17201b; --surface-2: #1f2a24; --line: #2d3a33;
+  --fg: #e3eae5; --muted: #95a59b; --accent: #5ec39a; --accent-fg: #0b1711;
+  --accent-soft: #1e3a2d; --warn: #e3ab4f; --danger: #f2877f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 15px/1.5 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 20px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+h1 { font: 700 1.6rem/1.2 var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 span { color: var(--accent); }
+.lede { margin: 4px 0 0; color: var(--muted); max-width: 65ch; }
+.layout { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.steps { display: grid; gap: 14px; min-width: 0; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+.step h2 { margin: 0; font: 600 1rem/1.3 var(--font-display); display: flex; align-items: center; gap: 8px; }
+.step h2 .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font: 600 .78rem/1 var(--font-data); }
+.hint { margin: 0; color: var(--muted); font-size: .85rem; }
+label.lbl { font-size: .78rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.field { display: grid; gap: 4px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } }
+select, input[type="text"], input[type="search"] {
+  font: inherit; font-size: .9rem; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; min-width: 0; width: 100%;
+}
+select:focus-visible, input:focus-visible, button:focus-visible, .drop:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+button {
+  font: inherit; font-size: .88rem; cursor: pointer; color: var(--fg); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; padding: 9px 16px; }
+button.primary:disabled { opacity: .5; cursor: not-allowed; }
+button.icon { padding: 2px 7px; font-family: var(--font-data); line-height: 1.4; }
+button.link { background: none; border: none; color: var(--accent); padding: 0; text-decoration: underline; }
+.check { display: flex; align-items: center; gap: 8px; font-size: .9rem; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+
+.drop { border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 6px; justify-items: start; background: var(--bg); transition: border-color .15s, background .15s; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop input[type="file"] { font-size: .85rem; max-width: 100%; }
+.fileinfo { font-size: .85rem; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--surface-2); color: var(--muted); }
+.pill.sample { background: var(--accent-soft); color: var(--accent); }
+.pill.warn { color: var(--warn); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: .85rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.chip .ord { font-family: var(--font-data); font-size: .72rem; margin-right: 4px; opacity: .8; }
+
+.filters { display: grid; gap: 8px; }
+.filter { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.1fr) auto; gap: 6px; align-items: center; }
+@media (max-width: 420px) { .filter { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; } .filter .fval { grid-column: 1 / 3; } }
+.filter .fval:disabled { opacity: .4; }
+
+.cols { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+.cols li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: .88rem; }
+.cols li:nth-child(even) { background: var(--surface); }
+.cols li .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cols li .letter { font-family: var(--font-data); font-size: .72rem; color: var(--muted); width: 2.2em; }
+.cols li.off .name { color: var(--muted); text-decoration: line-through; }
+
+/* Preview */
+.preview { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; min-width: 0; overflow: hidden; }
+.summary { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 12px 16px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.stat { display: grid; }
+.stat b { font: 600 1.25rem/1.2 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat small { color: var(--muted); font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; }
+.tablebox { overflow: auto; max-height: 62vh; min-height: 240px; background: var(--bg); }
+table.sheet { border-collapse: collapse; font: .82rem/1.35 var(--font-data); font-variant-numeric: tabular-nums; min-width: 100%; }
+table.sheet th, table.sheet td { border: 1px solid var(--line); padding: 3px 8px; white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+table.sheet thead th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted); font-weight: 400; text-align: center; z-index: 2; }
+table.sheet th.rn { background: var(--surface-2); color: var(--muted); font-weight: 400; text-align: right; position: sticky; left: 0; z-index: 1; min-width: 3em; }
+table.sheet thead th.rn { z-index: 3; }
+table.sheet tr.hdr td { font-weight: 600; background: var(--accent-soft); }
+table.sheet td { background: var(--surface); }
+table.sheet td.num { text-align: right; }
+.more { padding: 8px 16px; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line); }
+.empty { padding: 40px 16px; color: var(--muted); text-align: center; }
+.tabs { display: flex; gap: 0; overflow-x: auto; border-top: 1px solid var(--line); background: var(--surface-2); padding: 0 8px; }
+.tab { border: none; border-right: 1px solid var(--line); border-radius: 0; background: transparent; padding: 7px 14px 6px; white-space: nowrap; font-size: .85rem; color: var(--muted); border-bottom: 3px solid transparent; }
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--fg); font-weight: 600; border-bottom-color: var(--accent); }
+.tab .cnt { font-family: var(--font-data); font-size: .72rem; color: var(--muted); margin-left: 6px; }
+.exportbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; padding: 14px 16px; border-top: 1px solid var(--line); }
+.exportbar .field { flex: 1 1 220px; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px 16px; flex-basis: 100%; }
+.status { flex-basis: 100%; font-size: .85rem; min-height: 1.3em; margin: 0; }
+.status.err { color: var(--danger); }
+.status.ok { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>CSV σε Φύλλα <span>Excel</span></h1>
+      <p class="lede">Φόρτωσε ένα αρχείο CSV, κράτησε μόνο τις γραμμές που θέλεις και μοίρασέ τες σε φύλλα. Κάθε φύλλο παίρνει το όνομά του από την τιμή της στήλης που διαλέγεις. Η επεξεργασία γίνεται τοπικά, στον browser σου.</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="steps">
+      <section class="step" aria-labelledby="s1">
+        <h2 id="s1"><span class="n">1</span>Αρχείο CSV</h2>
+        <div class="drop" id="drop">
+          <input type="file" id="file" accept=".csv,.txt,text/csv">
+          <p class="hint">ή σύρε το αρχείο εδώ</p>
+        </div>
+        <div class="fileinfo" id="fileinfo"></div>
+        <div class="grid2">
+          <div class="field">
+            <label class="lbl" for="enc">Κωδικοποίηση</label>
+            <select id="enc">
+              <option value="auto">Αυτόματη</option>
+              <option value="utf-8">UTF-8</option>
+              <option value="windows-1253">Windows-1253 (Ελληνικά)</option>
+              <option value="iso-8859-7">ISO-8859-7 (Ελληνικά)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="lbl" for="delim">Διαχωριστικό</label>
+            <select id="delim">
+              <option value="auto">Αυτόματο</option>
+              <option value=",">Κόμμα ( , )</option>
+              <option value=";">Ερωτηματικό ( ; )</option>
+              <option value="\t">Tab</option>
+              <option value="|">Κάθετος ( | )</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="lbl" for="dec">Δεκαδικοί αριθμοί</label>
+            <select id="dec">
+              <option value=",">1.234,56 (ελληνικό)</option>
+              <option value=".">1,234.56 (διεθνές)</option>
+              <option value="none">Χωρίς μετατροπή σε αριθμό</option>
+            </select>
+          </div>
+          <div class="field" style="align-content:end">
+            <label class="check"><input type="checkbox" id="hasHeader" checked> Η 1η γραμμή έχει τίτλους</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s2">
+        <h2 id="s2"><span class="n">2</span>Φίλτρα γραμμών</h2>
+        <p class="hint">Κρατούνται μόνο οι γραμμές που περνούν τα φίλτρα. Οι συγκρίσεις αγνοούν τόνους και κεφαλαία.</p>
+        <div class="row" id="modeRow">
+          <label class="lbl" for="fmode">Να ισχύουν</label>
+          <select id="fmode" style="width:auto">
+            <option value="and">όλα τα φίλτρα (ΚΑΙ)</option>
+            <option value="or">τουλάχιστον ένα (Ή)</option>
+          </select>
+        </div>
+        <div class="filters" id="filters"></div>
+        <div class="row"><button id="addFilter" type="button">+ Προσθήκη φίλτρου</button></div>
+      </section>
+
+      <section class="step" aria-labelledby="s3">
+        <h2 id="s3"><span class="n">3</span>Ονόματα φύλλων</h2>
+        <p class="hint">Διάλεξε τη στήλη (ή τις στήλες) που δίνει όνομα σε κάθε φύλλο. Κάθε διαφορετική τιμή γίνεται ένα φύλλο.</p>
+        <div class="chips" id="sheetCols"></div>
+        <div class="grid2">
+          <div class="field">
+            <label class="lbl" for="sep">Ένωση πολλών στηλών με</label>
+            <input type="text" id="sep" value=" - " maxlength="5">
+          </div>
+          <div class="field">
+            <label class="lbl" for="sheetOrder">Σειρά φύλλων</label>
+            <select id="sheetOrder">
+              <option value="alpha">Αλφαβητική</option>
+              <option value="count">Περισσότερες γραμμές πρώτα</option>
+              <option value="first">Όπως εμφανίζονται στο CSV</option>
+            </select>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="allSheet"> Πρόσθεσε και φύλλο «Όλα» με όλες τις γραμμές</label>
+      </section>
+
+      <section class="step" aria-labelledby="s4">
+        <h2 id="s4"><span class="n">4</span>Στήλες και ταξινόμηση</h2>
+        <p class="hint">Τσέκαρε τις στήλες που θα μπουν σε κάθε φύλλο και άλλαξε τη σειρά τους με τα βελάκια.</p>
+        <div class="row">
+          <button class="link" type="button" id="colsAll">Όλες</button>
+          <button class="link" type="button" id="colsNone">Καμία</button>
+          <button class="link" type="button" id="colsReset">Αρχική σειρά</button>
+        </div>
+        <ul class="cols" id="cols"></ul>
+        <div class="grid2">
+          <div class="field">
+            <label class="lbl" for="sortCol">Ταξινόμηση γραμμών κατά</label>
+            <select id="sortCol"></select>
+          </div>
+          <div class="field">
+            <label class="lbl" for="sortDir">Φορά</label>
+            <select id="sortDir">
+              <option value="asc">Αύξουσα (Α→Ω, 1→9)</option>
+              <option value="desc">Φθίνουσα (Ω→Α, 9→1)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="preview" aria-label="Προεπισκόπηση">
+      <div class="summary" id="summary"></div>
+      <div class="tablebox" id="tablebox"></div>
+      <div class="tabs" id="tabs" role="tablist" aria-label="Φύλλα"></div>
+      <div class="exportbar">
+        <div class="field">
+          <label class="lbl" for="outName">Όνομα αρχείου Excel</label>
+          <input type="text" id="outName" value="fylla.xlsx">
+        </div>
+        <button class="primary" id="exportBtn" type="button">Λήψη Excel (.xlsx)</button>
+        <div class="opts">
+          <label class="check"><input type="checkbox" id="optFilter" checked> Φίλτρο στη γραμμή τίτλων</label>
+          <label class="check"><input type="checkbox" id="optWidths" checked> Αυτόματο πλάτος στηλών</label>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+"use strict";
+
+/* ---------- Δείγμα δεδομένων (για να φαίνεται τι κάνει η εφαρμογή) ---------- */
+const SAMPLE = `Ημερομηνία;Περιοχή;Κατάστημα;Πωλητής;Κατηγορία;Προϊόν;Ποσότητα;Τιμή μονάδας;Σύνολο
+03/02/2026;Αττική;Μαρούσι;Γ. Παππάς;Γραφική ύλη;Μπλοκ Α4;40;2,80;112,00
+03/02/2026;Κεντρική Μακεδονία;Καλαμαριά;Ε. Δημητρίου;Αναλώσιμα;Toner HP 26A;3;89,90;269,70
+04/02/2026;Κρήτη;Ηράκλειο;Μ. Σταυράκη;Έπιπλα;Καρέκλα γραφείου;2;145,00;290,00
+04/02/2026;Αττική;Πειραιάς;Ν. Κωστόπουλος;Αναλώσιμα;Χαρτί φωτοτυπικό (κούτα);12;24,50;294,00
+05/02/2026;Δυτική Ελλάδα;Πάτρα;Α. Νικολάου;Γραφική ύλη;Στυλό διαρκείας (κουτί);15;6,20;93,00
+05/02/2026;Αττική;Μαρούσι;Γ. Παππάς;Έπιπλα;Συρταριέρα;1;210,00;210,00
+06/02/2026;Κεντρική Μακεδονία;Κέντρο Θεσσαλονίκης;Ι. Αθανασίου;Γραφική ύλη;Φάκελοι αρχειοθέτησης;60;1,15;69,00
+06/02/2026;Κρήτη;Χανιά;Δ. Μαυράκης;Αναλώσιμα;Μελάνι Epson 603;8;14,90;119,20
+09/02/2026;Αττική;Πειραιάς;Ν. Κωστόπουλος;Γραφική ύλη;Μπλοκ Α4;25;2,80;70,00
+09/02/2026;Δυτική Ελλάδα;Αγρίνιο;Σ. Γεωργίου;Έπιπλα;Γραφείο 140x70;1;320,00;320,00
+10/02/2026;Κεντρική Μακεδονία;Καλαμαριά;Ε. Δημητρίου;Γραφική ύλη;Μαρκαδόροι πίνακα;30;1,90;57,00
+10/02/2026;Αττική;Μαρούσι;Κ. Λαμπράκη;Αναλώσιμα;Toner HP 26A;5;89,90;449,50
+11/02/2026;Κρήτη;Ηράκλειο;Μ. Σταυράκη;Γραφική ύλη;Συρραπτικό;10;7,40;74,00
+11/02/2026;Αττική;Πειραιάς;Ν. Κωστόπουλος;Έπιπλα;Καρέκλα γραφείου;4;145,00;580,00
+12/02/2026;Δυτική Ελλάδα;Πάτρα;Α. Νικολάου;Αναλώσιμα;Χαρτί φωτοτυπικό (κούτα);6;24,50;147,00
+12/02/2026;Κεντρική Μακεδονία;Κέντρο Θεσσαλονίκης;Ι. Αθανασίου;Έπιπλα;Ραφιέρα μεταλλική;2;98,00;196,00
+13/02/2026;Αττική;Μαρούσι;Γ. Παππάς;Γραφική ύλη;Post-it (πακέτο);50;3,10;155,00
+13/02/2026;Κρήτη;Χανιά;Δ. Μαυράκης;Έπιπλα;Συρταριέρα;1;210,00;210,00
+16/02/2026;Δυτική Ελλάδα;Αγρίνιο;Σ. Γεωργίου;Γραφική ύλη;Στυλό διαρκείας (κουτί);8;6,20;49,60
+16/02/2026;Αττική;Πειραιάς;Κ. Λαμπράκη;Αναλώσιμα;Μελάνι Epson 603;20;14,90;298,00
+17/02/2026;Κεντρική Μακεδονία;Καλαμαριά;Ε. Δημητρίου;Αναλώσιμα;Χαρτί φωτοτυπικό (κούτα);10;24,50;245,00
+17/02/2026;Κρήτη;Ηράκλειο;Μ. Σταυράκη;Αναλώσιμα;Toner HP 26A;2;89,90;179,80
+18/02/2026;Αττική;Μαρούσι;Γ. Παππάς;Αναλώσιμα;Χαρτί φωτοτυπικό (κούτα);15;24,50;367,50
+18/02/2026;Δυτική Ελλάδα;Πάτρα;Α. Νικολάου;Έπιπλα;Καρέκλα γραφείου;3;145,00;435,00`;
+
+/* ---------- Κατάσταση ---------- */
+const state = {
+  fileName: "", isSample: false, raw: null, usedEnc: "", usedDelim: "",
+  headers: [], rows: [],
+  sheetCols: [], cols: [], filters: [], fmode: "and",
+  sortCol: -1, sortDir: "asc", sheetOrder: "alpha", sep: " - ", allSheet: false,
+  decimal: ",", active: 0, sheets: [], filteredCount: 0,
+};
+
+const $ = (s) => document.querySelector(s);
+function h(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null) e.append(k);
+  return e;
+}
+const colLetter = (i) => { let s = ""; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+const fmt = (n) => n.toLocaleString("el-GR");
+
+/* ---------- Κανονικοποίηση & σύγκριση ---------- */
+function norm(s) {
+  return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLocaleLowerCase("el").replace(/ς/g, "σ").trim();
+}
+function toNum(s, dec) {
+  if (dec === "none") return null;
+  let t = String(s ?? "").trim().replace(/[\s ]/g, "");
+  if (!t || t.length > 18) return null;
+  if (/^[-+]?0\d/.test(t)) return null; // κωδικοί με αρχικό 0 (ΑΦΜ, ΤΚ) μένουν κείμενο
+  const re = dec === ","
+    ? /^[-+]?(\d{1,3}(\.\d{3})+|\d+)(,\d+)?$/
+    : /^[-+]?(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$/;
+  if (!re.test(t)) return null;
+  t = dec === "," ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+function toDate(s) {
+  const t = String(s ?? "").trim();
+  let m = t.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if (m) return Date.UTC(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
+  return null;
+}
+const cmpDec = () => (state.decimal === "none" ? "." : state.decimal);
+function compareValues(a, b) {
+  const da = toDate(a), db = toDate(b);
+  if (da !== null && db !== null) return da - db;
+  const na = toNum(a, cmpDec()), nb = toNum(b, cmpDec());
+  if (na !== null && nb !== null) return na - nb;
+  return String(a).localeCompare(String(b), "el", { numeric: true, sensitivity: "base" });
+}
+
+/* ---------- Φίλτρα ---------- */
+const OPS = [
+  ["eq", "ισούται με"], ["ne", "διαφέρει από"], ["contains", "περιέχει"], ["notcontains", "δεν περιέχει"],
+  ["starts", "ξεκινά με"], ["in", "είναι ένα από (με κόμμα)"],
+  ["gt", "μεγαλύτερο από"], ["gte", "μεγαλύτερο ή ίσο"], ["lt", "μικρότερο από"], ["lte", "μικρότερο ή ίσο"],
+  ["empty", "είναι κενό"], ["notempty", "δεν είναι κενό"],
+];
+const NO_VALUE = new Set(["empty", "notempty"]);
+function passes(row, f) {
+  const raw = row[f.col] ?? "";
+  if (f.op === "empty") return raw.trim() === "";
+  if (f.op === "notempty") return raw.trim() !== "";
+  if (f.val.trim() === "") return true; // ημιτελές φίλτρο: δεν αποκλείει τίποτα
+  const a = norm(raw), b = norm(f.val);
+  switch (f.op) {
+    case "eq": return compareValues(raw, f.val) === 0 || a === b;
+    case "ne": return !(compareValues(raw, f.val) === 0 || a === b);
+    case "contains": return a.includes(b);
+    case "notcontains": return !a.includes(b);
+    case "starts": return a.startsWith(b);
+    case "in": return f.val.split(/[,;]/).map(norm).filter(Boolean).includes(a);
+    case "gt": return raw.trim() !== "" && compareValues(raw, f.val) > 0;
+    case "gte": return raw.trim() !== "" && compareValues(raw, f.val) >= 0;
+    case "lt": return raw.trim() !== "" && compareValues(raw, f.val) < 0;
+    case "lte": return raw.trim() !== "" && compareValues(raw, f.val) <= 0;
+  }
+  return true;
+}
+
+/* ---------- Ονόματα φύλλων κατά τους κανόνες του Excel ---------- */
+function sheetName(base, used) {
+  let n = String(base).replace(/[\[\]:*?\/\\]/g, "-").replace(/[\u0000-\u001f]/g, "").trim()
+    .replace(/^'+|'+$/g, "");
+  if (!n) n = "(Κενό)";
+  if (norm(n) === "history") n = "History-";
+  n = n.slice(0, 31);
+  let out = n, i = 2;
+  while (used.has(out.toLocaleLowerCase("el"))) {
+    const suf = ` (${i++})`;
+    out = n.slice(0, 31 - suf.length) + suf;
+  }
+  used.add(out.toLocaleLowerCase("el"));
+  return out;
+}
+
+/* ---------- Υπολογισμός φύλλων ---------- */
+function compute() {
+  const active = state.filters.filter((f) => f.col >= 0);
+  let rows = state.rows;
+  if (active.length) {
+    rows = rows.filter((r) => state.fmode === "and"
+      ? active.every((f) => passes(r, f)) : active.some((f) => passes(r, f)));
+  }
+  state.filteredCount = rows.length;
+  if (state.sortCol >= 0) {
+    const c = state.sortCol, dir = state.sortDir === "desc" ? -1 : 1;
+    rows = rows.map((r, i) => [r, i]).sort((x, y) => dir * compareValues(x[0][c] ?? "", y[0][c] ?? "") || x[1] - y[1]).map((x) => x[0]);
+  }
+  const groups = new Map();
+  if (state.sheetCols.length) {
+    for (const r of rows) {
+      const key = state.sheetCols.map((i) => (r[i] ?? "").trim()).join(state.sep);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
+    }
+  } else {
+    groups.set("Δεδομένα", rows);
+  }
+  let entries = [...groups.entries()];
+  if (state.sheetOrder === "alpha") entries.sort((a, b) => a[0].localeCompare(b[0], "el", { numeric: true }));
+  else if (state.sheetOrder === "count") entries.sort((a, b) => b[1].length - a[1].length);
+  const used = new Set();
+  const sheets = [];
+  if (state.allSheet && state.sheetCols.length) sheets.push({ name: sheetName("Όλα", used), rows, all: true });
+  for (const [key, rs] of entries) sheets.push({ name: sheetName(key, used), rows: rs, key });
+  state.sheets = sheets;
+  if (state.active >= sheets.length) state.active = 0;
+}
+const includedCols = () => state.cols.filter((c) => c.on).map((c) => c.idx);
+
+/* ---------- Φόρτωση & ανάλυση CSV ---------- */
+function decode(buf, enc) {
+  const bytes = new Uint8Array(buf);
+  if (enc === "auto") {
+    try { return { text: new TextDecoder("utf-8", { fatal: true }).decode(bytes), enc: "UTF-8" }; }
+    catch { return { text: new TextDecoder("windows-1253").decode(bytes), enc: "Windows-1253" }; }
+  }
+  return { text: new TextDecoder(enc).decode(bytes), enc: enc.toUpperCase() };
+}
+function parse(resetConfig) {
+  if (!state.raw) return;
+  const enc = $("#enc").value;
+  const { text, enc: usedEnc } = typeof state.raw === "string" ? { text: state.raw, enc: "UTF-8" } : decode(state.raw, enc);
+  const dsel = $("#delim").value;
+  const res = Papa.parse(text.replace(/^﻿/, ""), {
+    delimiter: dsel === "auto" ? "" : dsel === "\\t" ? "\t" : dsel,
+    skipEmptyLines: "greedy",
+    delimitersToGuess: [";", ",", "\t", "|"],
+  });
+  const data = res.data;
+  state.usedEnc = usedEnc;
+  state.usedDelim = res.meta.delimiter;
+  let headers;
+  const width = data.reduce((m, r) => Math.max(m, r.length), 0);
+  if ($("#hasHeader").checked && data.length) headers = data.shift().map((x) => String(x).trim());
+  else headers = [];
+  for (let i = 0; i < width; i++) if (!headers[i]) headers[i] = `Στήλη ${colLetter(i)}`;
+  state.headers = headers;
+  state.rows = data.map((r) => { const a = r.map((x) => String(x ?? "")); while (a.length < headers.length) a.push(""); return a; });
+  if (resetConfig) {
+    if (dsel === "auto") $("#dec").value = res.meta.delimiter === "," ? "." : ",";
+    state.decimal = $("#dec").value;
+    state.cols = headers.map((_, idx) => ({ idx, on: true }));
+    state.sheetCols = guessSheetCol();
+    state.filters = [];
+    state.sortCol = -1;
+    state.active = 0;
+  } else {
+    state.cols = state.cols.filter((c) => c.idx < headers.length);
+    for (let i = 0; i < headers.length; i++) if (!state.cols.some((c) => c.idx === i)) state.cols.push({ idx: i, on: true });
+    state.sheetCols = state.sheetCols.filter((i) => i < headers.length);
+    state.filters = state.filters.filter((f) => f.col < headers.length);
+  }
+  renderAll();
+}
+function guessSheetCol() {
+  // Η στήλη κειμένου με τις λιγότερες (τουλάχιστον 2) διαφορετικές τιμές
+  const limit = Math.max(2, Math.min(60, Math.floor(state.rows.length / 2)));
+  let best = -1, bestSize = Infinity;
+  for (let i = 0; i < state.headers.length; i++) {
+    const u = new Set();
+    let typed = 0;
+    for (const r of state.rows) {
+      const v = (r[i] ?? "").trim();
+      if (toNum(v, cmpDec()) !== null || toDate(v) !== null) typed++;
+      u.add(norm(v));
+      if (u.size > limit) break;
+    }
+    if (typed > state.rows.length / 2) continue;
+    if (u.size >= 2 && u.size <= limit && u.size < bestSize) { best = i; bestSize = u.size; }
+  }
+  return best >= 0 ? [best] : [];
+}
+function loadFile(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    state.raw = fr.result; state.fileName = file.name; state.isSample = false;
+    $("#outName").value = file.name.replace(/\.[^.]+$/, "") + "_fylla.xlsx";
+    setStatus("");
+    parse(true);
+  };
+  fr.onerror = () => setStatus("Δεν ήταν δυνατή η ανάγνωση του αρχείου. Δοκίμασε ξανά ή διάλεξε άλλο αρχείο.", "err");
+  fr.readAsArrayBuffer(file);
+}
+
+/* ---------- Απόδοση ---------- */
+function renderFileInfo() {
+  const box = $("#fileinfo");
+  box.replaceChildren(...[
+    state.isSample ? h("span", { class: "pill sample", text: "Δείγμα" }) : null,
+    h("strong", { text: state.fileName }),
+    h("span", { class: "pill", text: `${fmt(state.rows.length)} γραμμές` }),
+    h("span", { class: "pill", text: `${state.headers.length} στήλες` }),
+    h("span", { class: "pill", text: state.usedEnc }),
+    h("span", { class: "pill", text: `διαχωριστικό ${state.usedDelim === "\t" ? "Tab" : `« ${state.usedDelim} »`}` }),
+  ].filter(Boolean));
+}
+function colOptions(selected, withNone) {
+  const opts = withNone ? [h("option", { value: "-1", text: "— χωρίς ταξινόμηση —" })] : [];
+  state.headers.forEach((name, i) => opts.push(h("option", { value: String(i), text: `${colLetter(i)} · ${name}`, selected: i === selected })));
+  return opts;
+}
+function renderSheetCols() {
+  const box = $("#sheetCols");
+  box.replaceChildren(...state.headers.map((name, i) => {
+    const pos = state.sheetCols.indexOf(i);
+    return h("button", {
+      type: "button", class: "chip", "aria-pressed": String(pos >= 0),
+      onclick: () => {
+        const p = state.sheetCols.indexOf(i);
+        if (p >= 0) state.sheetCols.splice(p, 1); else state.sheetCols.push(i);
+        state.active = 0; renderSheetCols(); update();
+      },
+    }, pos >= 0 && state.sheetCols.length > 1 ? h("span", { class: "ord", text: String(pos + 1) }) : null, name);
+  }));
+}
+function renderCols() {
+  const list = $("#cols");
+  list.replaceChildren(...state.cols.map((c, pos) => {
+    const id = `col-${c.idx}`;
+    return h("li", { class: c.on ? "" : "off" },
+      h("input", { type: "checkbox", id, checked: c.on, onchange: (e) => { c.on = e.target.checked; renderCols(); update(); } }),
+      h("span", { class: "letter", text: colLetter(c.idx) }),
+      h("label", { class: "name", for: id, text: state.headers[c.idx], title: state.headers[c.idx] }),
+      h("button", { type: "button", class: "icon", "aria-label": `Μετακίνηση πάνω: ${state.headers[c.idx]}`, disabled: pos === 0, onclick: () => moveCol(pos, -1) }, "↑"),
+      h("button", { type: "button", class: "icon", "aria-label": `Μετακίνηση κάτω: ${state.headers[c.idx]}`, disabled: pos === state.cols.length - 1, onclick: () => moveCol(pos, 1) }, "↓"),
+    );
+  }));
+  $("#sortCol").replaceChildren(...colOptions(state.sortCol, true));
+}
+function moveCol(pos, d) {
+  const t = pos + d;
+  if (t < 0 || t >= state.cols.length) return;
+  [state.cols[pos], state.cols[t]] = [state.cols[t], state.cols[pos]];
+  renderCols(); update();
+}
+function uniqueValues(col, max = 300) {
+  const seen = new Map();
+  for (const r of state.rows) {
+    const v = (r[col] ?? "").trim();
+    if (v && !seen.has(v)) { seen.set(v, 1); if (seen.size >= max) break; }
+  }
+  return [...seen.keys()].sort((a, b) => compareValues(a, b));
+}
+function renderFilters() {
+  const box = $("#filters");
+  $("#modeRow").hidden = state.filters.length < 2;
+  if (!state.filters.length) { box.replaceChildren(h("p", { class: "hint", text: "Κανένα φίλτρο: περνούν όλες οι γραμμές." })); return; }
+  box.replaceChildren(...state.filters.map((f, k) => {
+    const dl = `dl-${k}`;
+    const val = h("input", { type: "text", class: "fval", id: `fval-${k}`, list: dl, value: f.val, placeholder: "τιμή", "aria-label": "Τιμή φίλτρου", disabled: NO_VALUE.has(f.op),
+      oninput: (e) => { f.val = e.target.value; update(); } });
+    const datalist = h("datalist", { id: dl }, ...uniqueValues(f.col).map((v) => h("option", { value: v })));
+    return h("div", { class: "filter" },
+      h("select", { id: `fcol-${k}`, "aria-label": "Στήλη φίλτρου", onchange: (e) => { f.col = +e.target.value; renderFilters(); update(); } }, ...colOptions(f.col, false)),
+      h("select", { id: `fop-${k}`, "aria-label": "Συνθήκη", onchange: (e) => { f.op = e.target.value; renderFilters(); update(); } },
+        ...OPS.map(([v, t]) => h("option", { value: v, text: t, selected: v === f.op }))),
+      val, datalist,
+      h("button", { type: "button", class: "icon", "aria-label": "Αφαίρεση φίλτρου", onclick: () => { state.filters.splice(k, 1); renderFilters(); update(); } }, "×"),
+    );
+  }));
+}
+function renderPreview() {
+  const cols = includedCols();
+  const s = state.sheets;
+  $("#summary").replaceChildren(...[
+    stat(fmt(state.rows.length), "γραμμές στο CSV"),
+    stat(fmt(state.filteredCount), "μετά τα φίλτρα"),
+    stat(fmt(s.length), s.length === 1 ? "φύλλο" : "φύλλα"),
+    stat(fmt(cols.length), "στήλες ανά φύλλο"),
+    s.length > 250 ? h("span", { class: "pill warn", text: "Πολλά φύλλα: το Excel θα ανοίγει αργά" }) : null,
+  ].filter(Boolean));
+  $("#exportBtn").disabled = !cols.length || !s.length;
+
+  const tabs = $("#tabs");
+  tabs.replaceChildren(...s.map((sh, i) => h("button", {
+    type: "button", class: "tab", role: "tab", "aria-selected": String(i === state.active), title: sh.name,
+    onclick: () => { state.active = i; renderPreview(); },
+  }, sh.name, h("span", { class: "cnt", text: fmt(sh.rows.length) }))));
+  tabs.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+
+  const box = $("#tablebox");
+  const more = box.parentElement.querySelector(".more");
+  if (more) more.remove();
+  if (!cols.length) { box.replaceChildren(h("p", { class: "empty", text: "Δεν έχεις επιλέξει στήλες. Τσέκαρε τουλάχιστον μία στο βήμα 4." })); return; }
+  const sh = s[state.active];
+  if (!sh || !sh.rows.length) { box.replaceChildren(h("p", { class: "empty", text: "Καμία γραμμή δεν περνά τα φίλτρα. Χαλάρωσε ένα φίλτρο στο βήμα 2." })); return; }
+  const LIMIT = 200;
+  const thead = h("thead", {}, h("tr", {}, h("th", { class: "rn" }), ...cols.map((_, j) => h("th", { text: colLetter(j) }))));
+  const body = h("tbody", {}, h("tr", { class: "hdr" }, h("th", { class: "rn", text: "1" }), ...cols.map((c) => h("td", { text: state.headers[c], title: state.headers[c] }))));
+  sh.rows.slice(0, LIMIT).forEach((r, i) => {
+    body.append(h("tr", {}, h("th", { class: "rn", text: String(i + 2) }), ...cols.map((c) => {
+      const v = r[c] ?? "";
+      return h("td", { class: toNum(v, state.decimal) !== null ? "num" : "", text: v, title: v.length > 40 ? v : null });
+    })));
+  });
+  box.replaceChildren(h("table", { class: "sheet" }, thead, body));
+  box.scrollTop = 0;
+  if (sh.rows.length > LIMIT) box.after(h("div", { class: "more", text: `Προεπισκόπηση των πρώτων ${LIMIT} από ${fmt(sh.rows.length)} γραμμές. Το Excel θα τις περιέχει όλες.` }));
+}
+const stat = (v, l) => h("div", { class: "stat" }, h("b", { text: v }), h("small", { text: l }));
+function update() { compute(); renderPreview(); }
+function renderAll() { renderFileInfo(); renderSheetCols(); renderCols(); renderFilters(); update(); }
+
+/* ---------- Εξαγωγή σε Excel ---------- */
+function buildWorkbook() {
+  const cols = includedCols();
+  const wb = XLSX.utils.book_new();
+  for (const sh of state.sheets) {
+    const aoa = [cols.map((c) => state.headers[c])];
+    for (const r of sh.rows) aoa.push(cols.map((c) => { const v = r[c] ?? ""; const n = toNum(v, state.decimal); return n !== null ? n : v; }));
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    if ($("#optWidths").checked) {
+      ws["!cols"] = cols.map((_, j) => {
+        let w = 6;
+        for (let i = 0; i < Math.min(aoa.length, 2000); i++) w = Math.max(w, String(aoa[i][j] ?? "").length + 2);
+        return { wch: Math.min(w, 60) };
+      });
+    }
+    if ($("#optFilter").checked && aoa.length > 1) ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: cols.length - 1 } }) };
+    XLSX.utils.book_append_sheet(wb, ws, sh.name);
+  }
+  return wb;
+}
+const downloadsReady = window.claude && typeof window.claude.use === "function"
+  ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null);
+
+async function exportXlsx() {
+  let name = $("#outName").value.trim().replace(/[\\\/:*?"<>|]/g, "-") || "fylla.xlsx";
+  if (!/\.xlsx$/i.test(name)) name += ".xlsx";
+  const btn = $("#exportBtn");
+  btn.disabled = true;
+  setStatus("Δημιουργία αρχείου…");
+  try {
+    const wb = buildWorkbook();
+    const downloads = await downloadsReady;
+    if (downloads) {
+      const buf = XLSX.write(wb, { bookType: "xlsx", type: "array", compression: true });
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      try {
+        await downloads.save({ filename: name, data: blob });
+        setStatus(`Αποθηκεύτηκε το ${name} με ${state.sheets.length} φύλλα.`, "ok");
+      } catch (e) {
+        if (e && e.code === "declined") setStatus("Η λήψη ακυρώθηκε.");
+        else if (e && e.code === "rate_limited") setStatus("Υπάρχει ήδη ανοιχτό παράθυρο λήψης. Περίμενε λίγο και ξαναδοκίμασε.", "err");
+        else setStatus("Η λήψη αρχείων δεν είναι διαθέσιμη σε αυτή την προβολή. Άνοιξε τη σελίδα σε browser.", "err");
+      }
+    } else {
+      XLSX.writeFile(wb, name, { compression: true });
+      setStatus(`Δημιουργήθηκε το ${name} με ${state.sheets.length} φύλλα.`, "ok");
+    }
+  } catch (e) {
+    setStatus("Το αρχείο δεν δημιουργήθηκε: " + (e && e.message ? e.message : e), "err");
+  } finally {
+    btn.disabled = false;
+  }
+}
+function setStatus(msg, kind = "") { const s = $("#status"); s.textContent = msg; s.className = "status" + (kind ? " " + kind : ""); }
+
+/* ---------- Συμβάντα ---------- */
+$("#file").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) loadFile(f); });
+const drop = $("#drop");
+["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+$("#enc").addEventListener("change", () => parse(false));
+$("#delim").addEventListener("change", () => parse(true));
+$("#hasHeader").addEventListener("change", () => parse(true));
+$("#dec").addEventListener("change", (e) => { state.decimal = e.target.value; update(); });
+$("#fmode").addEventListener("change", (e) => { state.fmode = e.target.value; update(); });
+$("#addFilter").addEventListener("click", () => {
+  if (!state.headers.length) return;
+  state.filters.push({ col: state.sheetCols[0] ?? 0, op: "eq", val: "" });
+  renderFilters(); update();
+  document.getElementById(`fval-${state.filters.length - 1}`)?.focus();
+});
+$("#sep").addEventListener("input", (e) => { state.sep = e.target.value; update(); });
+$("#sheetOrder").addEventListener("change", (e) => { state.sheetOrder = e.target.value; state.active = 0; update(); });
+$("#allSheet").addEventListener("change", (e) => { state.allSheet = e.target.checked; state.active = 0; update(); });
+$("#sortCol").addEventListener("change", (e) => { state.sortCol = +e.target.value; update(); });
+$("#sortDir").addEventListener("change", (e) => { state.sortDir = e.target.value; update(); });
+$("#colsAll").addEventListener("click", () => { state.cols.forEach((c) => (c.on = true)); renderCols(); update(); });
+$("#colsNone").addEventListener("click", () => { state.cols.forEach((c) => (c.on = false)); renderCols(); update(); });
+$("#colsReset").addEventListener("click", () => { state.cols.sort((a, b) => a.idx - b.idx); renderCols(); update(); });
+$("#exportBtn").addEventListener("click", exportXlsx);
+
+/* ---------- Εκκίνηση με το δείγμα ---------- */
+state.raw = SAMPLE; state.fileName = "pwliseis_deigma.csv"; state.isSample = true;
+$("#outName").value = "pwliseis_fylla.xlsx";
+parse(true);
+state.sheetCols = [1]; // Περιοχή
+renderSheetCols(); update();
+</script>
+</body>
+</html>
