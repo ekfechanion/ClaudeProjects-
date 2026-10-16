@@ -869,6 +869,80 @@ kbd {
 .empty-group-title { font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
 .mini-item .source-tag { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
 
+.editor-content, .wf-print-content, .doc-content .wf-card { display: flow-root; }
+.doc-content .wf-float-left { float: left; margin: 4px 16px 8px 0; }
+.doc-content .wf-float-right { float: right; margin: 4px 0 8px 16px; }
+.doc-content img.wf-float-left, .doc-content img.wf-float-right { max-width: 70%; }
+
+.doc-content .wf-embed {
+  display: block; width: 100%; max-width: 100%; margin: 8px auto 12px; border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden; background: var(--surface); user-select: none;
+}
+.doc-content .wf-embed.wf-obj-left { margin-left: 0; margin-right: auto; }
+.doc-content .wf-embed.wf-obj-right { margin-left: auto; margin-right: 0; }
+.doc-content .wf-embed.wf-float-left { margin: 4px 16px 8px 0; }
+.doc-content .wf-embed.wf-float-right { margin: 4px 0 8px 16px; }
+.doc-content .wf-embed.is-selected { outline: 2px solid var(--primary); outline-offset: 2px; }
+.wf-embed-bar {
+  display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 8px; cursor: pointer;
+  background: var(--surface-2); border-bottom: 1px solid var(--border); font: 600 13px/1.4 var(--font-ui, sans-serif); color: var(--text-2);
+}
+.wf-embed-bar:hover { color: var(--primary); }
+.wf-embed-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.wf-embed-host { font-weight: 400; font-size: 12px; color: var(--text-3); white-space: nowrap; }
+.wf-embed iframe { display: block; width: 100%; border: 0; background: #FFFFFF; }
+.wf-embed-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px;
+  text-align: center; font: 14px/1.5 var(--font-ui, sans-serif); color: var(--text-2); overflow: hidden;
+}
+.wf-embed-placeholder a { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.is-obj-resizing iframe { pointer-events: none; }
+.img-handle.s { left: calc(50% - 6px); bottom: -6px; cursor: ns-resize; }
+.img-toolbar .btn-icon.is-active { background: var(--primary-soft); color: var(--primary); }
+.embed-preview:empty { display: none; }
+.embed-preview .wf-embed { margin: 0; }
+.embed-info { overflow-wrap: anywhere; }
+
+.doc-content .wf-embed-link {
+  margin: 0 0 12px; padding: 6px 10px; border-left: 3px solid var(--doc-accent, var(--primary)); background: rgba(37, 99, 235, 0.06);
+  border-radius: 0 4px 4px 0; line-height: 1.45; break-inside: avoid;
+}
+.doc-content .wf-embed-link a { font-weight: 600; }
+.doc-content .wf-embed-mark { color: var(--doc-accent, var(--primary)); font-weight: 700; }
+.doc-content .wf-embed-url { font-size: 0.82em; color: #475569; overflow-wrap: anywhere; }
+
+.crop-editor { align-items: stretch; }
+.crop-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.crop-controls .btn { gap: 6px; }
+.crop-fine { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text-2); }
+.crop-fine input { flex: 1; max-width: 360px; }
+.crop-fine-label { min-width: 48px; font-variant-numeric: tabular-nums; color: var(--text); }
+.crop-wrap {
+  display: flex; align-items: center; justify-content: center; padding: 16px; border-radius: 6px; min-height: 200px;
+  background: repeating-conic-gradient(#CBD5E1 0% 25%, #F1F5F9 0% 50%) 50% / 16px 16px;
+}
+.crop-stage { position: relative; touch-action: none; }
+.crop-clip { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.crop-shade { position: absolute; box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.55); }
+.crop-canvas { display: block; }
+.crop-box { position: absolute; outline: 2px solid #FFFFFF; cursor: move; touch-action: none; }
+.crop-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(to right, transparent calc(33.33% - 0.5px), rgba(255, 255, 255, 0.6) calc(33.33% - 0.5px), rgba(255, 255, 255, 0.6) calc(33.33% + 0.5px), transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), rgba(255, 255, 255, 0.6) calc(66.66% - 0.5px), rgba(255, 255, 255, 0.6) calc(66.66% + 0.5px), transparent calc(66.66% + 0.5px)),
+    linear-gradient(to bottom, transparent calc(33.33% - 0.5px), rgba(255, 255, 255, 0.6) calc(33.33% - 0.5px), rgba(255, 255, 255, 0.6) calc(33.33% + 0.5px), transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), rgba(255, 255, 255, 0.6) calc(66.66% - 0.5px), rgba(255, 255, 255, 0.6) calc(66.66% + 0.5px), transparent calc(66.66% + 0.5px));
+}
+.crop-handle { position: absolute; width: 14px; height: 14px; background: #FFFFFF; border: 2px solid var(--primary); border-radius: 2px; touch-action: none; }
+.crop-handle.nw { left: -7px; top: -7px; cursor: nwse-resize; }
+.crop-handle.n { left: calc(50% - 7px); top: -7px; cursor: ns-resize; }
+.crop-handle.ne { right: -7px; top: -7px; cursor: nesw-resize; }
+.crop-handle.e { right: -7px; top: calc(50% - 7px); cursor: ew-resize; }
+.crop-handle.se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.crop-handle.s { left: calc(50% - 7px); bottom: -7px; cursor: ns-resize; }
+.crop-handle.sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
+.crop-handle.w { left: -7px; top: calc(50% - 7px); cursor: ew-resize; }
+.crop-size { margin: 0; }
+
 </style>
 </head>
 <body>
@@ -1641,6 +1715,17 @@ const Util = (() => {
     card: ['M4.5 4.5h15a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18V6a1.5 1.5 0 0 1 1.5-1.5z', 'M3 4.5v15', 'M7 9h9', 'M7 13h6'],
     'eye-off': ['M3.98 8.22A10.48 10.48 0 0 0 1.93 12c1.29 4.34 5.31 7.5 10.07 7.5.99 0 1.95-.14 2.86-.4', 'M6.23 6.23A10.45 10.45 0 0 1 12 4.5c4.76 0 8.77 3.16 10.07 7.5a10.52 10.52 0 0 1-4.29 5.77', 'M6.23 6.23L3 3m3.23 3.23l3.65 3.65m7.89 7.89L21 21m-3.23-3.23l-3.65-3.65m0 0a3 3 0 1 0-4.24-4.24m4.24 4.24L9.88 9.88'],
     import: ['M19.5 14.25v-2.63a3.38 3.38 0 0 0-3.38-3.37h-1.5a1.13 1.13 0 0 1-1.12-1.13v-1.5a3.38 3.38 0 0 0-3.38-3.37H8.25', 'M10.5 2.25H5.63c-.62 0-1.13.5-1.13 1.13v17.25c0 .62.5 1.12 1.13 1.12h12.75c.62 0 1.12-.5 1.12-1.12V11.25a9 9 0 0 0-9-9z', 'M12 11.25v6', 'M9.75 15L12 17.25 14.25 15'],
+    'obj-left': ['M3 4h18', 'M3 20h18', 'M3 7.5h9v9H3z'],
+    'obj-center': ['M3 4h18', 'M3 20h18', 'M7.5 7.5h9v9h-9z'],
+    'obj-right': ['M3 4h18', 'M3 20h18', 'M12 7.5h9v9h-9z'],
+    'wrap-left': ['M3 4h18', 'M3 20h18', 'M3 7.5h8v9H3z', 'M14 8h7', 'M14 12h7', 'M14 16h7'],
+    'wrap-right': ['M3 4h18', 'M3 20h18', 'M13 7.5h8v9h-8z', 'M3 8h7', 'M3 12h7', 'M3 16h7'],
+    crop: ['M6 2v14a2 2 0 0 0 2 2h14', 'M18 22V8a2 2 0 0 0-2-2H2'],
+    'rotate-left': ['M3 12a9 9 0 1 0 2.64-6.36L3 8.25', 'M3 3v5.25h5.25'],
+    'rotate-right': ['M21 12a9 9 0 1 1-2.64-6.36L21 8.25', 'M21 3v5.25h-5.25'],
+    'flip-h': ['M12 3v18', 'M8 7L3 17h5z', 'M16 7l5 10h-5z'],
+    'flip-v': ['M3 12h18', 'M7 8L17 3v5z', 'M7 16l10 5v-5z'],
+    embed: ['M17.25 6.75L22.5 12l-5.25 5.25', 'M6.75 17.25L1.5 12l5.25-5.25', 'M14.25 3.75l-4.5 16.5'],
     palette: ['M4.1 19.9a3 3 0 0 0 4.24 0l9.9-9.9a3 3 0 0 0 0-4.24l-.7-.7a3 3 0 0 0-4.24 0L3.4 15a3 3 0 0 0 0 4.24z', 'M12 6.5l5.5 5.5', 'M6.5 17.5h.01']
   };
 
@@ -2189,7 +2274,9 @@ const Sanitizer = (() => {
     'vertical-align', 'width', 'margin-left', 'margin-right', 'margin', 'padding-left', 'padding', 'border', 'display'];
   const PASTE_STYLE_PROPS = ['text-align', 'font-weight', 'font-style', 'text-decoration-line', 'vertical-align'];
   const CLASSES = new Set(['wf-table', 'wf-caption', 'wf-graph', 'wf-img', 'wf-grid', 'wf-grid-plain', 'wf-tip', 'wf-card', 'wf-card-title',
-    'wf-card-note', 'wf-card-tip', 'wf-card-warn', 'wf-card-def', 'wf-card-remember', 'wf-checklist']);
+    'wf-card-note', 'wf-card-tip', 'wf-card-warn', 'wf-card-def', 'wf-card-remember', 'wf-checklist', 'wf-float-left', 'wf-float-right',
+    'wf-obj-left', 'wf-obj-right']);
+  const PLACEMENT = ['wf-float-left', 'wf-float-right', 'wf-obj-left', 'wf-obj-right'];
   const IMG_SRC = /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[a-z0-9+/=\s]+$/i;
   const HREF = /^(https?:\/\/|mailto:)/i;
 
@@ -2235,6 +2322,10 @@ const Sanitizer = (() => {
     }
     if (el.classList.contains('math-node')) {
       cleanMath(el);
+      return;
+    }
+    if (el.classList.contains('wf-embed')) {
+      cleanEmbed(el);
       return;
     }
     if (el.classList.contains('wf-pagebreak')) {
@@ -2341,6 +2432,44 @@ const Sanitizer = (() => {
     span.setAttribute('data-display', display ? '1' : '0');
     span.setAttribute('contenteditable', 'false');
     el.replaceWith(span);
+  }
+
+  /**
+   * Ελέγχει διεύθυνση ενσωμάτωσης (μόνο https).
+   * @param {string} value
+   * @returns {string}
+   */
+  function safeHttps(value) {
+    const url = String(value || '').trim();
+    if (url.length > 2000 || !/^https:\/\/[^\s"'<>]+$/i.test(url)) return '';
+    try {
+      return new URL(url).protocol === 'https:' ? url : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  /**
+   * Κρατά μόνο τα δεδομένα μιας ενσωμάτωσης (iframe)· το πλαίσιο δημιουργείται ξανά από το Embeds.
+   * @param {Element} el
+   */
+  function cleanEmbed(el) {
+    const src = safeHttps(el.getAttribute('data-src'));
+    if (!src) {
+      el.remove();
+      return;
+    }
+    const div = el.ownerDocument.createElement('div');
+    div.className = ['wf-embed', ...PLACEMENT.filter(c => el.classList.contains(c))].join(' ');
+    div.setAttribute('contenteditable', 'false');
+    div.setAttribute('data-src', src);
+    div.setAttribute('data-href', safeHttps(el.getAttribute('data-href')) || src);
+    div.setAttribute('data-title', (el.getAttribute('data-title') || '').slice(0, 200));
+    const height = Math.round(Number(el.getAttribute('data-height')));
+    div.setAttribute('data-height', String(height >= 120 && height <= 1200 ? height : 360));
+    const width = /^(\d{1,3}(?:\.\d+)?)%$/.exec((el.style && el.style.width) || '');
+    if (width && Number(width[1]) >= 15 && Number(width[1]) <= 100) div.style.width = `${Number(width[1])}%`;
+    el.replaceWith(div);
   }
 
   /**
@@ -3553,12 +3682,12 @@ const EditorManager = (() => {
   };
 
   const TYPE_TOOLS = {
-    text: ['block', 'inline', 'list', 'align', 'image', 'math', 'card', 'link'],
-    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'math', 'card'],
-    image: ['inlineBasic', 'align', 'image', 'caption', 'math'],
+    text: ['block', 'inline', 'list', 'align', 'image', 'math', 'card', 'link', 'embed'],
+    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'math', 'card', 'embed'],
+    image: ['inlineBasic', 'align', 'image', 'caption', 'math', 'embed'],
     math: ['inlineBasic', 'list', 'align', 'math', 'image'],
     graph: ['inline', 'align', 'graph', 'image', 'caption', 'math'],
-    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'pagebreak']
+    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'pagebreak']
   };
 
   const BUTTONS = {
@@ -3584,6 +3713,7 @@ const EditorManager = (() => {
     math: { glyph: '∑', label: 'Μαθηματικά', title: 'Εισαγωγή μαθηματικής έκφρασης (Ctrl+M)', run: id => MathEngine.open({ sectionId: id }) },
     graph: { icon: 'chart', title: 'Γραφική παράσταση (Ctrl+Alt+G)', run: id => GraphEngine.open({ sectionId: id }) },
     link: { icon: 'link', title: 'Εισαγωγή συνδέσμου (Ctrl+K)', run: id => InsertTools.link(id) },
+    embed: { icon: 'embed', title: 'Ενσωμάτωση από σύνδεσμο: βίντεο, προσομοίωση, εφαρμογή (Ctrl+Alt+E)', run: id => Embeds.open({ sectionId: id }) },
     columns: { icon: 'columns', title: 'Διάταξη σε στήλες (π.χ. Παρατήρηση / Πείραμα / Συμπέρασμα)', run: id => InsertTools.columns(id) },
     card: { icon: 'card', title: 'Πλαίσιο περιεχομένου (Σημείωση, Tip, Προσοχή, Ορισμός…)', run: id => InsertTools.card(id) },
     pagebreak: { icon: 'pagebreak', title: 'Αλλαγή σελίδας στην εκτύπωση', run: id => InsertTools.pageBreak(id) },
@@ -3821,7 +3951,7 @@ const EditorManager = (() => {
     else if (tools.has('inlineBasic')) groups.push(['bold', 'italic', 'underline', 'sup', 'sub'].map(k => toolButton(block, k)));
     if (tools.has('list')) groups.push(['ul', 'ol', 'check', 'indent', 'outdent'].map(k => toolButton(block, k)));
     if (tools.has('align')) groups.push(['left', 'center', 'right', 'justify'].map(k => toolButton(block, k)));
-    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'pagebreak'].filter(k => tools.has(k));
+    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'pagebreak'].filter(k => tools.has(k));
     if (inserts.length) groups.push(inserts.map(k => toolButton(block, k)));
     groups.push((Dictation.supported() ? ['mic', 'undo', 'redo', 'clear'] : ['undo', 'redo', 'clear']).map(k => toolButton(block, k)));
     groups.forEach((group, i) => {
@@ -3891,6 +4021,7 @@ const EditorManager = (() => {
     block.content.innerHTML = Sanitizer.clean(html || '');
     if (!block.content.firstChild) block.content.innerHTML = '<p><br></p>';
     MathEngine.hydrate(block.content);
+    Embeds.hydrate(block.content);
     block.undo = { stack: [block.content.innerHTML], index: 0 };
     refreshStatus(block);
   }
@@ -4243,7 +4374,7 @@ const EditorManager = (() => {
    */
   function serializeEl(el) {
     const clone = el.cloneNode(true);
-    clone.querySelectorAll('.math-node').forEach(n => n.replaceChildren());
+    clone.querySelectorAll('.math-node, .wf-embed').forEach(n => n.replaceChildren());
     clone.querySelectorAll('.is-selected').forEach(n => n.classList.remove('is-selected'));
     clone.querySelectorAll('[class=""]').forEach(n => n.removeAttribute('class'));
     return clone.innerHTML;
@@ -4269,7 +4400,7 @@ const EditorManager = (() => {
    * @returns {boolean}
    */
   function isFilled(root) {
-    if (root.querySelector('img, .math-node')) return true;
+    if (root.querySelector('img, .math-node, .wf-embed')) return true;
     const clone = root.cloneNode(true);
     clone.querySelectorAll('th, .wf-pagebreak').forEach(n => n.remove());
     return clone.textContent.replace(/[ ​]/g, ' ').trim().length > 0;
@@ -4280,7 +4411,7 @@ const EditorManager = (() => {
    * @returns {boolean} αν πρέπει να φαίνεται το placeholder
    */
   function isVisuallyEmpty(root) {
-    return !root.querySelector('img, table, .math-node, ul, ol, .wf-pagebreak, hr') && !root.textContent.replace(/[ ​]/g, ' ').trim();
+    return !root.querySelector('img, table, .math-node, .wf-embed, ul, ol, .wf-pagebreak, hr') && !root.textContent.replace(/[ ​]/g, ' ').trim();
   }
 
   /**
@@ -4521,7 +4652,7 @@ const EditorManager = (() => {
    * @returns {boolean}
    */
   function isBlankBlock(el) {
-    return /^(P|DIV|H[1-4])$/.test(el.tagName) && !el.classList.contains('wf-pagebreak') && !el.textContent.replace(/[ ​]/g, '').trim() && !el.querySelector('img, table, .math-node');
+    return /^(P|DIV|H[1-4])$/.test(el.tagName) && !el.classList.contains('wf-pagebreak') && !el.textContent.replace(/[ ​]/g, '').trim() && !el.querySelector('img, table, .math-node, .wf-embed');
   }
 
   /**
@@ -4569,6 +4700,7 @@ const EditorManager = (() => {
       if (heading) return run(() => exec('formatBlock', `<${heading}>`, block.id));
       if (code === 'KeyT') return run(() => InsertTools.table(block.id));
       if (code === 'KeyG') return run(() => GraphEngine.open({ sectionId: block.id }));
+      if (code === 'KeyE') return run(() => Embeds.open({ sectionId: block.id }));
       if (code === 'KeyI') return run(() => InsertTools.image(block.id));
     }
     if (e.key === 'Tab' && !mod && !e.altKey) {
@@ -4623,6 +4755,7 @@ const EditorManager = (() => {
       const tpl = document.createElement('template');
       tpl.innerHTML = clean;
       MathEngine.hydrate(tpl.content);
+      Embeds.hydrate(tpl.content);
       const nodes = Array.from(tpl.content.childNodes);
       if (nodes.length) {
         restoreSelection(block);
@@ -4677,9 +4810,9 @@ const EditorManager = (() => {
    */
   function onClick(e, block) {
     const target = e.target;
-    const img = target.closest && target.closest('img');
-    if (img && block.content.contains(img)) {
-      InsertTools.selectImage(img, block.id);
+    const obj = target.closest && target.closest('img, .wf-embed');
+    if (obj && block.content.contains(obj)) {
+      InsertTools.selectImage(obj, block.id);
       return;
     }
     InsertTools.hideOverlays();
@@ -4968,7 +5101,7 @@ const InsertTools = (() => {
     document.addEventListener('mousedown', e => {
       if (menu && !menu.contains(e.target)) hideMenu();
       if (popover && !popover.contains(e.target) && !(e.target.closest && e.target.closest('a'))) hidePopover();
-      if (overlay && !overlay.contains(e.target) && e.target !== overlayImg) hideImageOverlay();
+      if (overlay && !overlay.contains(e.target) && !(overlayImg && overlayImg.contains(e.target))) hideImageOverlay();
     });
     const reposition = () => {
       cancelAnimationFrame(frame);
@@ -5305,20 +5438,34 @@ const InsertTools = (() => {
   }
 
   /**
-   * Επιλογή εικόνας: πλαίσιο με λαβές αλλαγής μεγέθους και μικρή γραμμή εργαλείων.
-   * @param {HTMLImageElement} img
+   * Θέσεις αντικειμένου στο κείμενο: [κλειδί, εικονίδιο, τίτλος].
+   * @type {Array<[string, string, string]>}
+   */
+  const PLACEMENTS = [
+    ['wrap-left', 'wrap-left', 'Αριστερά, με το κείμενο γύρω του'],
+    ['left', 'obj-left', 'Αριστερά'],
+    ['center', 'obj-center', 'Στο κέντρο'],
+    ['right', 'obj-right', 'Δεξιά'],
+    ['wrap-right', 'wrap-right', 'Δεξιά, με το κείμενο γύρω του']
+  ];
+  const PLACEMENT_CLASSES = ['wf-float-left', 'wf-float-right', 'wf-obj-left', 'wf-obj-right'];
+
+  /**
+   * Επιλογή αντικειμένου (εικόνα, γράφημα, ενσωμάτωση): πλαίσιο με λαβές και γραμμή εργαλείων.
+   * @param {HTMLElement} el
    * @param {string} id
    */
-  function selectImage(img, id) {
+  function selectImage(el, id) {
     hideImageOverlay();
     hidePopover();
-    overlayImg = img;
+    overlayImg = el;
     overlayId = id;
-    img.classList.add('is-selected');
-    const handles = ['nw', 'ne', 'sw', 'se'].map(pos => {
-      const el = Util.h('span', { class: `img-handle ${pos}`, title: 'Σύρε για αλλαγή μεγέθους' });
-      el.addEventListener('mousedown', e => startResize(e, pos));
-      return el;
+    el.classList.add('is-selected');
+    const isEmbed = el.classList.contains('wf-embed');
+    const handles = ['nw', 'ne', 'sw', 'se', ...(isEmbed ? ['s'] : [])].map(pos => {
+      const el2 = Util.h('span', { class: `img-handle ${pos}`, title: pos === 's' ? 'Σύρε για αλλαγή ύψους' : 'Σύρε για αλλαγή μεγέθους' });
+      el2.addEventListener('mousedown', e => startResize(e, pos));
+      return el2;
     });
     const btn = (iconName, title, fn, danger) => {
       const b = Util.h('button', { class: `btn-icon btn-sm${danger ? ' is-danger' : ''}`, type: 'button', title, 'aria-label': title }, Util.icon(iconName, 16));
@@ -5333,24 +5480,76 @@ const InsertTools = (() => {
       return b;
     };
     overlayLabel = Util.h('span', { class: 'img-size-label' });
-    const isGraph = img.hasAttribute('data-graph-json');
+    const isGraph = el.hasAttribute('data-graph-json');
+    const placeButtons = PLACEMENTS.map(([key, iconName, title]) => {
+      const b = btn(iconName, title, () => setPlacement(key));
+      b.dataset.place = key;
+      return b;
+    });
+    const objectTools = isEmbed
+      ? [
+        btn('pencil', 'Αλλαγή συνδέσμου, τίτλου ή ύψους', () => { const n = overlayImg; hideImageOverlay(); Embeds.open({ sectionId: id, node: n }); }),
+        btn('external', 'Άνοιγμα σε νέα καρτέλα', () => window.open(el.getAttribute('data-href') || el.getAttribute('data-src'), '_blank', 'noopener')),
+        btn('trash', 'Διαγραφή ενσωμάτωσης', removeSelectedImage, true)
+      ]
+      : [
+        isGraph ? null : btn('crop', 'Περικοπή και περιστροφή', editImage),
+        btn('text', 'Εναλλακτικό κείμενο', editAlt),
+        isGraph ? btn('chart', 'Επεξεργασία γραφήματος', () => { const i = overlayImg; hideImageOverlay(); GraphEngine.open({ sectionId: id, image: i }); }) : null,
+        btn('trash', 'Διαγραφή εικόνας', removeSelectedImage, true)
+      ];
     overlayToolbar = Util.h('div', { class: 'img-toolbar' },
-      btn('align-left', 'Στοίχιση αριστερά', () => alignImage('left')),
-      btn('align-center', 'Στοίχιση στο κέντρο', () => alignImage('center')),
-      btn('align-right', 'Στοίχιση δεξιά', () => alignImage('right')),
+      placeButtons,
       Util.h('span', { class: 'tb-sep' }),
       [25, 50, 75, 100].map(p => textBtn(`${p}%`, () => setWidth(p))),
       Util.h('span', { class: 'tb-sep' }),
-      btn('text', 'Εναλλακτικό κείμενο', editAlt),
-      isGraph ? btn('chart', 'Επεξεργασία γραφήματος', () => { const i = overlayImg; hideImageOverlay(); GraphEngine.open({ sectionId: id, image: i }); }) : null,
-      btn('trash', 'Διαγραφή εικόνας', removeSelectedImage, true),
+      objectTools,
       overlayLabel);
     overlay = Util.h('div', { class: 'img-overlay' }, handles, overlayToolbar);
     document.body.append(overlay);
     positionOverlay();
   }
 
-  /** Τοποθετεί το πλαίσιο επιλογής πάνω στην εικόνα. */
+  /**
+   * Τρέχουσα θέση αντικειμένου στο κείμενο.
+   * @param {HTMLElement} el
+   * @returns {string}
+   */
+  function placementOf(el) {
+    if (el.classList.contains('wf-float-left')) return 'wrap-left';
+    if (el.classList.contains('wf-float-right')) return 'wrap-right';
+    if (el.tagName === 'IMG') {
+      const p = el.parentElement;
+      const a = p && !p.classList.contains('editor-content') ? p.style.textAlign : '';
+      return a === 'center' || a === 'right' ? a : 'left';
+    }
+    if (el.classList.contains('wf-obj-left')) return 'left';
+    if (el.classList.contains('wf-obj-right')) return 'right';
+    return 'center';
+  }
+
+  /**
+   * Αλλάζει τη θέση του επιλεγμένου αντικειμένου (στοίχιση ή αναδίπλωση κειμένου).
+   * @param {string} mode
+   */
+  function setPlacement(mode) {
+    const el = overlayImg;
+    if (!el) return;
+    el.classList.remove(...PLACEMENT_CLASSES);
+    if (mode.startsWith('wrap')) {
+      el.classList.add(mode === 'wrap-left' ? 'wf-float-left' : 'wf-float-right');
+      if ((parseFloat(el.style.width) || 100) > 60) el.style.width = '45%';
+    } else if (el.tagName === 'IMG') {
+      alignImage(mode);
+      return;
+    } else if (mode !== 'center') {
+      el.classList.add(`wf-obj-${mode}`);
+    }
+    EditorManager.commit(overlayId);
+    positionOverlay();
+  }
+
+  /** Τοποθετεί το πλαίσιο επιλογής πάνω στο αντικείμενο. */
   function positionOverlay() {
     if (!overlay) return;
     if (!overlayImg || !document.contains(overlayImg)) {
@@ -5368,31 +5567,57 @@ const InsertTools = (() => {
     const maxTop = area.bottom - 8 - tbH - r.top;
     overlayToolbar.style.top = `${Math.min(Math.max(above, minTop), Math.max(maxTop, above))}px`;
     overlayToolbar.style.bottom = 'auto';
-    overlayLabel.textContent = overlayImg.style.width || `${Math.round(r.width)} px`;
+    const tbW = overlayToolbar.offsetWidth;
+    overlayToolbar.style.left = `${Math.min(0, Math.max(area.left + 8 - r.left, area.right - 8 - tbW - r.left))}px`;
+    const place = placementOf(overlayImg);
+    overlayToolbar.querySelectorAll('[data-place]').forEach(b => b.classList.toggle('is-active', b.dataset.place === place));
+    const height = overlayImg.classList.contains('wf-embed') ? ` · ${overlayImg.getAttribute('data-height')} px ύψος` : '';
+    overlayLabel.textContent = `${overlayImg.style.width || `${Math.round(r.width)} px`}${height}`;
   }
 
   /**
-   * Αλλαγή μεγέθους με σύρσιμο γωνίας (πλάτος ως ποσοστό του πλάτους κειμένου).
+   * Πλάτος περιεχομένου του γονικού στοιχείου (χωρίς εσωτερικά περιθώρια).
+   * @param {HTMLElement} el
+   * @returns {number}
+   */
+  function innerWidth(el) {
+    const cs = getComputedStyle(el);
+    return Math.max(50, el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+  }
+
+  /**
+   * Αλλαγή μεγέθους με σύρσιμο γωνίας (πλάτος ως ποσοστό του πλάτους κειμένου) ή ύψους ενσωμάτωσης.
    * @param {MouseEvent} e
    * @param {string} pos
    */
   function startResize(e, pos) {
     e.preventDefault();
     e.stopPropagation();
-    const img = overlayImg;
+    const el = overlayImg;
     const startX = e.clientX;
-    const startW = img.getBoundingClientRect().width;
-    const containerW = Math.max(50, img.parentElement.clientWidth);
+    const startY = e.clientY;
+    const startW = el.getBoundingClientRect().width;
+    const startH = Number(el.getAttribute('data-height')) || 360;
+    const containerW = innerWidth(el.parentElement);
     const dir = pos.includes('e') ? 1 : -1;
+    document.body.classList.add('is-obj-resizing');
     const move = ev => {
-      const w = Util.clamp(startW + dir * (ev.clientX - startX), 24, containerW);
-      img.style.width = `${((w / containerW) * 100).toFixed(1)}%`;
-      img.style.removeProperty('height');
+      if (pos === 's') {
+        const hgt = Math.round(Util.clamp(startH + ev.clientY - startY, 120, 1200) / 10) * 10;
+        el.setAttribute('data-height', String(hgt));
+        const frame = el.querySelector('iframe, .wf-embed-placeholder');
+        if (frame) frame.style.height = `${hgt}px`;
+      } else {
+        const w = Util.clamp(startW + dir * (ev.clientX - startX), 24, containerW);
+        el.style.width = `${((w / containerW) * 100).toFixed(1)}%`;
+        el.style.removeProperty('height');
+      }
       positionOverlay();
     };
     const up = () => {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
+      document.body.classList.remove('is-obj-resizing');
       EditorManager.commit(overlayId);
       positionOverlay();
     };
@@ -5401,12 +5626,14 @@ const InsertTools = (() => {
   }
 
   /**
+   * Στοίχιση εικόνας μέσα στη γραμμή της (χωρίς αναδίπλωση κειμένου).
    * @param {'left'|'center'|'right'} dir
    */
   function alignImage(dir) {
     if (!overlayImg) return;
+    overlayImg.classList.remove(...PLACEMENT_CLASSES);
     let p = overlayImg.parentElement;
-    if (p.classList.contains('editor-content')) {
+    if (p.classList.contains('editor-content') || p.tagName === 'TD' || p.tagName === 'TH' || p.tagName === 'LI' || p.classList.contains('wf-card')) {
       const wrap = Util.h('p');
       overlayImg.replaceWith(wrap);
       wrap.append(overlayImg);
@@ -5423,6 +5650,7 @@ const InsertTools = (() => {
   function setWidth(pct) {
     if (!overlayImg) return;
     overlayImg.style.width = `${pct}%`;
+    if (pct === 100) overlayImg.classList.remove('wf-float-left', 'wf-float-right');
     EditorManager.commit(overlayId);
     positionOverlay();
   }
@@ -5438,7 +5666,207 @@ const InsertTools = (() => {
     EditorManager.commit(id);
   }
 
-  /** Διαγράφει την επιλεγμένη εικόνα. */
+  /**
+   * Διάλογος περικοπής και περιστροφής της επιλεγμένης εικόνας.
+   * Η περιστροφή γίνεται ανά 90° ή με λεπτή ευθυγράμμιση ±45°· η περικοπή με σύρσιμο του πλαισίου.
+   * @returns {Promise<void>}
+   */
+  async function editImage() {
+    const img = overlayImg;
+    const id = overlayId;
+    if (!img || img.tagName !== 'IMG') return;
+    hideImageOverlay();
+    let source;
+    try {
+      source = await Util.loadImage(img.src);
+    } catch (e) {
+      Toast.show('Η εικόνα δεν μπόρεσε να φορτωθεί για επεξεργασία', 'error');
+      return;
+    }
+    const jpeg = /^data:image\/jpe?g/i.test(img.src);
+    const MAX = 2400;
+    const full = { x: 0, y: 0, w: 1, h: 1 };
+    const state = { quarter: 0, fine: 0, flipH: false, flipV: false, crop: { ...full } };
+    const rotated = document.createElement('canvas');
+    const view = Util.h('canvas', { class: 'crop-canvas', 'aria-label': 'Προεπισκόπηση εικόνας' });
+    const box = Util.h('div', { class: 'crop-box', title: 'Σύρε για μετακίνηση της περιοχής περικοπής' },
+      Util.h('span', { class: 'crop-grid' }),
+      ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map(pos => {
+        const hdl = Util.h('span', { class: `crop-handle ${pos}` });
+        hdl.addEventListener('pointerdown', e => startDrag(e, pos));
+        return hdl;
+      }));
+    box.addEventListener('pointerdown', e => startDrag(e, 'move'));
+    const shade = Util.h('div', { class: 'crop-shade' });
+    const stage = Util.h('div', { class: 'crop-stage' }, view, Util.h('div', { class: 'crop-clip' }, shade), box);
+    const sizeInfo = Util.h('span', { class: 'hint crop-size' });
+    const fineLabel = Util.h('span', { class: 'crop-fine-label', text: '0°' });
+    const fine = Util.h('input', { type: 'range', min: '-45', max: '45', step: '0.5', value: '0', 'aria-label': 'Ευθυγράμμιση σε μοίρες' });
+
+    const angle = () => ((state.quarter * 90) + state.fine) * Math.PI / 180;
+
+    const placeBox = () => {
+      const c = state.crop;
+      const rect = { left: `${c.x * view.width}px`, top: `${c.y * view.height}px`, width: `${c.w * view.width}px`, height: `${c.h * view.height}px` };
+      Object.assign(box.style, rect);
+      Object.assign(shade.style, rect);
+      sizeInfo.textContent = `Τελικό μέγεθος: ${Math.round(c.w * rotated.width)} × ${Math.round(c.h * rotated.height)} px`;
+    };
+
+    const draw = () => {
+      const a = angle();
+      const scale = Math.min(1, MAX / Math.max(source.naturalWidth, source.naturalHeight));
+      const w = source.naturalWidth * scale;
+      const hgt = source.naturalHeight * scale;
+      const cos = Math.abs(Math.cos(a));
+      const sin = Math.abs(Math.sin(a));
+      rotated.width = Math.max(1, Math.round((w * cos) + (hgt * sin)));
+      rotated.height = Math.max(1, Math.round((w * sin) + (hgt * cos)));
+      const ctx = rotated.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, rotated.width, rotated.height);
+      if (jpeg) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, rotated.width, rotated.height);
+      }
+      ctx.translate(rotated.width / 2, rotated.height / 2);
+      ctx.scale(state.flipH ? -1 : 1, state.flipV ? -1 : 1);
+      ctx.rotate(a);
+      ctx.drawImage(source, -w / 2, -hgt / 2, w, hgt);
+      const maxW = Math.max(200, Math.min(680, window.innerWidth - 120));
+      const maxH = Math.max(160, Math.min(440, window.innerHeight - 340));
+      const k = Math.min(maxW / rotated.width, maxH / rotated.height, 2);
+      view.width = Math.max(1, Math.round(rotated.width * k));
+      view.height = Math.max(1, Math.round(rotated.height * k));
+      view.getContext('2d').drawImage(rotated, 0, 0, view.width, view.height);
+      stage.style.width = `${view.width}px`;
+      stage.style.height = `${view.height}px`;
+      placeBox();
+    };
+
+    /**
+     * @param {PointerEvent} e
+     * @param {string} mode
+     */
+    function startDrag(e, mode) {
+      e.preventDefault();
+      e.stopPropagation();
+      const start = { ...state.crop };
+      const sx = e.clientX;
+      const sy = e.clientY;
+      const W = view.width;
+      const H = view.height;
+      const minW = Math.min(1, 16 / W);
+      const minH = Math.min(1, 16 / H);
+      const move = ev => {
+        const dx = (ev.clientX - sx) / W;
+        const dy = (ev.clientY - sy) / H;
+        let { x, y, w, h } = start;
+        if (mode === 'move') {
+          x = Util.clamp(x + dx, 0, 1 - w);
+          y = Util.clamp(y + dy, 0, 1 - h);
+        } else {
+          if (mode.includes('w')) {
+            const nx = Util.clamp(x + dx, 0, x + w - minW);
+            w += x - nx;
+            x = nx;
+          }
+          if (mode.includes('e')) w = Util.clamp(w + dx, minW, 1 - x);
+          if (mode.includes('n')) {
+            const ny = Util.clamp(y + dy, 0, y + h - minH);
+            h += y - ny;
+            y = ny;
+          }
+          if (mode.includes('s')) h = Util.clamp(h + dy, minH, 1 - y);
+        }
+        state.crop = { x, y, w, h };
+        placeBox();
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    }
+
+    const rotate = dir => {
+      const c = state.crop;
+      state.crop = dir > 0 ? { x: 1 - c.y - c.h, y: c.x, w: c.h, h: c.w } : { x: c.y, y: 1 - c.x - c.w, w: c.h, h: c.w };
+      state.quarter = (state.quarter + dir + 4) % 4;
+      draw();
+    };
+    const flip = axis => {
+      const c = state.crop;
+      if (axis === 'h') {
+        state.flipH = !state.flipH;
+        state.crop = { ...c, x: 1 - c.x - c.w };
+      } else {
+        state.flipV = !state.flipV;
+        state.crop = { ...c, y: 1 - c.y - c.h };
+      }
+      draw();
+    };
+    const reset = () => {
+      Object.assign(state, { quarter: 0, fine: 0, flipH: false, flipV: false, crop: { ...full } });
+      fine.value = '0';
+      fineLabel.textContent = '0°';
+      draw();
+    };
+    fine.addEventListener('input', () => {
+      state.fine = Number(fine.value);
+      fineLabel.textContent = `${state.fine.toLocaleString('el-GR')}°`;
+      draw();
+    });
+    const tool = (iconName, label, fn) => {
+      const b = Util.h('button', { class: 'btn btn-secondary btn-sm', type: 'button', title: label }, Util.icon(iconName, 16), Util.h('span', { text: label }));
+      b.addEventListener('click', fn);
+      return b;
+    };
+    const fullCrop = tool('expand', 'Όλη η εικόνα', () => { state.crop = { ...full }; placeBox(); });
+    const controls = Util.h('div', { class: 'crop-controls' },
+      tool('rotate-left', 'Αριστερά 90°', () => rotate(-1)),
+      tool('rotate-right', 'Δεξιά 90°', () => rotate(1)),
+      tool('flip-h', 'Κατοπτρισμός ↔', () => flip('h')),
+      tool('flip-v', 'Κατοπτρισμός ↕', () => flip('v')),
+      fullCrop);
+    const fineRow = Util.h('label', { class: 'crop-fine' }, Util.h('span', { text: 'Ευθυγράμμιση' }), fine, fineLabel);
+
+    const apply = () => {
+      const c = state.crop;
+      const changed = state.quarter || state.fine || state.flipH || state.flipV || c.x > 0.001 || c.y > 0.001 || c.w < 0.999 || c.h < 0.999;
+      if (!changed) return true;
+      const out = document.createElement('canvas');
+      const sx = Math.round(c.x * rotated.width);
+      const sy = Math.round(c.y * rotated.height);
+      out.width = Math.max(1, Math.min(rotated.width - sx, Math.round(c.w * rotated.width)));
+      out.height = Math.max(1, Math.min(rotated.height - sy, Math.round(c.h * rotated.height)));
+      out.getContext('2d').drawImage(rotated, sx, sy, out.width, out.height, 0, 0, out.width, out.height);
+      img.src = jpeg ? out.toDataURL('image/jpeg', 0.92) : out.toDataURL('image/png');
+      EditorManager.commit(id);
+      const reselect = () => { if (document.contains(img)) selectImage(img, id); };
+      if (img.complete) requestAnimationFrame(reselect);
+      else img.addEventListener('load', reselect, { once: true });
+      return true;
+    };
+
+    Modal.open({
+      title: 'Περικοπή και περιστροφή εικόνας', size: 'lg',
+      body: Util.h('div', { class: 'stack crop-editor' },
+        controls, fineRow,
+        Util.h('div', { class: 'crop-wrap' }, stage),
+        Util.h('p', { class: 'hint', text: 'Σύρε τις λαβές για να ορίσεις την περιοχή που θα κρατηθεί ή σύρε το πλαίσιο για να το μετακινήσεις.' }),
+        sizeInfo),
+      actions: [
+        { label: 'Επαναφορά', variant: 'ghost', left: true, onClick: () => { reset(); return false; } },
+        { label: 'Ακύρωση', variant: 'secondary' },
+        { label: 'Εφαρμογή', variant: 'primary', onClick: apply }
+      ]
+    });
+    requestAnimationFrame(draw);
+  }
+
+  /** Διαγράφει το επιλεγμένο αντικείμενο. */
   function removeSelectedImage() {
     const img = overlayImg;
     const id = overlayId;
@@ -5447,15 +5875,16 @@ const InsertTools = (() => {
     const p = img.parentElement;
     img.remove();
     if (p && p.tagName === 'P' && !p.textContent.trim() && !p.querySelector('img, .math-node')) p.replaceChildren(Util.h('br'));
+    if (p && p.classList.contains('editor-content') && !p.firstChild) p.append(Util.h('p', null, Util.h('br')));
     EditorManager.commit(id);
   }
 
-  /** @returns {HTMLImageElement|null} */
+  /** @returns {HTMLElement|null} */
   function selectedImage() {
     return overlayImg && document.contains(overlayImg) ? overlayImg : null;
   }
 
-  /** Κρύβει το πλαίσιο εικόνας. */
+  /** Κρύβει το πλαίσιο επιλογής. */
   function hideImageOverlay() {
     if (overlayImg) overlayImg.classList.remove('is-selected');
     if (overlay) overlay.remove();
@@ -5756,7 +6185,7 @@ const InsertTools = (() => {
   }
 
   return {
-    init, table, addRow, tableMenu, image, insertImageFile, insertImageData, prepareImage, selectImage, selectedImage,
+    init, table, addRow, tableMenu, image, insertImageFile, insertImageData, prepareImage, selectImage, selectedImage, editImage, setPlacement,
     removeSelectedImage, hideOverlays, link, linkPopover, caption, pageBreak, columns, card, target
   };
 })();
@@ -5887,6 +6316,286 @@ const Dictation = (() => {
   function active() { return wanted; }
 
   return { supported, toggle, stop, active, process };
+})();
+
+/**
+ * Ενσωματώσεις (iframe) από απλό σύνδεσμο: βίντεο, προσομοιώσεις, εφαρμογές.
+ * Στο έγγραφο αποθηκεύονται μόνο τα δεδομένα (data-src, data-href, data-title, data-height)·
+ * το πλαίσιο δημιουργείται κατά τη φόρτωση. Στην έντυπη μορφή εμφανίζονται ως σύνδεσμος.
+ * @namespace Embeds
+ */
+const Embeds = (() => {
+  const HEIGHTS = [240, 360, 480, 600];
+  const SANDBOX = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-presentation';
+  const ALLOW = 'fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; accelerometer; gyroscope';
+
+  /**
+   * Βγάζει τη διεύθυνση από επικολλημένο κείμενο (σύνδεσμο ή κώδικα iframe).
+   * @param {string} raw
+   * @returns {string|null} διεύθυνση https
+   */
+  function extractUrl(raw) {
+    let text = String(raw || '').trim();
+    if (!text) return null;
+    if (/<iframe/i.test(text)) {
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      const frame = doc.querySelector('iframe');
+      text = frame ? (frame.getAttribute('src') || '').trim() : '';
+    }
+    if (text.startsWith('//')) text = `https:${text}`;
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(text)) text = `https://${text}`;
+    text = text.replace(/^http:\/\//i, 'https://');
+    try {
+      const url = new URL(text);
+      return url.protocol === 'https:' && url.hostname.includes('.') ? url.href : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Μετατρέπει χρόνο YouTube (π.χ. 90, 1m30s) σε δευτερόλεπτα.
+   * @param {string|null} t
+   * @returns {number}
+   */
+  function seconds(t) {
+    if (!t) return 0;
+    if (/^\d+$/.test(t)) return Number(t);
+    const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(t);
+    return m ? (Number(m[1] || 0) * 3600) + (Number(m[2] || 0) * 60) + Number(m[3] || 0) : 0;
+  }
+
+  /**
+   * Μετατρέπει σύνδεσμο σελίδας στη διεύθυνση ενσωμάτωσης της υπηρεσίας.
+   * @param {string} href
+   * @returns {{src: string, title: string, provider: string}}
+   */
+  function resolve(href) {
+    const url = new URL(href);
+    const host = url.hostname.replace(/^(www|m)\./, '');
+    const path = url.pathname;
+    let m;
+    if (host === 'youtu.be' || host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+      const id = host === 'youtu.be' ? path.slice(1).split('/')[0]
+        : url.searchParams.get('v') || ((m = /^\/(?:embed|shorts|live|v)\/([\w-]{6,})/.exec(path)) && m[1]);
+      if (id && /^[\w-]{6,}$/.test(id)) {
+        const start = seconds(url.searchParams.get('t') || url.searchParams.get('start'));
+        return { src: `https://www.youtube-nocookie.com/embed/${id}${start ? `?start=${start}` : ''}`, title: 'Βίντεο YouTube', provider: 'YouTube' };
+      }
+    }
+    if (host === 'vimeo.com' && (m = /^\/(?:video\/)?(\d+)/.exec(path))) {
+      return { src: `https://player.vimeo.com/video/${m[1]}`, title: 'Βίντεο Vimeo', provider: 'Vimeo' };
+    }
+    if (host === 'geogebra.org' && (m = /^\/(?:m|material\/show\/id|material\/iframe\/id)\/([\w-]+)/.exec(path))) {
+      return { src: `https://www.geogebra.org/material/iframe/id/${m[1]}/width/1200/height/700/border/888888/rc/false/ai/false/sdz/true/smb/false/stb/false/stbh/false/ld/false/sri/true`, title: 'Εφαρμογή GeoGebra', provider: 'GeoGebra' };
+    }
+    if (host === 'phet.colorado.edu' && (m = /^\/[\w-]+\/simulations?\/([\w-]+)/.exec(path))) {
+      const name = m[1];
+      const pretty = name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      return { src: `https://phet.colorado.edu/sims/html/${name}/latest/${name}_all.html?locale=el`, title: `Προσομοίωση PhET: ${pretty}`, provider: 'PhET' };
+    }
+    if (host === 'docs.google.com' && (m = /^\/(document|presentation|spreadsheets|forms)\/d\/(e\/)?([\w-]+)/.exec(path))) {
+      const [, kind, pub, id] = m;
+      const base = `https://docs.google.com/${kind}/d/${pub || ''}${id}`;
+      if (kind === 'forms') return { src: `${base}/viewform?embedded=true`, title: 'Φόρμα Google', provider: 'Google Forms' };
+      if (kind === 'presentation') return { src: pub ? `${base}/embed` : `${base}/embed?start=false&loop=false`, title: 'Παρουσίαση Google', provider: 'Google Slides' };
+      return { src: pub ? `${base}/pubhtml?widget=true&headers=false` : `${base}/preview`, title: kind === 'document' ? 'Έγγραφο Google' : 'Υπολογιστικό φύλλο Google', provider: 'Google' };
+    }
+    if (host === 'drive.google.com' && (m = /^\/file\/d\/([\w-]+)/.exec(path))) {
+      return { src: `https://drive.google.com/file/d/${m[1]}/preview`, title: 'Αρχείο Google Drive', provider: 'Google Drive' };
+    }
+    if (host === 'desmos.com' && /^\/(calculator|geometry|3d)\/\w+/.test(path)) {
+      return { src: `${url.origin}${path}?embed`, title: 'Γραφική παράσταση Desmos', provider: 'Desmos' };
+    }
+    return { src: href, title: url.hostname.replace(/^www\./, ''), provider: url.hostname.replace(/^www\./, '') };
+  }
+
+  /**
+   * @param {string} href
+   * @returns {string} σύντομο όνομα τοποθεσίας
+   */
+  function hostOf(href) {
+    try {
+      return new URL(href).hostname.replace(/^www\./, '');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  /**
+   * Δημιουργεί κόμβο ενσωμάτωσης.
+   * @param {{src: string, href: string, title: string, height?: number, width?: number}} o
+   * @returns {HTMLElement}
+   */
+  function create(o) {
+    const node = Util.h('div', {
+      class: 'wf-embed', contenteditable: 'false',
+      'data-src': o.src, 'data-href': o.href || o.src, 'data-title': (o.title || '').slice(0, 200),
+      'data-height': String(o.height || 360), style: `width: ${o.width || 100}%`
+    });
+    render(node);
+    return node;
+  }
+
+  /**
+   * Χτίζει το ορατό περιεχόμενο (γραμμή τίτλου και iframe) ενός κόμβου.
+   * @param {HTMLElement} node
+   */
+  function render(node) {
+    const src = node.getAttribute('data-src') || '';
+    const href = node.getAttribute('data-href') || src;
+    const title = node.getAttribute('data-title') || hostOf(href) || 'Ενσωματωμένο περιεχόμενο';
+    const height = Number(node.getAttribute('data-height')) || 360;
+    const bar = Util.h('div', { class: 'wf-embed-bar', title: 'Κλικ για επιλογή: μέγεθος, θέση, επεξεργασία' },
+      Util.icon('embed', 16), Util.h('span', { class: 'wf-embed-title', text: title }), Util.h('span', { class: 'wf-embed-host', text: hostOf(href) }));
+    let body;
+    if (Util.inArtifact()) {
+      body = Util.h('div', { class: 'wf-embed-placeholder', style: { height: `${height}px` } },
+        Util.icon('embed', 32),
+        Util.h('span', { text: 'Η προβολή ενσωματωμένου περιεχομένου δεν επιτρέπεται εδώ. Εμφανίζεται κανονικά στο τοπικό αρχείο και στην εξαγωγή HTML.' }),
+        Util.h('a', { href, target: '_blank', rel: 'noopener noreferrer', text: href }));
+    } else {
+      body = Util.h('iframe', {
+        src, title, loading: 'lazy', sandbox: SANDBOX, allow: ALLOW, allowfullscreen: true,
+        style: { height: `${height}px` }
+      });
+    }
+    node.replaceChildren(bar, body);
+  }
+
+  /**
+   * Δημιουργεί όσα πλαίσια λείπουν σε έναν περιέκτη.
+   * @param {ParentNode} container
+   */
+  function hydrate(container) {
+    container.querySelectorAll('.wf-embed').forEach(node => {
+      if (!node.querySelector('.wf-embed-bar')) render(node);
+    });
+  }
+
+  /**
+   * Έντυπη μορφή: σύνδεσμος με τίτλο και πλήρη διεύθυνση.
+   * @param {HTMLElement} node
+   * @returns {HTMLElement}
+   */
+  function printable(node) {
+    const href = node.getAttribute('data-href') || node.getAttribute('data-src') || '';
+    const title = node.getAttribute('data-title') || hostOf(href) || 'Ενσωματωμένο περιεχόμενο';
+    return Util.h('p', { class: 'wf-embed-link' },
+      Util.h('span', { class: 'wf-embed-mark', text: '↗ ' }),
+      Util.h('a', { href, target: '_blank', rel: 'noopener noreferrer', text: title }),
+      Util.h('br'),
+      Util.h('span', { class: 'wf-embed-url', text: href }));
+  }
+
+  /**
+   * Διαδραστική μορφή (για την εξαγωγή HTML): πλαίσιο και σύνδεσμος από κάτω.
+   * @param {HTMLElement} node
+   * @returns {HTMLElement}
+   */
+  function live(node) {
+    const src = node.getAttribute('data-src') || '';
+    const height = Number(node.getAttribute('data-height')) || 360;
+    const cls = ['wf-embed-live', ...['wf-float-left', 'wf-float-right', 'wf-obj-left', 'wf-obj-right'].filter(c => node.classList.contains(c))].join(' ');
+    return Util.h('div', { class: cls, style: node.getAttribute('style') || '' },
+      Util.h('iframe', { src, title: node.getAttribute('data-title') || 'Ενσωματωμένο περιεχόμενο', loading: 'lazy', sandbox: SANDBOX, allow: ALLOW, allowfullscreen: true, style: { height: `${height}px` } }),
+      printable(node));
+  }
+
+  /**
+   * Αντικαθιστά τις ενσωματώσεις ενός δέντρου με συνδέσμους (ή ζωντανά πλαίσια).
+   * @param {ParentNode} root
+   * @param {boolean} [keepLive=false]
+   */
+  function toOutput(root, keepLive = false) {
+    root.querySelectorAll('.wf-embed').forEach(node => node.replaceWith(keepLive ? live(node) : printable(node)));
+  }
+
+  /**
+   * Διάλογος εισαγωγής ή επεξεργασίας ενσωμάτωσης.
+   * @param {{sectionId?: string, node?: HTMLElement}} [o]
+   */
+  function open(o = {}) {
+    const editing = o.node || null;
+    const id = editing ? o.sectionId : InsertTools.target(o.sectionId);
+    if (!id) return;
+    const urlInput = Util.h('input', { class: 'input', type: 'text', placeholder: 'π.χ. https://phet.colorado.edu/el/simulations/projectile-motion', value: editing ? editing.getAttribute('data-href') || '' : '' });
+    const titleInput = Util.h('input', { class: 'input', type: 'text', maxlength: '200', placeholder: 'Τίτλος (εμφανίζεται και στην έντυπη μορφή)', value: editing ? editing.getAttribute('data-title') || '' : '' });
+    const heightSelect = Util.h('select', { class: 'input' }, HEIGHTS.map(hgt => Util.h('option', { value: String(hgt), text: `${hgt} px` })));
+    heightSelect.value = editing ? editing.getAttribute('data-height') : '360';
+    if (!heightSelect.value) heightSelect.value = '360';
+    const info = Util.h('p', { class: 'hint embed-info' });
+    const frameHost = Util.h('div', { class: 'embed-preview' });
+    let current = null;
+    let autoTitle = null;
+    const update = Util.debounce(() => {
+      const href = extractUrl(urlInput.value);
+      if (!href) {
+        current = null;
+        info.textContent = urlInput.value.trim() ? 'Μη έγκυρος σύνδεσμος. Επιτρέπονται μόνο διευθύνσεις https.' : 'Επικόλλησε τον σύνδεσμο της σελίδας (ή τον κώδικα iframe που δίνει η υπηρεσία).';
+        frameHost.replaceChildren();
+        return;
+      }
+      const r = resolve(href);
+      const changed = !current || current.src !== r.src;
+      current = { ...r, href };
+      info.textContent = r.src === href ? `Θα ενσωματωθεί όπως είναι: ${hostOf(href)}` : `Αναγνωρίστηκε: ${r.provider} · ${r.src}`;
+      if (!titleInput.value.trim() || titleInput.value === autoTitle) {
+        titleInput.value = r.title;
+        autoTitle = r.title;
+      }
+      if (changed) {
+        const preview = create({ src: r.src, href, title: titleInput.value, height: Math.min(Number(heightSelect.value), 300) });
+        frameHost.replaceChildren(preview);
+      }
+    }, 350);
+    urlInput.addEventListener('input', update);
+    heightSelect.addEventListener('change', () => {
+      const frame = frameHost.querySelector('iframe, .wf-embed-placeholder');
+      if (frame) frame.style.height = `${Math.min(Number(heightSelect.value), 300)}px`;
+    });
+    update();
+    update.flush();
+    if (editing && current && titleInput.value === current.title) autoTitle = current.title;
+    Modal.open({
+      title: editing ? 'Επεξεργασία ενσωμάτωσης' : 'Ενσωμάτωση περιεχομένου (iframe)', size: 'md',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Σύνδεσμος' }), urlInput),
+        info,
+        Util.h('div', { class: 'grid-2' },
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Τίτλος' }), titleInput),
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Ύψος πλαισίου' }), heightSelect)),
+        frameHost,
+        Util.h('p', { class: 'hint', text: 'YouTube, Vimeo, GeoGebra, PhET, Desmos και Google (Έγγραφα, Παρουσιάσεις, Φόρμες) μετατρέπονται αυτόματα. Στην εκτύπωση, στο PDF και στο DOCX εμφανίζεται ως σύνδεσμος.' })),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        {
+          label: editing ? 'Ενημέρωση' : 'Εισαγωγή', variant: 'primary', onClick: () => {
+            update.flush();
+            if (!current) {
+              Toast.show('Γράψε έναν έγκυρο σύνδεσμο https', 'warning');
+              return false;
+            }
+            const data = { src: current.src, href: current.href, title: titleInput.value.trim() || current.title, height: Number(heightSelect.value) };
+            if (editing) {
+              editing.setAttribute('data-src', data.src);
+              editing.setAttribute('data-href', data.href);
+              editing.setAttribute('data-title', data.title.slice(0, 200));
+              editing.setAttribute('data-height', String(data.height));
+              render(editing);
+              EditorManager.commit(id);
+            } else {
+              EditorManager.insertBlock(id, [create(data)]);
+            }
+            return true;
+          }
+        }
+      ],
+      initialFocus: urlInput
+    });
+  }
+
+  return { HEIGHTS, extractUrl, resolve, create, render, hydrate, printable, live, toOutput, open };
 })();
 
 
@@ -6899,6 +7608,7 @@ const ExportManager = (() => {
       const content = Util.h('div', { class: 'wf-print-content doc-content' });
       const tpl = document.createElement('template');
       tpl.innerHTML = EditorManager.getRenderedHTML(s.id);
+      Embeds.toOutput(tpl.content, !!opts.liveEmbeds);
       const blank = !tpl.content.querySelector('img, table, .math-node, ul, ol, .wf-pagebreak, hr') && !tpl.content.textContent.replace(/[\u00A0\u200B]/g, ' ').trim();
       if (blank) {
         if (opts.answerLines) content.append(Util.h('div', { class: 'wf-answer-lines' }, Array.from({ length: 5 }, () => Util.h('div'))));
@@ -6972,6 +7682,11 @@ const ExportManager = (() => {
         const v = y(el);
         if (v > 0 && ![...excluded].some(e => Math.abs(e - v) <= 2)) candidates.add(v);
       });
+    const floats = Array.from(root.querySelectorAll('.wf-float-left, .wf-float-right')).map(el => {
+      const r = el.getBoundingClientRect();
+      return [Math.round(r.top - rootTop), Math.round(r.bottom - rootTop)];
+    });
+    floats.forEach(([top, bottom]) => candidates.forEach(v => { if (v > top + 2 && v < bottom - 2) candidates.delete(v); }));
     const forced = Array.from(root.querySelectorAll('.wf-pagebreak, .wf-break-before')).map(el => (el.classList.contains('wf-pagebreak') ? Math.round(el.getBoundingClientRect().bottom - rootTop) : y(el))).sort((a, b) => a - b);
     const sorted = [...candidates].sort((a, b) => a - b);
     const pages = [];
@@ -7354,9 +8069,17 @@ const ExportManager = (() => {
         hgt = (hgt * DOCX_MAX_IMG_PX) / w;
         w = DOCX_MAX_IMG_PX;
       }
+      const side = img.classList.contains('wf-float-left') ? 'left' : (img.classList.contains('wf-float-right') ? 'right' : null);
+      const floating = side ? {
+        horizontalPosition: { relative: D.HorizontalPositionRelativeFrom.COLUMN, align: side === 'left' ? D.HorizontalPositionAlign.LEFT : D.HorizontalPositionAlign.RIGHT },
+        verticalPosition: { relative: D.VerticalPositionRelativeFrom.PARAGRAPH, offset: 0 },
+        wrap: { type: D.TextWrappingType.SQUARE, side: D.TextWrappingSide.BOTH_SIDES },
+        margins: side === 'left' ? { top: 0, bottom: 91440, left: 0, right: 182880 } : { top: 0, bottom: 91440, left: 182880, right: 0 }
+      } : undefined;
       return [new D.ImageRun({
         type, data: Util.dataURLToBytes(src),
         transformation: { width: Math.round(w), height: Math.round(hgt) },
+        floating,
         altText: { name: 'Εικόνα', title: img.alt || 'Εικόνα', description: img.alt || '' }
       })];
     };
@@ -7757,8 +8480,13 @@ td.wf-fill { background: #FAFDFF; cursor: text; white-space: pre-wrap; }
 .wf-student .line[contenteditable="true"] { padding: 0 2pt; white-space: nowrap; overflow: hidden; }
 ul.wf-checklist > li { cursor: pointer; }
 ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
+.wf-embed-live { max-width: 100%; margin: 2mm auto 3mm; }
+.wf-embed-live.wf-obj-left { margin-left: 0; }
+.wf-embed-live.wf-obj-right { margin-right: 0; }
+.wf-embed-live iframe { display: block; width: 100%; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFFFFF; }
+.wf-embed-live .wf-embed-link { margin: 1mm 0 0; }
 @media (max-width: 860px) { .wf-export-page { margin: 0; padding: 12px !important; width: auto !important; } }
-@media print { .wf-export-page { margin: 0; padding: 0 !important; box-shadow: none; width: auto !important; } .wf-answer { border-color: #CBD5E1; } td.wf-fill { background: transparent; } }
+@media print { .wf-export-page { margin: 0; padding: 0 !important; box-shadow: none; width: auto !important; } .wf-answer { border-color: #CBD5E1; } td.wf-fill { background: transparent; } .wf-embed-live iframe { display: none; } .wf-embed-live { width: auto !important; float: none !important; } }
 `;
 
   const INTERACTIVE_JS = `(function () {
@@ -7819,7 +8547,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
     try {
       const opts = options();
       const g = geometry();
-      const root = buildPrintable(opts);
+      const root = buildPrintable({ ...opts, liveEmbeds: true });
       stage = mountStage(root);
       await ready(root);
       stage.remove();
@@ -9069,7 +9797,7 @@ const UIController = (() => {
     ]],
     ['Εισαγωγή', [
       ['Μαθηματική έκφραση', 'Ctrl+M'], ['Σύνδεσμος', 'Ctrl+K'], ['Πίνακας', 'Ctrl+Alt+T'], ['Εικόνα', 'Ctrl+Alt+I'],
-      ['Γραφική παράσταση', 'Ctrl+Alt+G'], ['Εισαγωγή από διάλογο LaTeX', 'Ctrl+Enter']
+      ['Γραφική παράσταση', 'Ctrl+Alt+G'], ['Ενσωμάτωση (iframe) από σύνδεσμο', 'Ctrl+Alt+E'], ['Εισαγωγή από διάλογο LaTeX', 'Ctrl+Enter']
     ]],
     ['Επεξεργασία', [
       ['Αναίρεση', 'Ctrl+Z'], ['Επανάληψη', 'Ctrl+Y / Ctrl+Shift+Z'], ['Επεξεργασία εξίσωσης ή γραφήματος', 'Διπλό κλικ'],
