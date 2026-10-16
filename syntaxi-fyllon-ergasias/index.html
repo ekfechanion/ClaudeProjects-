@@ -645,7 +645,9 @@ kbd {
   position: absolute; left: 25mm; right: 25mm; display: flex; justify-content: space-between; gap: 16px;
   font-family: var(--font-doc); font-size: 9pt; color: #555555;
 }
-.preview-head { top: 9mm; }
+.preview-head { top: 9mm; align-items: center; }
+.preview-head-left { display: flex; align-items: center; gap: 3mm; min-width: 0; }
+.preview-head-left img { flex-shrink: 0; object-fit: contain; object-position: left center; }
 .preview-foot { bottom: 9mm; justify-content: center; }
 .preview-pagebreak-label { font-size: 12px; color: var(--text-2); }
 
@@ -942,6 +944,7 @@ kbd {
 .crop-handle.sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
 .crop-handle.w { left: -7px; top: calc(50% - 7px); cursor: ew-resize; }
 .crop-size { margin: 0; }
+.wf-head-preload { position: absolute; left: -10000px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 </style>
 </head>
@@ -1097,7 +1100,7 @@ kbd {
             <button id="btn-logo-remove" class="btn btn-ghost" type="button">Αφαίρεση</button>
           </div>
           <div class="grid-2">
-            <label class="field"><span>Θέση</span><select id="style-logo-pos" class="select"><option value="right">Δεξιά</option><option value="left">Αριστερά</option></select></label>
+            <label class="field"><span>Θέση</span><select id="style-logo-pos" class="select"><option value="right">Δεξιά του τίτλου</option><option value="left">Αριστερά του τίτλου</option><option value="header">Κεφαλίδα σελίδας, αριστερά</option></select></label>
             <label class="field"><span>Πλάτος (mm)</span><input id="style-logo-width" class="input" type="number" min="10" max="80" step="1"></label>
           </div>
         </section>
@@ -2804,7 +2807,7 @@ const AppState = (() => {
       sectionStyle: 'flow',
       layout: pick('layout', ['flow', 'grid']),
       logo: typeof src.logo === 'string' && src.logo.length < 3000000 && LOGO_SRC.test(src.logo) ? src.logo : '',
-      logoPosition: pick('logoPosition', ['right', 'left']),
+      logoPosition: pick('logoPosition', ['right', 'left', 'header']),
       logoWidth: Number.isFinite(logoWidth) ? Util.clamp(Math.round(logoWidth), 10, 80) : STYLE_DEFAULTS.logoWidth,
       orientation: pick('orientation', ['portrait', 'landscape']),
       margins: pick('margins', ['normal', 'narrow'])
@@ -7551,6 +7554,47 @@ const ExportManager = (() => {
     return { ...Prefs.get('print') };
   }
 
+  const logoDims = new Map();
+
+  /**
+   * Φορτώνει (μία φορά) τις διαστάσεις του λογοτύπου.
+   * @param {string} src
+   * @returns {Promise<void>}
+   */
+  async function loadLogo(src) {
+    if (!src || logoDims.has(src)) return;
+    try {
+      const img = await Util.loadImage(src);
+      logoDims.set(src, { w: img.naturalWidth || 1, h: img.naturalHeight || 1 });
+    } catch (e) {
+      logoDims.set(src, null);
+    }
+  }
+
+  /**
+   * Λογότυπο για την κεφαλίδα σελίδας (πάνω αριστερά), όταν έχει επιλεγεί αυτή η θέση.
+   * Το ύψος χωρά στο πάνω περιθώριο και το πλάτος δεν ξεπερνά τη ρύθμιση «Πλάτος».
+   * @returns {{src: string, w: number, h: number, top: number, svg: string}|null} διαστάσεις σε mm
+   */
+  function headerLogo() {
+    const st = AppState.get().style;
+    if (!st.logo || st.logoPosition !== 'header') return null;
+    const g = geometry();
+    const d = logoDims.get(st.logo);
+    const maxH = Math.max(5, Math.min(12, g.top - 6));
+    const ratio = d ? d.w / d.h : st.logoWidth / maxH;
+    let h = maxH;
+    let w = h * ratio;
+    if (w > st.logoWidth) {
+      w = st.logoWidth;
+      h = w / ratio;
+    }
+    const W = d ? d.w : 1000;
+    const H = d ? d.h : Math.round(1000 / ratio);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w.toFixed(2)}mm" height="${h.toFixed(2)}mm" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMid meet"><image width="${W}" height="${H}" xlink:href="${st.logo}"/></svg>`;
+    return { src: st.logo, w, h, top: (g.top - h) / 2, svg: `data:image/svg+xml;base64,${btoa(svg)}` };
+  }
+
   /** @returns {string} τίτλος εγγράφου */
   function docTitle() {
     return AppState.get().metadata.title.trim() || 'Φύλλο εργασίας';
@@ -7574,7 +7618,7 @@ const ExportManager = (() => {
     root.style.setProperty('--doc-title-align', st.titleAlign);
     const head = Util.h('header', { class: 'wf-doc-head' });
     const headText = Util.h('div', { class: 'wf-doc-head-text' });
-    if (st.logo) {
+    if (st.logo && st.logoPosition !== 'header') {
       const logo = Util.h('img', { class: 'wf-doc-logo', src: st.logo, alt: 'Λογότυπο', style: { width: `${st.logoWidth}mm` } });
       if (st.logoPosition === 'left') head.append(logo, headText);
       else head.append(headText, logo);
@@ -7760,7 +7804,9 @@ const ExportManager = (() => {
     const m = AppState.get().metadata;
     const font = 'font-family: Georgia, serif; font-size: 9pt; color: #555555;';
     const boxes = [];
-    if (opts.headerTitle) boxes.push(`@top-left { content: ${cssString(docTitle())}; ${font} }`);
+    const logo = opts.noLogo ? null : headerLogo();
+    const left = [logo ? `url("${logo.svg}")` : '', opts.headerTitle ? cssString(`${logo ? '\u2003' : ''}${docTitle()}`) : ''].filter(Boolean).join(' ');
+    if (left) boxes.push(`@top-left { content: ${left}; vertical-align: middle; ${font} }`);
     if (opts.headerDate && m.date) boxes.push(`@top-right { content: ${cssString(Util.formatDate(m.date))}; ${font} }`);
     if (opts.pageNumbers) boxes.push(`@bottom-center { content: "Σελίδα " counter(page) " από " counter(pages); ${font} }`);
     const g = geometry();
@@ -7777,7 +7823,8 @@ const ExportManager = (() => {
     const stage = mountStage(doc);
     MathEngine.fit(doc);
     stage.remove();
-    document.getElementById('print-root').replaceChildren(doc);
+    const logo = opts.noLogo ? null : headerLogo();
+    document.getElementById('print-root').replaceChildren(doc, ...(logo ? [Util.h('img', { class: 'wf-head-preload', src: logo.svg, alt: '' })] : []));
     setPageStyle(opts);
     document.body.classList.add('print-mode');
   }
@@ -7799,8 +7846,11 @@ const ExportManager = (() => {
     }
     try {
       if (!(await validate())) return;
+      await loadLogo(AppState.get().style.logo);
       preparePrint();
-      await ready(document.getElementById('print-root'));
+      const root = document.getElementById('print-root');
+      await ready(root);
+      await Promise.all(Array.from(root.querySelectorAll('.wf-head-preload')).map(img => img.decode().catch(() => null)));
       window.print();
     } catch (e) {
       Toast.show(`Σφάλμα κατά την εξαγωγή: ${e.message}`, 'error', 6000);
@@ -7812,7 +7862,7 @@ const ExportManager = (() => {
    * @param {HTMLElement} el
    */
   function printElement(el) {
-    preparePrint(Util.h('div', { class: 'wf-print-doc' }, el), { headerTitle: false, headerDate: false, pageNumbers: true });
+    preparePrint(Util.h('div', { class: 'wf-print-doc' }, el), { headerTitle: false, headerDate: false, pageNumbers: true, noLogo: true });
     window.print();
   }
 
@@ -7852,6 +7902,9 @@ const ExportManager = (() => {
     let stage = null;
     try {
       const opts = options();
+      await loadLogo(AppState.get().style.logo);
+      const logo = headerLogo();
+      const logoPng = logo ? await pdfImage(logo.src) : null;
       const root = buildPrintable(opts);
       stage = mountStage(root);
       await ready(root);
@@ -7890,9 +7943,11 @@ const ExportManager = (() => {
         ctx.fillRect(0, 0, slice.width, slice.height);
         ctx.drawImage(canvas, 0, Math.round(p.start * scale), canvas.width, slice.height, 0, 0, canvas.width, slice.height);
         pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left, g.top, g.contentW, (p.end - p.start) / pxPerMm, undefined, 'FAST');
+        const titleX = logo ? logo.w + 3 : 0;
+        if (logoPng) pdf.addImage(logoPng.data, logoPng.format, g.left, logo.top, logo.w, logo.h, 'wf-logo', 'FAST');
         if (opts.headerTitle) {
-          const t = textImage(docTitle(), 'left', g.contentW - 50);
-          pdf.addImage(t.data, 'PNG', g.left, g.top / 2 - 3, t.w, t.h);
+          const t = textImage(docTitle(), 'left', Math.max(20, g.contentW - 50 - titleX));
+          pdf.addImage(t.data, 'PNG', g.left + titleX, logo ? logo.top + (logo.h / 2) - 3 : g.top / 2 - 3, t.w, t.h);
         }
         if (opts.headerDate && m.date) {
           const t = textImage(Util.formatDate(m.date), 'right', 45);
@@ -7911,6 +7966,26 @@ const ExportManager = (() => {
     } finally {
       if (stage) stage.remove();
       busy.hide();
+    }
+  }
+
+  /**
+   * Εικόνα σε μορφή που δέχεται το jsPDF (PNG/JPEG· οι υπόλοιπες μετατρέπονται σε PNG).
+   * @param {string} src data URL
+   * @returns {Promise<{data: string, format: string}|null>}
+   */
+  async function pdfImage(src) {
+    if (/^data:image\/jpe?g/i.test(src)) return { data: src, format: 'JPEG' };
+    if (/^data:image\/png/i.test(src)) return { data: src, format: 'PNG' };
+    try {
+      const img = await Util.loadImage(src);
+      const canvas = Util.h('canvas');
+      canvas.width = img.naturalWidth || 1;
+      canvas.height = img.naturalHeight || 1;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      return { data: canvas.toDataURL('image/png'), format: 'PNG' };
+    } catch (e) {
+      return null;
     }
   }
 
@@ -8378,6 +8453,16 @@ const ExportManager = (() => {
     }
 
     const headerRuns = [];
+    const logo = headerLogo();
+    const logoMatch = logo && /^data:image\/(png|jpe?g|gif);base64,/i.exec(logo.src);
+    if (logoMatch) {
+      headerRuns.push(new D.ImageRun({
+        type: logoMatch[1].toLowerCase().startsWith('jp') ? 'jpg' : logoMatch[1].toLowerCase(), data: Util.dataURLToBytes(logo.src),
+        transformation: { width: Math.round(logo.w * PX_PER_MM), height: Math.round(logo.h * PX_PER_MM) },
+        altText: { name: 'Λογότυπο', title: 'Λογότυπο', description: 'Λογότυπο' }
+      }));
+      if (opts.headerTitle) headerRuns.push(new D.TextRun({ text: '  ' }));
+    }
     if (opts.headerTitle) headerRuns.push(new D.TextRun({ text: docTitle(), size: 18, color: '555555' }));
     if (opts.headerDate && m.date) headerRuns.push(new D.TextRun({ children: [new D.Tab(), Util.formatDate(m.date)], size: 18, color: '555555' }));
     const header = new D.Header({ children: [new D.Paragraph({ tabStops: [{ type: D.TabStopType.RIGHT, position: DOCX_CONTENT_TWIPS }], children: headerRuns })] });
@@ -8441,6 +8526,7 @@ const ExportManager = (() => {
     let stage = null;
     try {
       const opts = options();
+      await loadLogo(AppState.get().style.logo);
       const root = buildPrintable(opts);
       stage = mountStage(root);
       await ready(root);
@@ -8471,7 +8557,7 @@ body.wf-export #print-root { display: block; }
 .wf-export-bar span { color: #475569; margin-right: auto; }
 .wf-export-bar button { height: 32px; padding: 0 12px; border: 1px solid #CBD5E1; border-radius: 6px; background: #F8FAFC; color: #0F172A; font: 600 14px 'Segoe UI', Arial, sans-serif; cursor: pointer; }
 .wf-export-bar button.primary { background: #2563EB; border-color: #2563EB; color: #FFFFFF; }
-.wf-export-page { box-sizing: border-box; max-width: 100%; margin: 16px auto 48px; background: #FFFFFF; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12); }
+.wf-export-page { position: relative; box-sizing: border-box; max-width: 100%; margin: 16px auto 48px; background: #FFFFFF; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12); }
 .wf-export-page .wf-print-doc { width: auto !important; }
 .wf-answer { min-height: 36mm; margin: 2mm 0; padding: 2mm 3mm; border: 1px dashed #94A3B8; border-radius: 2mm; white-space: pre-wrap; outline: none; }
 .wf-answer:empty::before { content: attr(data-placeholder); color: #94A3B8; }
@@ -8485,8 +8571,9 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
 .wf-embed-live.wf-obj-right { margin-right: 0; }
 .wf-embed-live iframe { display: block; width: 100%; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFFFFF; }
 .wf-embed-live .wf-embed-link { margin: 1mm 0 0; }
-@media (max-width: 860px) { .wf-export-page { margin: 0; padding: 12px !important; width: auto !important; } }
-@media print { .wf-export-page { margin: 0; padding: 0 !important; box-shadow: none; width: auto !important; } .wf-answer { border-color: #CBD5E1; } td.wf-fill { background: transparent; } .wf-embed-live iframe { display: none; } .wf-embed-live { width: auto !important; float: none !important; } }
+@media (max-width: 860px) { .wf-export-page { margin: 0; padding: 12px !important; width: auto !important; } .wf-page-logo { position: static; display: block; margin-bottom: 8px; } }
+.wf-page-logo { position: absolute; object-fit: contain; object-position: left center; }
+@media print { .wf-page-logo { display: none; } .wf-export-page { margin: 0; padding: 0 !important; box-shadow: none; width: auto !important; } .wf-answer { border-color: #CBD5E1; } td.wf-fill { background: transparent; } .wf-embed-live iframe { display: none; } .wf-embed-live { width: auto !important; float: none !important; } }
 `;
 
   const INTERACTIVE_JS = `(function () {
@@ -8547,6 +8634,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
     try {
       const opts = options();
       const g = geometry();
+      await loadLogo(AppState.get().style.logo);
+      const logo = headerLogo();
       const root = buildPrintable({ ...opts, liveEmbeds: true });
       stage = mountStage(root);
       await ready(root);
@@ -8570,10 +8659,11 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         line.setAttribute('role', 'textbox');
       });
       const css = Array.from(document.querySelectorAll('style')).filter(s => s.id !== 'page-style').map(s => s.textContent).join('\n');
-      const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${root.outerHTML}</main>`;
+      const logoHtml = logo ? `<img class="wf-page-logo" src="${logo.src}" alt="Λογότυπο" style="top:${logo.top.toFixed(2)}mm;left:${g.left}mm;width:${logo.w.toFixed(2)}mm;height:${logo.h.toFixed(2)}mm"><img class="wf-head-preload" src="${logo.svg}" alt="">` : '';
+      const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${logoHtml}${root.outerHTML}</main>`;
       const bar = '<div class="wf-export-bar"><span>Συμπλήρωσε τα κενά πεδία και τσέκαρε τα κουτάκια. Οι απαντήσεις κρατιούνται σε αυτόν τον browser.</span>'
         + '<button type="button" id="wf-clear">Καθαρισμός</button><button type="button" id="wf-save">Αποθήκευση με απαντήσεις</button><button type="button" class="primary" id="wf-print">Εκτύπωση</button></div>';
-      const pageCss = `@page { size: A4 ${g.landscape ? 'landscape' : 'portrait'}; margin: ${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm; }`;
+      const pageCss = `@page { size: A4 ${g.landscape ? 'landscape' : 'portrait'}; margin: ${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm;${logo ? ` @top-left { content: url("${logo.svg}"); vertical-align: middle; }` : ''} }`;
       const html = `<!DOCTYPE html>\n<html lang="el">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(docTitle())}</title>\n<style>\n${css}\n${INTERACTIVE_CSS}\n${pageCss}\n</style>\n</head>\n<body class="wf-export">\n${bar}\n${page}\n<script>\n${INTERACTIVE_JS}\n<\/script>\n</body>\n</html>\n`;
       if (await Util.downloadBlob(new Blob([html], { type: 'text/html' }), Util.safeFilename(docTitle(), 'html'))) Toast.show('Το διαδραστικό HTML δημιουργήθηκε', 'success');
     } catch (e) {
@@ -8598,6 +8688,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
     let token = 0;
     const render = async () => {
       const current = ++token;
+      await loadLogo(AppState.get().style.logo);
+      const logo = headerLogo();
       const root = buildPrintable(opts);
       const stage = mountStage(root);
       await ready(root);
@@ -8615,8 +8707,10 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         const clone = root.cloneNode(true);
         clone.style.marginTop = `${-p.start}px`;
         const page = Util.h('div', { class: 'preview-page', 'aria-label': `Σελίδα ${i + 1}`, style: { width: `${g.pageW}mm`, height: `${g.pageH}mm`, padding: `${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm` } },
-          Util.h('div', { class: 'preview-head', style: { left: `${g.left}mm`, right: `${g.right}mm`, top: `${Math.max(3, g.top / 2 - 3)}mm` } },
-            Util.h('span', { text: opts.headerTitle ? docTitle() : '' }),
+          Util.h('div', { class: 'preview-head', style: { left: `${g.left}mm`, right: `${g.right}mm`, top: logo ? `${logo.top}mm` : `${Math.max(3, g.top / 2 - 3)}mm`, height: logo ? `${logo.h}mm` : null } },
+            Util.h('span', { class: 'preview-head-left' },
+              logo ? Util.h('img', { src: logo.src, alt: 'Λογότυπο', style: { width: `${logo.w}mm`, height: `${logo.h}mm` } }) : null,
+              Util.h('span', { text: opts.headerTitle ? docTitle() : '' })),
             Util.h('span', { text: opts.headerDate ? Util.formatDate(m.date) : '' })),
           Util.h('div', { class: 'preview-viewport', style: { height: `${p.end - p.start}px` } }, clone),
           Util.h('div', { class: 'preview-foot', style: { left: `${g.left}mm`, right: `${g.right}mm`, bottom: `${Math.max(3, g.bottom / 2 - 3)}mm` }, text: opts.pageNumbers ? `Σελίδα ${i + 1} από ${pages.length}` : '' }));
