@@ -744,7 +744,6 @@ kbd {
 .wf-print-doc.wf-st-bar .wf-print-section-title { background: var(--doc-accent, #000000); color: #FFFFFF; border: none; padding: 3pt 8pt; }
 .wf-print-doc.wf-st-box .wf-print-section-title { border: 1.5px solid var(--doc-accent, #000000); padding: 3pt 8pt; }
 .wf-print-doc.wf-st-plain .wf-print-section-title { border: none; padding: 0; margin-bottom: 6pt; }
-.wf-print-doc.wf-sec-card .wf-print-section { border: 1px solid var(--doc-accent, #000000); border-radius: 3mm; padding: 4mm 5mm; }
 .wf-print-doc .doc-content th { background: var(--doc-th, #F1F5F9) !important; }
 .wf-print-doc .wf-doc-head { display: flex; align-items: center; gap: 6mm; text-align: var(--doc-title-align, center); }
 .wf-print-doc .wf-doc-head-text { flex: 1; min-width: 0; }
@@ -793,6 +792,74 @@ kbd {
   .wf-print-section { border-bottom: none; }
 }
 
+.doc-content ul.wf-checklist { list-style: none; padding-left: 32px; }
+.doc-content ul.wf-checklist > li { position: relative; }
+.doc-content ul.wf-checklist > li::before {
+  content: ''; position: absolute; left: -26px; top: 0.32em; width: 0.95em; height: 0.95em; box-sizing: border-box;
+  border: 1.5px solid currentColor; border-radius: 3px; cursor: pointer;
+}
+.doc-content ul.wf-checklist > li[data-checked="true"]::before { background: var(--check-fill, #2563EB); border-color: var(--check-fill, #2563EB); }
+.doc-content ul.wf-checklist > li[data-checked="true"]::after {
+  content: ''; position: absolute; left: calc(-26px + 0.33em); top: calc(0.32em + 0.12em); width: 0.26em; height: 0.52em;
+  border: solid #FFFFFF; border-width: 0 2px 2px 0; transform: rotate(45deg); pointer-events: none;
+}
+.wf-print-doc ul.wf-checklist > li[data-checked="true"]::before { --check-fill: var(--doc-accent, #000000); }
+
+.span-select { display: none; }
+.sections-container.layout-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.sections-container.layout-grid > .editor-block { grid-column: span var(--span, 12); min-width: 0; }
+.sections-container.layout-grid .span-select { display: inline-block; }
+.sections-container.layout-grid .block-header { flex-wrap: wrap; row-gap: 4px; }
+.sections-container.layout-grid .block-title { flex-basis: 140px; }
+.sections-container.layout-grid .editor-content { min-height: var(--minh, 96px); }
+.sections-container.layout-grid .drop-indicator { display: none; }
+.editor-block.drop-before { box-shadow: -4px 0 0 0 var(--primary); }
+.editor-block.drop-after { box-shadow: 4px 0 0 0 var(--primary); }
+.block-resize { display: none; }
+.sections-container.layout-grid .block-resize {
+  display: block; position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--border-strong) 50%, var(--border-strong) 58%, transparent 58%, transparent 70%, var(--border-strong) 70%, var(--border-strong) 78%, transparent 78%);
+  opacity: 0.7; border-bottom-right-radius: var(--radius-card);
+}
+.sections-container.layout-grid .block-resize:hover, .editor-block.is-resizing .block-resize { opacity: 1; }
+.editor-block.is-resizing { box-shadow: 0 0 0 2px var(--primary); }
+.resize-label {
+  position: fixed; z-index: 300; padding: 4px 8px; border-radius: var(--radius-btn); background: var(--toast-bg); color: var(--toast-text);
+  font-size: 12px; font-weight: 600; pointer-events: none; white-space: nowrap;
+}
+.layout-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 2px; border-radius: var(--radius-btn); background: var(--surface-3); }
+.layout-switch button { height: 30px; border: none; border-radius: 4px; background: transparent; color: var(--text-2); font-size: 13px; font-weight: 600; }
+.layout-switch button[aria-pressed="true"] { background: var(--surface); color: var(--primary); box-shadow: var(--shadow-sm); }
+
+.dictation-pill {
+  position: fixed; left: 50%; bottom: 48px; transform: translateX(-50%); z-index: 350;
+  display: flex; align-items: center; gap: 12px; max-width: min(640px, calc(100vw - 32px)); padding: 8px 8px 8px 16px;
+  background: var(--surface); color: var(--text); border: 2px solid var(--danger); border-radius: var(--radius-pill); box-shadow: var(--shadow-lg);
+}
+.dictation-pill svg { color: var(--danger); flex-shrink: 0; }
+.dictation-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--text-2); }
+.tb-btn[data-tool="mic"][aria-pressed="true"] { color: #FFFFFF; background: var(--danger); }
+
+.wf-print-doc.wf-layout-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 4mm; align-items: stretch; }
+.wf-print-doc.wf-layout-grid > * { grid-column: 1 / -1; min-width: 0; }
+.wf-print-doc.wf-layout-grid > .wf-print-section {
+  grid-column: span var(--span, 12); margin-bottom: 4mm; padding: 3mm 4mm;
+  border: 1px solid var(--doc-accent, #000000); border-radius: 2mm; break-inside: avoid; page-break-inside: avoid;
+}
+.doc-content .math-node.math-display { max-width: 100%; overflow: hidden; }
+.doc-content td .math-node, .doc-content li .math-node { max-width: 100%; }
+
+@media (max-width: 900px) {
+  .sections-container.layout-grid > .editor-block { grid-column: 1 / -1; }
+}
+
+.wf-real-boxes ul.wf-checklist > li::before, .wf-real-boxes ul.wf-checklist > li::after { display: none; }
+.wf-check-box {
+  position: absolute; left: -26px; top: 0.32em; width: 0.95em; height: 0.95em; box-sizing: border-box;
+  border: 1.5px solid #000000; border-radius: 3px; color: #FFFFFF; font: 700 0.75em/1.2 Arial, sans-serif; text-align: center;
+}
+.wf-check-box.is-checked { background: var(--doc-accent, #000000); border-color: var(--doc-accent, #000000); }
+
 </style>
 </head>
 <body>
@@ -823,6 +890,7 @@ kbd {
         <button class="menu-item" type="button" role="menuitem" data-export="print"><span data-icon="printer"></span>Εκτύπωση/PDF<kbd>Ctrl+P</kbd></button>
         <button class="menu-item" type="button" role="menuitem" data-export="pdf"><span data-icon="document"></span>PDF (προηγμένο)</button>
         <button class="menu-item" type="button" role="menuitem" data-export="docx"><span data-icon="word"></span>Έγγραφο Word (DOCX)</button>
+        <button class="menu-item" type="button" role="menuitem" data-export="html"><span data-icon="checklist"></span>Διαδραστικό HTML (για μαθητές)</button>
       </div>
     </div>
     <span class="header-sep" aria-hidden="true"></span>
@@ -887,6 +955,14 @@ kbd {
           <button id="btn-add-exercise" class="btn btn-secondary btn-block" type="button" hidden>+ Προσθήκη Άσκησης</button>
         </section>
         <section class="panel-section">
+          <h3 class="panel-heading">Προβολή ενοτήτων</h3>
+          <div class="layout-switch" role="group" aria-label="Προβολή ενοτήτων">
+            <button type="button" id="layout-flow" aria-pressed="true">Ροή κειμένου</button>
+            <button type="button" id="layout-grid" aria-pressed="false">Καρτέλες</button>
+          </div>
+          <p class="hint">Στις καρτέλες: σύρε τη γωνία κάτω δεξιά για πλάτος και ύψος, σύρε τη λαβή ⠿ για μετακίνηση, το βέλος για άνοιγμα/κλείσιμο. Η διάταξη περνά και στο τελικό φύλλο.</p>
+        </section>
+        <section class="panel-section">
           <h3 class="panel-heading">Δομή φύλλου</h3>
           <ul id="section-list" class="section-list" aria-label="Λίστα ενοτήτων"></ul>
           <p id="section-list-empty" class="empty-note">Δεν υπάρχουν ενότητες ακόμα.</p>
@@ -921,7 +997,6 @@ kbd {
               <option value="plain">Απλοί έντονοι</option>
             </select>
           </label>
-          <label class="check"><input id="style-cards" type="checkbox">Κάθε ενότητα σε κάρτα (πλαίσιο)</label>
         </section>
         <section class="panel-section">
           <h3 class="panel-heading">Κεφαλίδα φύλλου</h3>
@@ -1549,6 +1624,8 @@ const Util = (() => {
     unlink: ['M13.19 8.69a4.5 4.5 0 0 1 1.24 7.24l-1.5 1.5', 'M10.81 15.31a4.5 4.5 0 0 1-1.24-7.24l1.5-1.5', 'M4 4l16 16'],
     text: ['M4 7V5h16v2', 'M12 5v14', 'M9 19h6'],
     caption: ['M4 5h16v10H4z', 'M7 19h10'],
+    checklist: ['M9 6h11', 'M9 12h11', 'M9 18h11', 'M3.5 4.5h3v3h-3z', 'M3.5 10.5h3v3h-3z', 'M3.8 17.8l1 1 1.9-2.3'],
+    mic: ['M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5', 'M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3z'],
     columns: ['M3.75 4.5h16.5v15H3.75z', 'M9.25 4.5v15', 'M14.75 4.5v15'],
     card: ['M4.5 4.5h15a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18V6a1.5 1.5 0 0 1 1.5-1.5z', 'M3 4.5v15', 'M7 9h9', 'M7 13h6'],
     'eye-off': ['M3.98 8.22A10.48 10.48 0 0 0 1.93 12c1.29 4.34 5.31 7.5 10.07 7.5.99 0 1.95-.14 2.86-.4', 'M6.23 6.23A10.45 10.45 0 0 1 12 4.5c4.76 0 8.77 3.16 10.07 7.5a10.52 10.52 0 0 1-4.29 5.77', 'M6.23 6.23L3 3m3.23 3.23l3.65 3.65m7.89 7.89L21 21m-3.23-3.23l-3.65-3.65m0 0a3 3 0 1 0-4.24-4.24m4.24 4.24L9.88 9.88'],
@@ -2091,7 +2168,7 @@ const Sanitizer = (() => {
     'frame', 'frameset', 'base', 'head', 'title', 'applet', 'param', 'track', 'picture', 'map', 'area', 'dialog']);
   const TAGS = {
     p: [], div: [], br: [], span: [], b: [], strong: [], i: [], em: [], u: [], s: [], strike: [], del: [],
-    sub: [], sup: [], ul: [], ol: ['start'], li: [], a: ['href', 'target', 'rel', 'title'],
+    sub: [], sup: [], ul: [], ol: ['start'], li: ['data-checked'], a: ['href', 'target', 'rel', 'title'],
     table: [], thead: [], tbody: [], tfoot: [], tr: [], td: ['colspan', 'rowspan'], th: ['colspan', 'rowspan'],
     img: ['src', 'alt', 'data-graph-id', 'data-graph-json'], h1: [], h2: [], h3: [], h4: [],
     blockquote: [], hr: [], pre: [], code: [], figure: [], figcaption: [], caption: [], colgroup: [], col: ['span']
@@ -2101,7 +2178,7 @@ const Sanitizer = (() => {
     'vertical-align', 'width', 'margin-left', 'margin-right', 'margin', 'padding-left', 'padding', 'border', 'display'];
   const PASTE_STYLE_PROPS = ['text-align', 'font-weight', 'font-style', 'text-decoration-line', 'vertical-align'];
   const CLASSES = new Set(['wf-table', 'wf-caption', 'wf-graph', 'wf-img', 'wf-grid', 'wf-grid-plain', 'wf-tip', 'wf-card', 'wf-card-title',
-    'wf-card-note', 'wf-card-tip', 'wf-card-warn', 'wf-card-def', 'wf-card-remember']);
+    'wf-card-note', 'wf-card-tip', 'wf-card-warn', 'wf-card-def', 'wf-card-remember', 'wf-checklist']);
   const IMG_SRC = /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[a-z0-9+/=\s]+$/i;
   const HREF = /^(https?:\/\/|mailto:)/i;
 
@@ -2203,6 +2280,7 @@ const Sanitizer = (() => {
         if (v !== null && !(/^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 20)) el.removeAttribute(name);
       });
     }
+    if (tag === 'li' && el.hasAttribute('data-checked')) el.setAttribute('data-checked', el.getAttribute('data-checked') === 'true' ? 'true' : 'false');
     if (tag === 'ol') {
       const start = el.getAttribute('start');
       if (start !== null && !/^\d{1,4}$/.test(start)) el.removeAttribute('start');
@@ -2541,9 +2619,10 @@ const AppState = (() => {
   };
   const STYLE_DEFAULTS = {
     preset: 'classic', fontFamily: 'Georgia', fontSize: 12, accent: '#000000', tableHeaderFill: '#F1F5F9',
-    titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow',
+    titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow', layout: 'flow',
     logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal'
   };
+  const SPANS = [3, 4, 6, 8, 9, 12];
   const LOGO_SRC = /^data:image\/(png|jpe?g|gif);base64,[a-z0-9+/=]+$/i;
   let state = createEmpty();
   let dirty = false;
@@ -2582,7 +2661,8 @@ const AppState = (() => {
       tableHeaderFill: color('tableHeaderFill'),
       titleAlign: pick('titleAlign', ['center', 'left']),
       sectionTitle: pick('sectionTitle', ['underline', 'bar', 'box', 'plain']),
-      sectionStyle: pick('sectionStyle', ['flow', 'card']),
+      sectionStyle: 'flow',
+      layout: pick('layout', ['flow', 'grid']),
       logo: typeof src.logo === 'string' && src.logo.length < 3000000 && LOGO_SRC.test(src.logo) ? src.logo : '',
       logoPosition: pick('logoPosition', ['right', 'left']),
       logoWidth: Number.isFinite(logoWidth) ? Util.clamp(Math.round(logoWidth), 10, 80) : STYLE_DEFAULTS.logoWidth,
@@ -2607,7 +2687,9 @@ const AppState = (() => {
       order: Number.isFinite(order) ? order : (Number.isFinite(d.order) ? d.order : 0),
       placeholder: String(d.placeholder ?? '').slice(0, 300),
       collapsed: !!d.collapsed,
-      hideTitle: !!d.hideTitle
+      hideTitle: !!d.hideTitle,
+      span: SPANS.includes(Number(d.span)) ? Number(d.span) : 12,
+      minHeight: Number.isFinite(Number(d.minHeight)) ? Util.clamp(Math.round(Number(d.minHeight)), 0, 250) : 0
     };
   }
 
@@ -2838,7 +2920,7 @@ const AppState = (() => {
   function markClean() { dirty = false; }
 
   return {
-    TYPES, CLASSES, FONTS, STYLE_DEFAULTS, normalizeStyle, setStyle, get, sections, getSection, setMetadata, addSection, removeSection, updateSection, reorder,
+    TYPES, CLASSES, FONTS, SPANS, STYLE_DEFAULTS, normalizeStyle, setStyle, get, sections, getSection, setMetadata, addSection, removeSection, updateSection, reorder,
     setContent, setGraph, pruneGraphs, setStructure, replace, toJSON, isDirty, markClean, normalizeSection, createEmpty
   };
 })();
@@ -2983,6 +3065,7 @@ const TemplateManager = (() => {
       if (container.children[index] !== el) container.insertBefore(el, container.children[index] || null);
     });
     document.getElementById('empty-state').hidden = sections.length > 0;
+    requestAnimationFrame(() => MathEngine.fit(container));
     document.getElementById('btn-add-exercise').hidden = !sections.some(s => /^Άσκηση\s+\d+/.test(s.title));
   }
 
@@ -3039,8 +3122,8 @@ const TemplateManager = (() => {
   function currentStructure(withContent = false) {
     EditorManager.flushAll();
     const content = AppState.get().content;
-    return AppState.sections().map(({ id, title, type, required, order, placeholder, hideTitle }) => {
-      const s = { id, title, type, required, order, placeholder, hideTitle };
+    return AppState.sections().map(({ id, title, type, required, order, placeholder, hideTitle, span, minHeight }) => {
+      const s = { id, title, type, required, order, placeholder, hideTitle, span, minHeight };
       if (withContent && content[id]) s.starter = content[id];
       return s;
     });
@@ -3164,11 +3247,11 @@ const EditorManager = (() => {
   };
 
   const TYPE_TOOLS = {
-    text: ['block', 'inline', 'list', 'align', 'card', 'link'],
-    table: ['inline', 'align', 'table', 'columns'],
-    image: ['align', 'image', 'caption'],
-    math: ['inlineBasic', 'align', 'math'],
-    graph: ['inline', 'align', 'graph', 'image', 'caption'],
+    text: ['block', 'inline', 'list', 'align', 'image', 'math', 'card', 'link'],
+    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'math', 'card'],
+    image: ['inlineBasic', 'align', 'image', 'caption', 'math'],
+    math: ['inlineBasic', 'list', 'align', 'math', 'image'],
+    graph: ['inline', 'align', 'graph', 'image', 'caption', 'math'],
     mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'pagebreak']
   };
 
@@ -3181,6 +3264,8 @@ const EditorManager = (() => {
     sub: { glyph: 'x₂', title: 'Δείκτης (Ctrl+=)', cmd: 'subscript', state: 'subscript' },
     ul: { icon: 'list-ul', title: 'Λίστα με κουκκίδες (Ctrl+Shift+8)', cmd: 'insertUnorderedList', state: 'insertUnorderedList' },
     ol: { icon: 'list-ol', title: 'Αριθμημένη λίστα (Ctrl+Shift+7)', cmd: 'insertOrderedList', state: 'insertOrderedList' },
+    check: { icon: 'checklist', title: 'Λίστα ελέγχου με κουτάκια (Ctrl+Shift+9)', run: id => toggleChecklist(id) },
+    mic: { icon: 'mic', title: 'Φωνητική πληκτρολόγηση (Ctrl+Shift+Space)', run: id => Dictation.toggle(id) },
     indent: { icon: 'indent', title: 'Αύξηση εσοχής (Ctrl+])', cmd: 'indent' },
     outdent: { icon: 'outdent', title: 'Μείωση εσοχής (Ctrl+[)', cmd: 'outdent' },
     left: { icon: 'align-left', title: 'Στοίχιση αριστερά', cmd: 'justifyLeft', state: 'justifyLeft' },
@@ -3201,6 +3286,7 @@ const EditorManager = (() => {
     clear: { icon: 'eraser', title: 'Καθαρισμός μορφοποίησης', cmd: 'removeFormat' }
   };
 
+  const SPAN_LABELS = [[3, '¼ πλάτους'], [4, '⅓ πλάτους'], [6, '½ πλάτους'], [8, '⅔ πλάτους'], [9, '¾ πλάτους'], [12, 'Όλο το πλάτος']];
   const FORMATS = [['p', 'Κανονικό κείμενο'], ['h1', 'Επικεφαλίδα 1'], ['h2', 'Επικεφαλίδα 2'], ['h3', 'Επικεφαλίδα 3'], ['h4', 'Επικεφαλίδα 4']];
   const SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36];
 
@@ -3298,9 +3384,15 @@ const EditorManager = (() => {
       if (s) AppState.updateSection(block.id, { hideTitle: !s.hideTitle });
     });
     const deleteBtn = iconButton('trash', 'Διαγραφή ενότητας', () => TemplateManager.removeSection(block.id), true);
-    const header = Util.h('div', { class: 'block-header' }, handle, indexEl, titleInput, typeSelect, reqBtn,
+    block.spanSelect = Util.h('select', { class: 'chip-select span-select', title: 'Πλάτος καρτέλας', 'aria-label': 'Πλάτος καρτέλας' },
+      SPAN_LABELS.map(([v, l]) => Util.h('option', { value: String(v), text: l })));
+    block.spanSelect.addEventListener('change', () => AppState.updateSection(block.id, { span: Number(block.spanSelect.value) }));
+    block.resizer = Util.h('span', { class: 'block-resize', title: 'Σύρε για αλλαγή πλάτους και ύψους (διπλό κλικ: αυτόματο ύψος)', 'aria-hidden': 'true' });
+    block.resizer.addEventListener('mousedown', e => startBlockResize(e, block));
+    block.resizer.addEventListener('dblclick', () => AppState.updateSection(block.id, { minHeight: 0 }));
+    const header = Util.h('div', { class: 'block-header' }, handle, indexEl, titleInput, typeSelect, block.spanSelect, reqBtn,
       Util.h('div', { class: 'block-actions' }, block.titleBtn, block.collapseBtn, block.focusBtn, deleteBtn));
-    block.el = Util.h('article', { class: 'editor-block', dataset: { sectionId: section.id } }, header, block.toolbar, content);
+    block.el = Util.h('article', { class: 'editor-block', dataset: { sectionId: section.id } }, header, block.toolbar, content, block.resizer);
     blocks.set(section.id, block);
     wire(block, handle);
     bindContent(section.id, html);
@@ -3384,6 +3476,10 @@ const EditorManager = (() => {
     block.reqBtn.textContent = section.required ? 'Υποχρεωτική' : 'Προαιρετική';
     block.el.classList.toggle('is-collapsed', section.collapsed);
     block.el.classList.toggle('title-hidden', !!section.hideTitle);
+    block.el.style.setProperty('--span', String(section.span || 12));
+    if (section.minHeight) block.el.style.setProperty('--minh', `${section.minHeight}mm`);
+    else block.el.style.removeProperty('--minh');
+    block.spanSelect.value = String(section.span || 12);
     if (block.titleHidden !== !!section.hideTitle) {
       block.titleHidden = !!section.hideTitle;
       block.titleBtn.replaceChildren(Util.icon(section.hideTitle ? 'eye-off' : 'eye'));
@@ -3417,11 +3513,11 @@ const EditorManager = (() => {
     if (tools.has('block')) groups.push([formatSelect(block), sizeSelect(block)]);
     if (tools.has('inline')) groups.push(['bold', 'italic', 'underline', 'strike', 'sup', 'sub'].map(k => toolButton(block, k)));
     else if (tools.has('inlineBasic')) groups.push(['bold', 'italic', 'underline', 'sup', 'sub'].map(k => toolButton(block, k)));
-    if (tools.has('list')) groups.push(['ul', 'ol', 'indent', 'outdent'].map(k => toolButton(block, k)));
+    if (tools.has('list')) groups.push(['ul', 'ol', 'check', 'indent', 'outdent'].map(k => toolButton(block, k)));
     if (tools.has('align')) groups.push(['left', 'center', 'right', 'justify'].map(k => toolButton(block, k)));
     const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'pagebreak'].filter(k => tools.has(k));
     if (inserts.length) groups.push(inserts.map(k => toolButton(block, k)));
-    groups.push(['undo', 'redo', 'clear'].map(k => toolButton(block, k)));
+    groups.push((Dictation.supported() ? ['mic', 'undo', 'redo', 'clear'] : ['undo', 'redo', 'clear']).map(k => toolButton(block, k)));
     groups.forEach((group, i) => {
       if (i) tb.append(Util.h('span', { class: 'tb-sep', 'aria-hidden': 'true' }));
       tb.append(...group);
@@ -3435,7 +3531,7 @@ const EditorManager = (() => {
    */
   function toolButton(block, key) {
     const def = BUTTONS[key];
-    const btn = Util.h('button', { class: 'tb-btn', type: 'button', title: def.title, 'aria-label': def.title });
+    const btn = Util.h('button', { class: 'tb-btn', type: 'button', title: def.title, 'aria-label': def.title, dataset: { tool: key } });
     if (def.icon) btn.append(Util.icon(def.icon));
     if (def.glyph) btn.append(Util.h('span', { text: def.glyph }));
     if (def.label) btn.append(Util.h('span', { class: 'tb-label', text: def.label }));
@@ -3569,6 +3665,11 @@ const EditorManager = (() => {
    * @param {Object} block
    */
   function restoreSelection(block) {
+    const live = document.getSelection();
+    if (live && live.rangeCount && block.content.contains(live.anchorNode) && document.activeElement === block.content) {
+      saved = { id: block.id, range: live.getRangeAt(0).cloneRange() };
+      return;
+    }
     const stored = saved.id === block.id && saved.range ? saved.range.cloneRange() : null;
     if (block.section && block.section.collapsed) AppState.updateSection(block.id, { collapsed: false });
     block.content.focus({ preventScroll: true });
@@ -3688,6 +3789,7 @@ const EditorManager = (() => {
       caretIn(c.firstChild);
     }
     normalizeFontTags(block);
+    normalizeChecklists(block);
     InsertTools.hideOverlays();
     refreshStatus(block);
     clearTimeout(block.snapTimer);
@@ -3695,6 +3797,36 @@ const EditorManager = (() => {
     clearTimeout(block.syncTimer);
     block.syncTimer = setTimeout(() => sync(block), 300);
     Bus.emit('editor-input', { id: block.id });
+  }
+
+  /**
+   * Βγάζει λίστες που ο browser έβαλε μέσα σε παράγραφο (άκυρη δομή HTML), κρατώντας τον κέρσορα.
+   * @param {HTMLElement} content
+   */
+  function unnestLists(content) {
+    content.querySelectorAll('p > ul, p > ol, h1 > ul, h2 > ul, h3 > ul, h4 > ul').forEach(list => {
+      const p = list.parentElement;
+      const sel = document.getSelection();
+      const keep = sel.rangeCount ? [sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset] : null;
+      const rest = Array.from(p.childNodes).filter(n => n !== list && (n.nodeType === 1 ? n.tagName !== 'BR' : n.nodeValue.trim()));
+      if (!rest.length) p.replaceWith(list);
+      else p.after(list);
+      if (keep && keep[0] && content.contains(keep[0])) {
+        try { sel.setBaseAndExtent(keep[0], keep[1], keep[2], keep[3]); } catch (e) { caretIn(list, true); }
+      }
+    });
+  }
+
+  /**
+   * Νέα στοιχεία λίστας ελέγχου ξεκινούν χωρίς τικ (ο browser αντιγράφει τα attributes στο Enter).
+   * @param {Object} block
+   */
+  function normalizeChecklists(block) {
+    const n = document.getSelection().anchorNode;
+    const el = n ? (n.nodeType === 1 ? n : n.parentElement) : null;
+    const li = el && el.closest('ul.wf-checklist > li');
+    if (li && block.content.contains(li) && !li.textContent.trim()) li.setAttribute('data-checked', 'false');
+    block.content.querySelectorAll('ul.wf-checklist > li:not([data-checked])').forEach(x => x.setAttribute('data-checked', 'false'));
   }
 
   /**
@@ -3730,6 +3862,7 @@ const EditorManager = (() => {
   function commit(id) {
     const block = blocks.get(id);
     if (!block) return;
+    unnestLists(block.content);
     record(block);
     sync(block);
     refreshStatus(block);
@@ -3948,7 +4081,7 @@ const EditorManager = (() => {
     restoreSelection(block);
     const sel = document.getSelection();
     const range = sel.rangeCount ? sel.getRangeAt(0) : null;
-    const c = block.content;
+    const c = scopeOf(block, range, options.topLevel);
     let top = null;
     let atStart = false;
     if (range) {
@@ -3969,7 +4102,13 @@ const EditorManager = (() => {
     else c.append(frag);
     const last = nodes[nodes.length - 1];
     let next = last.nextElementSibling;
-    if (!next || !/^(P|H[1-4])$/.test(next.tagName)) {
+    if (c.tagName === 'LI') {
+      if (!next) {
+        caretAfter(last);
+        commit(id);
+        return;
+      }
+    } else if (!next || !/^(P|H[1-4])$/.test(next.tagName)) {
       next = Util.h('p', null, Util.h('br'));
       last.after(next);
     }
@@ -3982,6 +4121,92 @@ const EditorManager = (() => {
     } else {
       caretIn(next);
     }
+    commit(id);
+  }
+
+  /**
+   * Βρίσκει τον περιέκτη όπου μπαίνει ένα στοιχείο: το κελί, το στοιχείο λίστας ή το πλαίσιο του κέρσορα, αλλιώς η ενότητα.
+   * @param {Object} block
+   * @param {Range|null} range
+   * @param {boolean} [topLevel]
+   * @returns {HTMLElement}
+   */
+  function scopeOf(block, range, topLevel) {
+    if (!range || topLevel) return block.content;
+    const start = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
+    const inner = start && start.closest('td, th, li, .wf-card, blockquote');
+    return inner && block.content.contains(inner) && inner !== block.content ? inner : block.content;
+  }
+
+  /**
+   * Διαθέσιμο πλάτος (px) στο σημείο εισαγωγής, ώστε εικόνες και γραφήματα να χωρούν στο κελί ή στη στήλη.
+   * @param {string} id
+   * @returns {number}
+   */
+  function insertionWidth(id) {
+    const block = blocks.get(id);
+    if (!block) return 600;
+    const range = saved.id === id && saved.range ? saved.range : null;
+    const scope = scopeOf(block, range, false);
+    const cs = getComputedStyle(scope);
+    return Math.max(60, scope.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+  }
+
+  /**
+   * Εναλλαγή λίστας ελέγχου (κουτάκια που τσεκάρονται με κλικ).
+   * @param {string} [id]
+   */
+  function toggleChecklist(id = activeId) {
+    const block = blocks.get(id);
+    if (!block) return;
+    restoreSelection(block);
+    const listAtCaret = () => {
+      const n = document.getSelection().anchorNode;
+      const el = n ? (n.nodeType === 1 ? n : n.parentElement) : null;
+      const l = el && el.closest('ul, ol');
+      return l && block.content.contains(l) ? l : null;
+    };
+    let list = listAtCaret();
+    if (list && list.classList.contains('wf-checklist')) {
+      list.classList.remove('wf-checklist');
+      if (!list.className) list.removeAttribute('class');
+      list.querySelectorAll(':scope > li').forEach(li => li.removeAttribute('data-checked'));
+      commit(id);
+      return;
+    }
+    if (!list || list.tagName === 'OL') {
+      document.execCommand('insertUnorderedList');
+      list = listAtCaret();
+    }
+    if (list) {
+      list.classList.add('wf-checklist');
+      list.querySelectorAll(':scope > li').forEach(li => { if (!li.hasAttribute('data-checked')) li.setAttribute('data-checked', 'false'); });
+    }
+    commit(id);
+  }
+
+  /**
+   * Εισάγει κείμενο υπαγόρευσης στη θέση του κέρσορα (τμήματα χωρισμένα με αλλαγή παραγράφου).
+   * @param {string} id
+   * @param {string[]} parts
+   */
+  function insertDictation(id, parts) {
+    const block = blocks.get(id);
+    if (!block) return;
+    restoreSelection(block);
+    parts.forEach((part, i) => {
+      if (i > 0) document.execCommand('insertParagraph');
+      let text = part.trim();
+      if (!text) return;
+      const sel = document.getSelection();
+      const r = sel.rangeCount ? sel.getRangeAt(0) : null;
+      let before = '';
+      if (r && r.startContainer.nodeType === 3) before = r.startContainer.nodeValue.slice(0, r.startOffset);
+      const prevChar = before.replace(/[\s\u00A0]+$/, '').slice(-1);
+      if (!prevChar || /[.!;·]/.test(prevChar)) text = text.charAt(0).toLocaleUpperCase('el-GR') + text.slice(1);
+      if (before && !/[\s\u00A0]$/.test(before) && !/^[.,;:!·)]/.test(text)) text = ` ${text}`;
+      document.execCommand('insertText', false, text);
+    });
     commit(id);
   }
 
@@ -4007,6 +4232,8 @@ const EditorManager = (() => {
    * @param {Object} block
    */
   function onKeydown(e, block) {
+    const live = document.getSelection();
+    if (live && live.rangeCount && block.content.contains(live.anchorNode)) saved = { id: block.id, range: live.getRangeAt(0).cloneRange() };
     const mod = Util.isMod(e);
     const code = e.code;
     const run = fn => { e.preventDefault(); fn(); };
@@ -4028,6 +4255,8 @@ const EditorManager = (() => {
       if (code === 'BracketLeft') return run(() => exec('outdent', null, block.id));
       if (code === 'Digit7' && e.shiftKey) return run(() => exec('insertOrderedList', null, block.id));
       if (code === 'Digit8' && e.shiftKey) return run(() => exec('insertUnorderedList', null, block.id));
+      if (code === 'Digit9' && e.shiftKey) return run(() => toggleChecklist(block.id));
+      if (code === 'Space' && e.shiftKey) return run(() => Dictation.toggle(block.id));
     }
     if (mod && e.altKey) {
       const heading = { Digit0: 'p', Digit1: 'h1', Digit2: 'h2', Digit3: 'h3', Digit4: 'h4' }[code];
@@ -4148,6 +4377,13 @@ const EditorManager = (() => {
       return;
     }
     InsertTools.hideOverlays();
+    const item = target.closest && target.closest('ul.wf-checklist > li');
+    if (item && block.content.contains(item) && e.clientX < item.getBoundingClientRect().left + 2) {
+      e.preventDefault();
+      item.setAttribute('data-checked', item.getAttribute('data-checked') === 'true' ? 'false' : 'true');
+      commit(block.id);
+      return;
+    }
     const a = target.closest && target.closest('a');
     if (a && block.content.contains(a)) {
       InsertTools.linkPopover(a, block.id);
@@ -4184,7 +4420,14 @@ const EditorManager = (() => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     const container = e.currentTarget;
-    const before = dropBefore(container, e.clientY);
+    const before = dropBefore(container, e.clientX, e.clientY);
+    if (isGrid()) {
+      container.querySelectorAll('.drop-before, .drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+      const els = Array.from(container.querySelectorAll(':scope > .editor-block')).filter(el => el.dataset.sectionId !== draggingId);
+      if (before) before.classList.add('drop-before');
+      else if (els.length) els[els.length - 1].classList.add('drop-after');
+      return;
+    }
     if (!dropIndicator) dropIndicator = Util.h('div', { class: 'drop-indicator', 'aria-hidden': 'true' });
     if (before) container.insertBefore(dropIndicator, before);
     else container.append(dropIndicator);
@@ -4195,8 +4438,15 @@ const EditorManager = (() => {
    * @param {number} y
    * @returns {HTMLElement|null}
    */
-  function dropBefore(container, y) {
+  function dropBefore(container, x, y) {
     const els = Array.from(container.querySelectorAll(':scope > .editor-block')).filter(el => el.dataset.sectionId !== draggingId);
+    if (isGrid()) {
+      for (let i = 0; i < els.length; i++) {
+        const r = els[i].getBoundingClientRect();
+        if (y >= r.top && y <= r.bottom && x >= r.left - 8 && x <= r.right + 8) return x < r.left + r.width / 2 ? els[i] : els[i + 1] || null;
+      }
+      return els.find(el => el.getBoundingClientRect().top > y) || null;
+    }
     return els.find(el => {
       const r = el.getBoundingClientRect();
       return y < r.top + Math.min(r.height / 2, 80);
@@ -4209,7 +4459,7 @@ const EditorManager = (() => {
   function onContainerDrop(e) {
     if (!draggingId) return;
     e.preventDefault();
-    const before = dropBefore(e.currentTarget, e.clientY);
+    const before = dropBefore(e.currentTarget, e.clientX, e.clientY);
     const order = AppState.sections().map(s => s.id).filter(id => id !== draggingId);
     const at = before ? order.indexOf(before.dataset.sectionId) : order.length;
     order.splice(at < 0 ? order.length : at, 0, draggingId);
@@ -4220,6 +4470,67 @@ const EditorManager = (() => {
   /** Αφαιρεί την ένδειξη θέσης απόθεσης. */
   function removeIndicator() {
     if (dropIndicator) dropIndicator.remove();
+    document.querySelectorAll('#sections-container .drop-before, #sections-container .drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  }
+
+  /** @returns {boolean} αν οι ενότητες εμφανίζονται ως καρτέλες σε πλέγμα */
+  function isGrid() {
+    return document.getElementById('sections-container').classList.contains('layout-grid');
+  }
+
+  /**
+   * Εναλλαγή προβολής: ροή κειμένου ή καρτέλες σε πλέγμα 12 στηλών.
+   * @param {'flow'|'grid'} mode
+   */
+  function setLayout(mode) {
+    document.getElementById('sections-container').classList.toggle('layout-grid', mode === 'grid');
+    requestAnimationFrame(() => MathEngine.fit(document.getElementById('sections-container')));
+  }
+
+  /**
+   * Αλλαγή πλάτους (κουμπώνει σε ¼, ⅓, ½, ⅔, ¾, πλήρες) και ελάχιστου ύψους καρτέλας με σύρσιμο της γωνίας.
+   * @param {MouseEvent} e
+   * @param {Object} block
+   */
+  function startBlockResize(e, block) {
+    e.preventDefault();
+    e.stopPropagation();
+    const container = document.getElementById('sections-container');
+    const colW = container.getBoundingClientRect().width / 12;
+    const start = block.el.getBoundingClientRect();
+    const contentStart = block.content.getBoundingClientRect().height;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const section = AppState.getSection(block.id) || {};
+    let span = section.span || 12;
+    let minHeight = section.minHeight || 0;
+    const label = Util.h('div', { class: 'resize-label' });
+    document.body.append(label);
+    block.el.classList.add('is-resizing');
+    const snap = w => {
+      const raw = w / colW;
+      return AppState.SPANS.reduce((best, s) => (Math.abs(s - raw) < Math.abs(best - raw) ? s : best), 12);
+    };
+    const move = ev => {
+      span = snap(start.width + (ev.clientX - startX));
+      const dy = ev.clientY - startY;
+      minHeight = Math.abs(dy) < 6 && !section.minHeight ? 0 : Util.clamp(Math.round((contentStart + dy) / (96 / 25.4) / 5) * 5, 0, 250);
+      block.el.style.setProperty('--span', String(span));
+      if (minHeight) block.el.style.setProperty('--minh', `${minHeight}mm`);
+      else block.el.style.removeProperty('--minh');
+      label.textContent = `${(SPAN_LABELS.find(s => s[0] === span) || [0, ''])[1]} · ${minHeight ? `ύψος ${minHeight} mm` : 'αυτόματο ύψος'}`;
+      Object.assign(label.style, { left: `${ev.clientX + 14}px`, top: `${ev.clientY + 14}px` });
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      label.remove();
+      block.el.classList.remove('is-resizing');
+      AppState.updateSection(block.id, { span, minHeight });
+      requestAnimationFrame(() => MathEngine.fit(block.content));
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
   }
 
   /**
@@ -4316,7 +4627,7 @@ const EditorManager = (() => {
     init, ids, getBlockEl, getActiveId, firstId, createBlock, updateBlock, bindContent, destroyBlock, setActive,
     exec, insertInline, insertBlock, commit, undo, redo, flush, flushAll, hasContent, isComplete, stats,
     getRenderedHTML, toggleFocus, exitFocus, inFocusMode, focusSection, refocus, contentWidth, getContentEl,
-    selectedText, caretIn, serializeEl
+    selectedText, caretIn, serializeEl, insertionWidth, toggleChecklist, insertDictation, setLayout
   };
 })();
 
@@ -4603,7 +4914,7 @@ const InsertTools = (() => {
    */
   async function insertImageData(id, dataURL, options = {}) {
     const loaded = await Util.loadImage(dataURL);
-    const width = EditorManager.contentWidth(id);
+    const width = EditorManager.insertionWidth(id);
     const pct = options.widthPct || Math.round(Util.clamp((loaded.naturalWidth / width) * 100, 10, 100));
     const img = Util.h('img', { src: dataURL, alt: (options.alt || '').slice(0, 300), class: options.className || 'wf-img', style: `width: ${pct}%`, ...(options.attrs || {}) });
     const nodes = [Util.h('p', { style: 'text-align: center' }, img)];
@@ -4992,7 +5303,7 @@ const InsertTools = (() => {
   function pageBreak(sectionId) {
     const id = target(sectionId);
     if (!id) return;
-    EditorManager.insertBlock(id, [Util.h('div', { class: 'wf-pagebreak', contenteditable: 'false' })]);
+    EditorManager.insertBlock(id, [Util.h('div', { class: 'wf-pagebreak', contenteditable: 'false' })], { topLevel: true });
   }
 
   const GRID_PRESETS = [
@@ -5142,6 +5453,134 @@ const InsertTools = (() => {
     init, table, addRow, tableMenu, image, insertImageFile, insertImageData, prepareImage, selectImage, selectedImage,
     removeSelectedImage, hideOverlays, link, linkPopover, caption, pageBreak, columns, card, target
   };
+})();
+
+/**
+ * Φωνητική πληκτρολόγηση (Web Speech API, ελληνικά) με βασικές φωνητικές εντολές στίξης.
+ * @namespace Dictation
+ */
+const Dictation = (() => {
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const MARKS = [
+    ['άνω κάτω τελεία', ':'], ['άνω τελεία', '·'], ['τελεία', '.'], ['κόμμα', ','], ['ερωτηματικό', ';'],
+    ['θαυμαστικό', '!'], ['άνοιγμα παρένθεσης', ' ('], ['κλείσιμο παρένθεσης', ')'], ['παύλα', ' -']
+  ];
+  const NEW_LINE = /(?:^|\s)(?:νέα|καινούργια|αλλαγή)\s+(?:γραμμή|γραμμής|παράγραφος|παραγράφου)(?=\s|$)/gi;
+  let rec = null;
+  let targetId = null;
+  let wanted = false;
+  let pill = null;
+  let pillText = null;
+
+  /** @returns {boolean} αν ο browser υποστηρίζει υπαγόρευση σε αυτό το περιβάλλον */
+  function supported() {
+    return typeof Recognition === 'function' && !Util.inArtifact();
+  }
+
+  /**
+   * Εφαρμόζει τις φωνητικές εντολές και χωρίζει σε παραγράφους.
+   * @param {string} text
+   * @returns {string[]}
+   */
+  function process(text) {
+    return text.split(NEW_LINE).map(part => {
+      let t = ` ${part} `;
+      MARKS.forEach(([word, mark]) => {
+        t = t.replace(new RegExp(`\\s+${word}(?=\\s)`, 'gi'), mark);
+      });
+      return t.replace(/\s+/g, ' ').trim();
+    });
+  }
+
+  /** Ενημερώνει την ένδειξη και τα κουμπιά. */
+  function render() {
+    document.querySelectorAll('.tb-btn[data-tool="mic"]').forEach(b => b.setAttribute('aria-pressed', String(wanted && b.closest('.editor-block')?.dataset.sectionId === targetId)));
+    if (wanted && !pill) {
+      pillText = Util.h('span', { class: 'dictation-text', text: 'Μίλα τώρα…' });
+      pill = Util.h('div', { class: 'dictation-pill', role: 'status' }, Util.icon('mic', 18), pillText,
+        Util.h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Διακοπή', onClick: stop }));
+      document.body.append(pill);
+    } else if (!wanted && pill) {
+      pill.remove();
+      pill = null;
+    }
+  }
+
+  /**
+   * Ξεκινά υπαγόρευση στην ενότητα.
+   * @param {string} id
+   */
+  function start(id) {
+    if (!supported()) {
+      Toast.show('Η φωνητική πληκτρολόγηση δεν υποστηρίζεται εδώ. Χρησιμοποίησε Chrome ή Edge στην τοπική έκδοση.', 'warning', 6000);
+      return;
+    }
+    targetId = id;
+    wanted = true;
+    rec = new Recognition();
+    rec.lang = 'el-GR';
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) EditorManager.insertDictation(targetId, process(r[0].transcript));
+        else interim += r[0].transcript;
+      }
+      if (pillText) pillText.textContent = interim || 'Μίλα τώρα…';
+    };
+    rec.onerror = e => {
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
+      wanted = false;
+      const msg = {
+        'not-allowed': 'Δεν δόθηκε άδεια χρήσης μικροφώνου.',
+        'service-not-allowed': 'Ο browser δεν επιτρέπει φωνητική αναγνώριση σε αυτή τη σελίδα.',
+        'audio-capture': 'Δεν βρέθηκε μικρόφωνο.',
+        network: 'Η φωνητική πληκτρολόγηση χρειάζεται σύνδεση στο internet.'
+      }[e.error] || `Σφάλμα φωνητικής αναγνώρισης (${e.error}).`;
+      Toast.show(msg, 'error', 6000);
+      render();
+    };
+    rec.onend = () => {
+      if (wanted) {
+        try { rec.start(); } catch (err) { wanted = false; render(); }
+      } else {
+        render();
+      }
+    };
+    try {
+      rec.start();
+    } catch (err) {
+      wanted = false;
+    }
+    render();
+  }
+
+  /** Σταματά την υπαγόρευση. */
+  function stop() {
+    wanted = false;
+    if (rec) {
+      try { rec.stop(); } catch (err) { rec = null; }
+    }
+    render();
+  }
+
+  /**
+   * @param {string} id
+   */
+  function toggle(id) {
+    if (wanted && id === targetId) stop();
+    else {
+      if (wanted) stop();
+      start(id);
+    }
+  }
+
+  /** @returns {boolean} */
+  function active() { return wanted; }
+
+  return { supported, toggle, stop, active, process };
 })();
 
 
@@ -5423,8 +5862,11 @@ const MathEngine = (() => {
         node.className = display ? 'math-node math-display' : 'math-node';
         renderInto(node);
         EditorManager.commit(id);
+        fit(node.parentElement || node);
       } else {
         insert(latex, display, id);
+        const content = EditorManager.getContentEl(id);
+        if (content) requestAnimationFrame(() => fit(content));
       }
       return true;
     };
@@ -5466,7 +5908,30 @@ const MathEngine = (() => {
     update();
   }
 
-  return { SYMBOLS, render, renderInto, hydrate, createNode, insert, open, favorites, removeFavorite, miniPreview };
+  /**
+   * Σμικρύνει τις εκφράσεις που δεν χωρούν στο πλάτος του περιέκτη τους (π.χ. στενό κελί πίνακα).
+   * @param {ParentNode} root
+   */
+  function fit(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('.math-node').forEach(node => {
+      node.style.fontSize = '';
+      const holder = node.parentElement;
+      const html = node.querySelector('.katex-html');
+      if (!holder || !html) return;
+      const cs = getComputedStyle(holder);
+      const avail = holder.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+      const bases = Array.from(html.children).filter(el => el.classList.contains('base'));
+      let width = html.getBoundingClientRect().width;
+      if (bases.length) {
+        const rects = bases.map(el => el.getBoundingClientRect());
+        width = Math.max(...rects.map(r => r.right)) - Math.min(...rects.map(r => r.left));
+      }
+      if (avail > 20 && width > avail + 1) node.style.fontSize = `${Math.max(35, Math.floor((avail / width) * 100))}%`;
+    });
+  }
+
+  return { SYMBOLS, render, renderInto, hydrate, createNode, insert, open, favorites, removeFavorite, miniPreview, fit };
 })();
 
 
@@ -6086,7 +6551,7 @@ const ExportManager = (() => {
     const m = AppState.get().metadata;
     const st = AppState.get().style;
     const g = geometry();
-    const root = Util.h('div', { class: `wf-print-doc wf-st-${st.sectionTitle} wf-sec-${st.sectionStyle}`, style: { width: `${g.contentW}mm` } });
+    const root = Util.h('div', { class: `wf-print-doc wf-st-${st.sectionTitle}${st.layout === 'grid' ? ' wf-layout-grid' : ''}`, style: { width: `${g.contentW}mm` } });
     root.style.setProperty('--doc-font', AppState.FONTS[st.fontFamily]);
     root.style.setProperty('--doc-size', `${st.fontSize}pt`);
     root.style.setProperty('--doc-accent', st.accent);
@@ -6119,7 +6584,11 @@ const ExportManager = (() => {
     AppState.sections().forEach(s => {
       if (s.collapsed && !opts.includeCollapsed) return;
       n++;
-      const section = Util.h('section', { class: `wf-print-section${opts.breakPerSection && n > 1 ? ' wf-break-before' : ''}`, dataset: { sectionId: s.id } });
+      const section = Util.h('section', { class: `wf-print-section${opts.breakPerSection && n > 1 ? ' wf-break-before' : ''}`, dataset: { sectionId: s.id, span: String(st.layout === 'grid' ? s.span : 12), minHeight: String(st.layout === 'grid' ? s.minHeight : 0) } });
+      if (st.layout === 'grid') {
+        section.style.setProperty('--span', String(s.span));
+        if (s.minHeight) section.style.minHeight = `${s.minHeight}mm`;
+      }
       if (!s.hideTitle) section.append(Util.h('h2', { class: 'wf-print-section-title', text: `${opts.numbering ? `${n}. ` : ''}${s.title || 'Χωρίς τίτλο'}` }));
       const content = Util.h('div', { class: 'wf-print-content doc-content' });
       const tpl = document.createElement('template');
@@ -6174,6 +6643,7 @@ const ExportManager = (() => {
   async function ready(root) {
     await Promise.all(Array.from(root.querySelectorAll('img')).map(img => (img.complete ? null : new Promise(r => { img.onload = r; img.onerror = r; }))));
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    MathEngine.fit(root);
     await Util.nextFrame();
   }
 
@@ -6191,6 +6661,8 @@ const ExportManager = (() => {
     const candidates = new Set();
     root.querySelectorAll('.wf-print-section, .wf-student, .wf-print-content > *, .wf-print-content li, .wf-print-content tr, .wf-answer-lines > div, .wf-print-content p, .wf-print-content h1, .wf-print-content h2, .wf-print-content h3, .wf-print-content h4, .wf-print-content blockquote > *')
       .forEach(el => {
+        const sec = el.closest('.wf-print-section');
+        if (sec && sec !== el && Number(sec.dataset.span || 12) < 12) return;
         const v = y(el);
         if (v > 0 && ![...excluded].some(e => Math.abs(e - v) <= 2)) candidates.add(v);
       });
@@ -6280,7 +6752,11 @@ const ExportManager = (() => {
    * @param {Object} [opts]
    */
   function preparePrint(el, opts = options()) {
-    document.getElementById('print-root').replaceChildren(el || buildPrintable(opts));
+    const doc = el || buildPrintable(opts);
+    const stage = mountStage(doc);
+    MathEngine.fit(doc);
+    stage.remove();
+    document.getElementById('print-root').replaceChildren(doc);
     setPageStyle(opts);
     document.body.classList.add('print-mode');
   }
@@ -6359,6 +6835,11 @@ const ExportManager = (() => {
       stage = mountStage(root);
       await ready(root);
       busy.set(0.15);
+      root.classList.add('wf-real-boxes');
+      root.querySelectorAll('ul.wf-checklist > li').forEach(li => {
+        const checked = li.getAttribute('data-checked') === 'true';
+        li.prepend(Util.h('span', { class: `wf-check-box${checked ? ' is-checked' : ''}`, 'aria-hidden': 'true' }, checked ? '\u2713' : ''));
+      });
       try {
         applyMathImages(await rasterizeMath(root));
         await ready(root);
@@ -6629,15 +7110,16 @@ const ExportManager = (() => {
       const kind = (Array.from(el.classList).find(c => /^wf-card-(note|tip|warn|def|remember)$/.test(c)) || 'wf-card-note').slice(8);
       const [fill, color] = CARD_COLORS[kind] || CARD_COLORS.note;
       const thin = { style: D.BorderStyle.SINGLE, size: 4, color };
-      let kids = blocks(el, { ...para, cell: true });
+      const w = para.widthTwips || DOCX_CONTENT_TWIPS;
+      let kids = blocks(el, { ...para, cell: true, widthTwips: w - 360 });
       if (!kids.length) kids = [new D.Paragraph({ children: [] })];
       return new D.Table({
-        width: { size: DOCX_CONTENT_TWIPS, type: D.WidthType.DXA },
-        columnWidths: [DOCX_CONTENT_TWIPS],
+        width: { size: w, type: D.WidthType.DXA },
+        columnWidths: [w],
         rows: [new D.TableRow({
           children: [new D.TableCell({
             children: kids,
-            width: { size: DOCX_CONTENT_TWIPS, type: D.WidthType.DXA },
+            width: { size: w, type: D.WidthType.DXA },
             shading: { fill, type: D.ShadingType.CLEAR, color: 'auto' },
             margins: { top: 100, bottom: 100, left: 160, right: 160 },
             borders: { top: thin, bottom: thin, right: thin, left: { style: D.BorderStyle.SINGLE, size: 24, color } }
@@ -6646,11 +7128,11 @@ const ExportManager = (() => {
       });
     };
 
-    const table = tableEl => {
+    const table = (tableEl, para = {}) => {
       const plain = tableEl.classList.contains('wf-grid-plain');
       const rows = Array.from(tableEl.rows);
       const cols = Math.max(1, ...rows.map(r => Array.from(r.cells).reduce((s, c) => s + (c.colSpan || 1), 0)));
-      const colW = Math.floor(DOCX_CONTENT_TWIPS / cols);
+      const colW = Math.floor((para.widthTwips || DOCX_CONTENT_TWIPS) / cols);
       return new D.Table({
         width: { size: colW * cols, type: D.WidthType.DXA },
         columnWidths: Array(cols).fill(colW),
@@ -6660,7 +7142,7 @@ const ExportManager = (() => {
           height: D.HeightRule ? { value: 454, rule: D.HeightRule.ATLEAST } : undefined,
           children: Array.from(tr.cells).map(cell => {
             const isTh = cell.tagName === 'TH';
-            let kids = blocks(cell, { cell: true, align: alignOf(cell) || (isTh ? 'center' : null), bold: isTh });
+            let kids = blocks(cell, { cell: true, align: alignOf(cell) || (isTh ? 'center' : null), bold: isTh, widthTwips: colW * (cell.colSpan || 1) - 200 });
             if (!kids.length) kids = [new D.Paragraph({ children: [] })];
             return new D.TableCell({
               children: kids,
@@ -6680,6 +7162,7 @@ const ExportManager = (() => {
     const list = (listEl, para, level) => {
       const ordered = listEl.tagName === 'OL';
       const instance = ordered ? ++olInstance : 0;
+      const checklist = listEl.classList.contains('wf-checklist');
       const numbering = { reference: ordered ? 'wf-num' : 'wf-bullet', level: Math.min(level, 4), instance };
       const out = [];
       Array.from(listEl.children).forEach(li => {
@@ -6690,7 +7173,9 @@ const ExportManager = (() => {
         let runs = [];
         let first = true;
         const emit = () => {
-          out.push(paragraph(runs, { ...para, numbering: first ? numbering : undefined, indent: first ? undefined : 720 * (level + 1) }));
+          if (checklist && first) runs.unshift(new D.TextRun({ text: li.getAttribute('data-checked') === 'true' ? '\u2611 ' : '\u2610 ', font: 'Segoe UI Symbol' }));
+          const useNumbering = first && !checklist;
+          out.push(paragraph(runs, { ...para, numbering: useNumbering ? numbering : undefined, indent: useNumbering ? undefined : 720 * (level + 1) - (checklist && first ? 360 : 0) }));
           first = false;
           runs = [];
         };
@@ -6700,7 +7185,7 @@ const ExportManager = (() => {
             out.push(...list(child, para, level + 1));
           } else if (child.nodeType === 1 && child.tagName === 'TABLE') {
             if (runs.length || first) emit();
-            out.push(table(child), new D.Paragraph({ children: [] }));
+            out.push(table(child, para), new D.Paragraph({ children: [] }));
           } else if (child.nodeType === 1 && /^(P|DIV|H[1-4])$/.test(child.tagName)) {
             if (runs.length && !first) emit();
             runs.push(...inlineChildren(child, baseFmt(para)));
@@ -6752,7 +7237,7 @@ const ExportManager = (() => {
         flush();
         const p2 = { ...para, align: alignOf(el) || para.align, caption: el.classList.contains('wf-caption') || para.caption, cardTitle: el.classList.contains('wf-card-title'), tip: el.classList.contains('wf-tip') };
         if (tag === 'UL' || tag === 'OL') out.push(...list(el, p2, 0));
-        else if (tag === 'TABLE') out.push(table(el), new D.Paragraph({ children: [], spacing: { after: 120 } }));
+        else if (tag === 'TABLE') out.push(table(el, para), new D.Paragraph({ children: [], spacing: { after: 120 } }));
         else if (/^H[1-4]$/.test(tag)) out.push(paragraph(inlineChildren(el, {}), { ...p2, heading: tag }));
         else if (tag === 'BLOCKQUOTE') out.push(...blocks(el, { ...p2, indent: (para.indent || 0) + 720 }));
         else if (tag === 'HR') out.push(new D.Paragraph({ children: [], border: { bottom: { color: '999999', space: 1, style: D.BorderStyle.SINGLE, size: 6 } } }));
@@ -6791,14 +7276,13 @@ const ExportManager = (() => {
     }
     const titleSize = Math.round((st.fontSize + 2) * 2);
     const titleBorder = side => ({ color: accent, space: 2, style: D.BorderStyle.SINGLE, size: side === 'bottom' && st.sectionTitle === 'underline' ? 12 : 8 });
-    root.querySelectorAll(':scope > .wf-print-section').forEach((sec, si) => {
-      const startIdx = children.length;
-      const target = st.sectionStyle === 'card' ? [] : children;
+    const sectionBlocks = (sec, widthTwips, inCard) => {
+      const target = [];
       const titleEl = sec.querySelector('.wf-print-section-title');
       if (titleEl) {
         const opts2 = {
           keepNext: true,
-          spacing: { before: st.sectionStyle === 'card' ? 0 : 240, after: 160 },
+          spacing: { before: inCard ? 0 : 240, after: 160 },
           children: [new D.TextRun({ text: titleEl.textContent, bold: true, size: titleSize, color: st.sectionTitle === 'bar' ? 'FFFFFF' : accent })]
         };
         if (st.sectionTitle === 'underline') opts2.border = { bottom: titleBorder('bottom') };
@@ -6811,34 +7295,58 @@ const ExportManager = (() => {
         for (let i = 0; i < 5; i++) {
           target.push(new D.Paragraph({
             spacing: { before: 200 },
-            tabStops: [{ type: D.TabStopType.RIGHT, position: DOCX_CONTENT_TWIPS, leader: D.LeaderType.UNDERSCORE }],
+            tabStops: [{ type: D.TabStopType.RIGHT, position: widthTwips, leader: D.LeaderType.UNDERSCORE }],
             children: [new D.TextRun({ children: [new D.Tab()], color: '999999' })]
           }));
         }
       } else {
-        target.push(...blocks(content, {}));
+        target.push(...blocks(content, { widthTwips }));
       }
-      const breakBefore = sec.classList.contains('wf-break-before');
-      if (st.sectionStyle === 'card') {
-        const line = { style: D.BorderStyle.SINGLE, size: 8, color: accent };
-        if (breakBefore) children.push(new D.Paragraph({ children: [new D.PageBreak()] }));
-        else if (si > 0) children.push(new D.Paragraph({ children: [], spacing: { after: 120 } }));
+      return target;
+    };
+    const sections = Array.from(root.querySelectorAll(':scope > .wf-print-section'));
+    if (st.layout === 'grid') {
+      const line = { style: D.BorderStyle.SINGLE, size: 8, color: accent };
+      const gap = { style: D.BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+      let row = [];
+      let sum = 0;
+      const flushRow = () => {
+        if (!row.length) return;
+        const widths = row.map(sec => Math.floor(DOCX_CONTENT_TWIPS * (Number(sec.dataset.span) || 12) / 12));
+        const minH = Math.max(0, ...row.map(sec => Number(sec.dataset.minHeight) || 0));
+        if (row[0].classList.contains('wf-break-before')) children.push(new D.Paragraph({ children: [new D.PageBreak()] }));
+        const cells = row.map((sec, i) => new D.TableCell({
+          children: (() => { const k = sectionBlocks(sec, widths[i] - 400, true); return k.length ? k : [new D.Paragraph({ children: [] })]; })(),
+          width: { size: widths[i], type: D.WidthType.DXA },
+          margins: { top: 140, bottom: 140, left: 200, right: 200 },
+          borders: { top: line, bottom: line, left: line, right: line }
+        }));
+        const used = widths.reduce((s, w) => s + w, 0);
+        if (used < DOCX_CONTENT_TWIPS - 50) {
+          widths.push(DOCX_CONTENT_TWIPS - used);
+          cells.push(new D.TableCell({ children: [new D.Paragraph({ children: [] })], width: { size: DOCX_CONTENT_TWIPS - used, type: D.WidthType.DXA }, borders: { top: gap, bottom: gap, left: gap, right: gap } }));
+        }
         children.push(new D.Table({
           width: { size: DOCX_CONTENT_TWIPS, type: D.WidthType.DXA },
-          columnWidths: [DOCX_CONTENT_TWIPS],
-          rows: [new D.TableRow({
-            children: [new D.TableCell({
-              children: target.length ? target : [new D.Paragraph({ children: [] })],
-              width: { size: DOCX_CONTENT_TWIPS, type: D.WidthType.DXA },
-              margins: { top: 140, bottom: 140, left: 200, right: 200 },
-              borders: { top: line, bottom: line, left: line, right: line }
-            })]
-          })]
-        }));
-      } else if (breakBefore) {
-        children.splice(startIdx, 0, new D.Paragraph({ children: [new D.PageBreak()] }));
-      }
-    });
+          columnWidths: widths,
+          rows: [new D.TableRow({ children: cells, height: minH && D.HeightRule ? { value: Math.round(minH * TWIPS_PER_MM), rule: D.HeightRule.ATLEAST } : undefined })]
+        }), new D.Paragraph({ children: [], spacing: { after: 120 } }));
+        row = [];
+        sum = 0;
+      };
+      sections.forEach(sec => {
+        const span = Number(sec.dataset.span) || 12;
+        if (row.length && (sum + span > 12 || sec.classList.contains('wf-break-before'))) flushRow();
+        row.push(sec);
+        sum += span;
+      });
+      flushRow();
+    } else {
+      sections.forEach(sec => {
+        if (sec.classList.contains('wf-break-before')) children.push(new D.Paragraph({ children: [new D.PageBreak()] }));
+        children.push(...sectionBlocks(sec, DOCX_CONTENT_TWIPS, false));
+      });
+    }
 
     const headerRuns = [];
     if (opts.headerTitle) headerRuns.push(new D.TextRun({ text: docTitle(), size: 18, color: '555555' }));
@@ -6927,6 +7435,121 @@ const ExportManager = (() => {
     }
   }
 
+  const INTERACTIVE_CSS = `
+body.wf-export { display: block; height: auto; overflow: auto; margin: 0; background: #E2E8F0; color: #000000; font-family: 'Segoe UI', Arial, sans-serif; }
+body.wf-export #print-root { display: block; }
+.wf-export-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 8px 16px; background: #FFFFFF; border-bottom: 1px solid #CBD5E1; font-size: 14px; }
+.wf-export-bar span { color: #475569; margin-right: auto; }
+.wf-export-bar button { height: 32px; padding: 0 12px; border: 1px solid #CBD5E1; border-radius: 6px; background: #F8FAFC; color: #0F172A; font: 600 14px 'Segoe UI', Arial, sans-serif; cursor: pointer; }
+.wf-export-bar button.primary { background: #2563EB; border-color: #2563EB; color: #FFFFFF; }
+.wf-export-page { box-sizing: border-box; max-width: 100%; margin: 16px auto 48px; background: #FFFFFF; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12); }
+.wf-export-page .wf-print-doc { width: auto !important; }
+.wf-answer { min-height: 36mm; margin: 2mm 0; padding: 2mm 3mm; border: 1px dashed #94A3B8; border-radius: 2mm; white-space: pre-wrap; outline: none; }
+.wf-answer:empty::before { content: attr(data-placeholder); color: #94A3B8; }
+td.wf-fill { background: #FAFDFF; cursor: text; white-space: pre-wrap; }
+[contenteditable="true"]:focus { outline: 2px solid #2563EB; outline-offset: -2px; }
+.wf-student .line[contenteditable="true"] { padding: 0 2pt; white-space: nowrap; overflow: hidden; }
+ul.wf-checklist > li { cursor: pointer; }
+ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
+@media (max-width: 860px) { .wf-export-page { margin: 0; padding: 12px !important; width: auto !important; } }
+@media print { .wf-export-page { margin: 0; padding: 0 !important; box-shadow: none; width: auto !important; } .wf-answer { border-color: #CBD5E1; } td.wf-fill { background: transparent; } }
+`;
+
+  const INTERACTIVE_JS = `(function () {
+  var KEY = 'wf-answers:' + document.title;
+  function fields() { return Array.prototype.slice.call(document.querySelectorAll('[contenteditable="true"]')); }
+  function items() { return Array.prototype.slice.call(document.querySelectorAll('ul.wf-checklist > li')); }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ f: fields().map(function (f) { return f.innerText; }), c: items().map(function (li) { return li.getAttribute('data-checked'); }) })); } catch (e) { return; }
+  }
+  function setItem(li, v) { li.setAttribute('data-checked', v); li.setAttribute('aria-checked', v); }
+  function toggle(li) { setItem(li, li.getAttribute('data-checked') === 'true' ? 'false' : 'true'); save(); }
+  try {
+    var d = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (d) {
+      fields().forEach(function (f, i) { if (typeof d.f[i] === 'string' && d.f[i]) f.textContent = d.f[i]; });
+      items().forEach(function (li, i) { if (d.c[i] === 'true' || d.c[i] === 'false') setItem(li, d.c[i]); });
+    }
+  } catch (e) { d = null; }
+  document.addEventListener('click', function (e) { var li = e.target.closest && e.target.closest('ul.wf-checklist > li'); if (li && !e.target.closest('[contenteditable="true"]')) toggle(li); });
+  document.addEventListener('keydown', function (e) { var li = e.target.closest && e.target.closest('ul.wf-checklist > li'); if (li && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); toggle(li); } });
+  document.addEventListener('input', save);
+  document.getElementById('wf-print').addEventListener('click', function () { window.print(); });
+  document.getElementById('wf-clear').addEventListener('click', function () {
+    if (!window.confirm('Να διαγραφούν όλες οι απαντήσεις;')) return;
+    fields().forEach(function (f) { f.textContent = ''; });
+    items().forEach(function (li) { setItem(li, 'false'); });
+    save();
+  });
+  document.getElementById('wf-save').addEventListener('click', function () {
+    var html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    a.download = (document.title || 'φύλλο') + ' - απαντήσεις.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+})();`;
+
+  /**
+   * Διαφυγή κειμένου για HTML.
+   * @param {string} s
+   * @returns {string}
+   */
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  /**
+   * Εξαγωγή διαδραστικού HTML για συμπλήρωση στην οθόνη: κουτάκια που τσεκάρονται,
+   * πεδία απαντήσεων και κενά κελιά για γράψιμο, αποθήκευση απαντήσεων στον browser του μαθητή.
+   * @returns {Promise<void>}
+   */
+  async function exportHtml() {
+    if (!(await validate())) return;
+    const busy = Busy.show('Δημιουργία διαδραστικού HTML…');
+    let stage = null;
+    try {
+      const opts = options();
+      const g = geometry();
+      const root = buildPrintable(opts);
+      stage = mountStage(root);
+      await ready(root);
+      stage.remove();
+      stage = null;
+      root.querySelectorAll('ul.wf-checklist > li').forEach(li => {
+        li.setAttribute('role', 'checkbox');
+        li.setAttribute('tabindex', '0');
+        li.setAttribute('aria-checked', li.getAttribute('data-checked') === 'true' ? 'true' : 'false');
+      });
+      root.querySelectorAll('.wf-answer-lines').forEach(box => box.replaceWith(Util.h('div', { class: 'wf-answer', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Απάντηση', 'data-placeholder': 'Γράψε εδώ την απάντησή σου…' })));
+      root.querySelectorAll('td').forEach(td => {
+        if (td.textContent.trim() || td.querySelector('img, .math-node, table')) return;
+        td.replaceChildren();
+        td.classList.add('wf-fill');
+        td.setAttribute('contenteditable', 'true');
+        td.setAttribute('aria-label', 'Κελί για συμπλήρωση');
+      });
+      root.querySelectorAll('.wf-student .line').forEach(line => {
+        line.setAttribute('contenteditable', 'true');
+        line.setAttribute('role', 'textbox');
+      });
+      const css = Array.from(document.querySelectorAll('style')).filter(s => s.id !== 'page-style').map(s => s.textContent).join('\n');
+      const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${root.outerHTML}</main>`;
+      const bar = '<div class="wf-export-bar"><span>Συμπλήρωσε τα κενά πεδία και τσέκαρε τα κουτάκια. Οι απαντήσεις κρατιούνται σε αυτόν τον browser.</span>'
+        + '<button type="button" id="wf-clear">Καθαρισμός</button><button type="button" id="wf-save">Αποθήκευση με απαντήσεις</button><button type="button" class="primary" id="wf-print">Εκτύπωση</button></div>';
+      const pageCss = `@page { size: A4 ${g.landscape ? 'landscape' : 'portrait'}; margin: ${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm; }`;
+      const html = `<!DOCTYPE html>\n<html lang="el">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(docTitle())}</title>\n<style>\n${css}\n${INTERACTIVE_CSS}\n${pageCss}\n</style>\n</head>\n<body class="wf-export">\n${bar}\n${page}\n<script>\n${INTERACTIVE_JS}\n<\/script>\n</body>\n</html>\n`;
+      if (await Util.downloadBlob(new Blob([html], { type: 'text/html' }), Util.safeFilename(docTitle(), 'html'))) Toast.show('Το διαδραστικό HTML δημιουργήθηκε', 'success');
+    } catch (e) {
+      Toast.show(`Σφάλμα κατά την εξαγωγή: ${e.message}`, 'error', 6000);
+    } finally {
+      if (stage) stage.remove();
+      busy.hide();
+    }
+  }
+
   /**
    * Προεπισκόπηση εκτύπωσης σε σελίδες A4 με επιλογές κεφαλίδας/υποσέλιδου.
    */
@@ -6994,6 +7617,7 @@ const ExportManager = (() => {
         pagesEl),
       actions: [
         { label: 'Κλείσιμο', variant: 'secondary' },
+        { label: 'HTML', icon: 'checklist', variant: 'secondary', onClick: () => { exportHtml(); return false; } },
         { label: 'DOCX', icon: 'word', variant: 'secondary', onClick: () => { exportDocx(); return false; } },
         { label: 'PDF (προηγμένο)', icon: 'document', variant: 'secondary', onClick: () => { exportPdf(); return false; } },
         Util.inArtifact() ? null : { label: 'Εκτύπωση/PDF', icon: 'printer', variant: 'primary', onClick: () => { print(); return false; } }
@@ -7049,7 +7673,7 @@ const ExportManager = (() => {
     window.addEventListener('afterprint', cleanupPrint);
   }
 
-  return { init, buildPrintable, paginate, validate, print, printElement, exportPdf, exportDocx, preview, saveProject, openProject };
+  return { init, buildPrintable, paginate, validate, print, printElement, exportPdf, exportDocx, exportHtml, preview, saveProject, openProject };
 })();
 
 
@@ -8133,7 +8757,8 @@ const UIController = (() => {
     ['Μορφοποίηση', [
       ['Έντονα', 'Ctrl+B'], ['Πλάγια', 'Ctrl+I'], ['Υπογράμμιση', 'Ctrl+U'], ['Διακριτή διαγραφή', 'Ctrl+Shift+X'],
       ['Εκθέτης', 'Ctrl+Shift+='], ['Δείκτης', 'Ctrl+='], ['Κανονικό κείμενο', 'Ctrl+Alt+0'], ['Επικεφαλίδα 1–4', 'Ctrl+Alt+1…4'],
-      ['Αριθμημένη λίστα', 'Ctrl+Shift+7'], ['Λίστα με κουκκίδες', 'Ctrl+Shift+8'], ['Αύξηση / μείωση εσοχής', 'Ctrl+] / Ctrl+['],
+      ['Αριθμημένη λίστα', 'Ctrl+Shift+7'], ['Λίστα με κουκκίδες', 'Ctrl+Shift+8'], ['Λίστα ελέγχου (κουτάκια)', 'Ctrl+Shift+9'],
+      ['Φωνητική πληκτρολόγηση', 'Ctrl+Shift+Space'], ['Αύξηση / μείωση εσοχής', 'Ctrl+] / Ctrl+['],
       ['Επόμενο κελί / εσοχή λίστας', 'Tab / Shift+Tab']
     ]],
     ['Εισαγωγή', [
@@ -8204,6 +8829,7 @@ const UIController = (() => {
       if (kind === 'print') ExportManager.print();
       else if (kind === 'pdf') ExportManager.exportPdf();
       else if (kind === 'docx') ExportManager.exportDocx();
+      else if (kind === 'html') ExportManager.exportHtml();
     });
     menu.addEventListener('keydown', e => {
       const items = Array.from(menu.querySelectorAll('button'));
@@ -8328,7 +8954,6 @@ const UIController = (() => {
     classic: { label: 'Κλασική', values: { fontFamily: 'Georgia', fontSize: 12, accent: '#000000', tableHeaderFill: '#F1F5F9', titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow' } },
     ekfe: { label: 'ΕΚΦΕ (πίνακας στηλών)', values: { fontFamily: 'Calibri', fontSize: 11, accent: '#000000', tableHeaderFill: '#FFFFFF', titleAlign: 'left', sectionTitle: 'plain', sectionStyle: 'flow' } },
     modern: { label: 'Σύγχρονη', values: { fontFamily: 'Arial', fontSize: 11, accent: '#1D4ED8', tableHeaderFill: '#DBEAFE', titleAlign: 'left', sectionTitle: 'bar', sectionStyle: 'flow' } },
-    cards: { label: 'Κάρτες', values: { fontFamily: 'Verdana', fontSize: 10, accent: '#0F766E', tableHeaderFill: '#CCFBF1', titleAlign: 'center', sectionTitle: 'plain', sectionStyle: 'card' } },
     minimal: { label: 'Λιτή', values: { fontFamily: 'Times New Roman', fontSize: 12, accent: '#334155', tableHeaderFill: '#FFFFFF', titleAlign: 'left', sectionTitle: 'box', sectionStyle: 'flow' } },
     custom: { label: 'Προσαρμοσμένη', values: null }
   };
@@ -8365,7 +8990,7 @@ const UIController = (() => {
         AppState.setStyle(patch);
       }, ev === 'input' ? 150 : 0));
     });
-    $('style-cards').addEventListener('change', e => AppState.setStyle({ sectionStyle: e.target.checked ? 'card' : 'flow', preset: 'custom' }));
+    ['flow', 'grid'].forEach(mode => $(`layout-${mode}`).addEventListener('click', () => AppState.setStyle({ layout: mode })));
     $('btn-logo').addEventListener('click', async () => {
       const [file] = await Util.pickFiles('image/png,image/jpeg,image/gif');
       if (!file) return;
@@ -8399,7 +9024,9 @@ const UIController = (() => {
     set('style-logo-width', st.logoWidth);
     set('style-orientation', st.orientation);
     set('style-margins', st.margins);
-    $('style-cards').checked = st.sectionStyle === 'card';
+    $('layout-flow').setAttribute('aria-pressed', String(st.layout !== 'grid'));
+    $('layout-grid').setAttribute('aria-pressed', String(st.layout === 'grid'));
+    EditorManager.setLayout(st.layout);
     const img = $('style-logo-preview');
     if (st.logo) img.src = st.logo;
     else img.removeAttribute('src');
@@ -8745,6 +9372,7 @@ const UIController = (() => {
       if (printItem) printItem.hidden = true;
       Util.downloadsApi();
     }
+    window.addEventListener('resize', Util.debounce(() => MathEngine.fit($('sections-container')), 300));
     const missing = ['katex', 'Chart', 'jspdf', 'html2canvas', 'docx'].filter(name => !window[name]);
     if (missing.length) Toast.show(`Δεν φορτώθηκαν βιβλιοθήκες: ${missing.join(', ')}`, 'error', 8000);
     if (restored) Toast.show(`Ανακτήθηκε η εργασία σου (${new Date(restored).toLocaleString('el-GR', { dateStyle: 'short', timeStyle: 'short' })})`, 'info', 4000);
