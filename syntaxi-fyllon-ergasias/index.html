@@ -860,6 +860,15 @@ kbd {
 }
 .wf-check-box.is-checked { background: var(--doc-accent, #000000); border-color: var(--doc-accent, #000000); }
 
+.library-source { display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-btn); background: var(--surface); }
+.library-source .folder-line { display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+.library-source .folder-line strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.library-source .folder-line svg { flex-shrink: 0; color: var(--primary); }
+.library-legacy { padding: 8px; border: 1px solid var(--warn); border-radius: var(--radius-btn); font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
+.empty-group { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+.empty-group-title { font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.mini-item .source-tag { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+
 </style>
 </head>
 <body>
@@ -923,12 +932,14 @@ kbd {
         </section>
         <section class="panel-section">
           <h3 class="panel-heading">Τα πρότυπά μου</h3>
+          <div id="library-source" class="library-source"></div>
           <label class="check" title="Το πρότυπο κρατά και το περιεχόμενο των ενοτήτων (πίνακες, ερωτήσεις, εικόνες), όχι μόνο τη δομή"><input id="template-with-content" type="checkbox" checked>Με περιεχόμενο και εμφάνιση</label>
           <div class="row">
             <input id="template-name" class="input grow" type="text" maxlength="100" placeholder="Όνομα προτύπου" aria-label="Όνομα προτύπου">
-            <button id="btn-save-template" class="btn btn-secondary" type="button" title="Αποθήκευση της τρέχουσας δομής στη βιβλιοθήκη του browser">Αποθήκευση</button>
+            <button id="btn-save-template" class="btn btn-secondary" type="button" title="Αποθήκευση του φύλλου ως πρότυπο σε αρχείο .json">Αποθήκευση</button>
           </div>
           <ul id="template-library" class="mini-list"></ul>
+          <div id="library-legacy" class="library-legacy" hidden></div>
         </section>
         <section class="panel-section">
           <h3 class="panel-heading">Αρχείο προτύπου</h3>
@@ -939,7 +950,7 @@ kbd {
         </section>
         <section class="panel-section">
           <h3 class="panel-heading">Φύλλο εργασίας</h3>
-          <button id="btn-new-sheet" class="btn btn-ghost btn-block" type="button">Νέο κενό φύλλο</button>
+          <button id="btn-new-sheet" class="btn btn-ghost btn-block" type="button" title="Κλείνει το τρέχον φύλλο και εμφανίζει την οθόνη επιλογής προτύπου">Νέο φύλλο από πρότυπο…</button>
         </section>
       </div>
 
@@ -3165,31 +3176,24 @@ const TemplateManager = (() => {
     }
   }
 
-  /** @returns {Array<{name: string, sections: Object[], savedAt: string}>} */
+  /** @returns {Array<{name: string, sections: Object[], savedAt: string}>} πρότυπα από αρχεία */
   function library() {
-    const list = Storage.read(Storage.KEYS.templates, []);
-    return Array.isArray(list) ? list.filter(t => t && Array.isArray(t.sections)) : [];
+    return TemplateLibrary.list();
   }
 
   /**
-   * Αποθηκεύει τη δομή στη βιβλιοθήκη του browser.
+   * Αποθηκεύει το τρέχον φύλλο ως πρότυπο σε αρχείο (στον φάκελο προτύπων ή με λήψη).
    * @param {string} name
+   * @returns {Promise<void>}
    */
-  function saveToLibrary(name) {
+  async function saveToLibrary(name) {
     const sections = currentStructure(withContent());
     if (!sections.length) {
       Toast.show('Δεν υπάρχουν ενότητες για αποθήκευση', 'warning');
       return;
     }
-    const clean = String(name || '').trim().slice(0, 100) || `Πρότυπο ${library().length + 1}`;
-    const list = library().filter(t => t.name !== clean);
-    list.unshift({ name: clean, sections, style: AppState.get().style, savedAt: new Date().toISOString() });
-    Storage.write(Storage.KEYS.templates, list.slice(0, 50))
-      .then(() => {
-        Toast.show(`Το πρότυπο «${clean}» αποθηκεύτηκε`, 'success');
-        Bus.emit('library-changed');
-      })
-      .catch(() => Toast.show('Το πρότυπο δεν χωράει στον χώρο του browser (πιθανώς λόγω εικόνων). Χρησιμοποίησε «Εξαγωγή» σε αρχείο.', 'error', 7000));
+    const clean = String(name || '').trim().slice(0, 100) || AppState.get().metadata.title.trim().slice(0, 100) || `Πρότυπο ${library().length + 1}`;
+    await TemplateLibrary.save({ name: clean, sections, style: withContent() ? AppState.get().style : null });
   }
 
   /**
@@ -3197,7 +3201,7 @@ const TemplateManager = (() => {
    * @returns {Promise<boolean>}
    */
   function loadFromLibrary(index) {
-    const t = library()[index];
+    const t = TemplateLibrary.get(index);
     return t ? applyTemplate(t.sections, t.name, t.style || null) : Promise.resolve(false);
   }
 
@@ -3205,19 +3209,321 @@ const TemplateManager = (() => {
    * @param {number} index
    * @returns {Promise<void>}
    */
-  async function deleteFromLibrary(index) {
-    const list = library();
-    const t = list[index];
-    if (!t) return;
-    const ok = await Modal.confirm({ title: 'Διαγραφή προτύπου', message: `Να διαγραφεί το πρότυπο «${t.name}» από τη βιβλιοθήκη;`, confirmLabel: 'Διαγραφή', danger: true });
-    if (!ok) return;
-    list.splice(index, 1);
-    Storage.write(Storage.KEYS.templates, list).then(() => Bus.emit('library-changed'));
+  function deleteFromLibrary(index) {
+    return TemplateLibrary.remove(index);
   }
 
   return {
     TYPE_LABELS, predefinedList, loadPredefined, applyTemplate, render, addSection, addExercise, removeSection,
     exportTemplate, importTemplate, library, saveToLibrary, loadFromLibrary, deleteFromLibrary
+  };
+})();
+
+
+/**
+ * Βιβλιοθήκη «Τα πρότυπά μου» σε εξωτερικά αρχεία .json.
+ * Σε Chrome/Edge (τοπική έκδοση) χρησιμοποιεί έναν φάκελο του υπολογιστή μέσω File System Access API·
+ * ο browser θυμάται μόνο ποιος είναι ο φάκελος, όχι τα ίδια τα πρότυπα.
+ * Αλλού (Firefox, Safari, claude.ai) τα αρχεία ανοίγουν χειροκίνητα και η αποθήκευση γίνεται με λήψη αρχείου.
+ * @namespace TemplateLibrary
+ */
+const TemplateLibrary = (() => {
+  const DB_NAME = 'worksheetforge';
+  const STORE = 'handles';
+  const KEY = 'templates-folder';
+  let folder = null;
+  let folderName = '';
+  let status = 'none';
+  let items = [];
+
+  /** @returns {boolean} αν ο browser μπορεί να δουλέψει απευθείας με φάκελο */
+  function supported() {
+    return typeof window.showDirectoryPicker === 'function' && !Util.inArtifact() && typeof indexedDB !== 'undefined';
+  }
+
+  /**
+   * Ανοίγει τη βάση IndexedDB όπου φυλάσσεται μόνο η αναφορά στον φάκελο.
+   * @returns {Promise<IDBDatabase>}
+   */
+  function openDb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * @param {'get'|'put'|'delete'} op
+   * @param {*} [value]
+   * @returns {Promise<*>}
+   */
+  async function idb(op, value) {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, op === 'get' ? 'readonly' : 'readwrite');
+      const store = tx.objectStore(STORE);
+      const req = op === 'get' ? store.get(KEY) : (op === 'put' ? store.put(value, KEY) : store.delete(KEY));
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Αναγνωρίζει πρότυπα μέσα σε δεδομένα JSON (μεμονωμένο πρότυπο, βιβλιοθήκη ή έργο).
+   * @param {*} data
+   * @param {string} fallbackName
+   * @returns {Array<{name: string, sections: Object[], style: Object|null, savedAt: string}>}
+   */
+  function parse(data, fallbackName) {
+    if (!data || typeof data !== 'object') return [];
+    const one = (t, name) => {
+      const sections = Array.isArray(t) ? t : (Array.isArray(t.sections) ? t.sections : (t.state && Array.isArray(t.state.template) ? t.state.template.map(s => ({ ...s, starter: (t.state.content || {})[s.id] })) : null));
+      if (!sections || !sections.length) return null;
+      return { name: String(t.name || name || 'Πρότυπο').slice(0, 100), sections, style: t.style || (t.state && t.state.style) || null, savedAt: t.savedAt || '' };
+    };
+    if (data.app === 'worksheet-forge-library' && Array.isArray(data.templates)) return data.templates.map(t => one(t)).filter(Boolean);
+    const t = one(data, fallbackName);
+    return t ? [t] : [];
+  }
+
+  /**
+   * Διαβάζει όλα τα .json του φακέλου.
+   * @returns {Promise<void>}
+   */
+  async function refresh() {
+    if (!folder) return;
+    const found = [];
+    for await (const [name, entry] of folder.entries()) {
+      if (entry.kind !== 'file' || !/\.json$/i.test(name)) continue;
+      try {
+        const file = await entry.getFile();
+        if (file.size > 30 * 1024 * 1024) continue;
+        parse(JSON.parse(await file.text()), name.replace(/\.json$/i, '')).forEach(t => found.push({ ...t, file: name, source: 'folder' }));
+      } catch (e) {
+        continue;
+      }
+    }
+    found.sort((a, b) => a.name.localeCompare(b.name, 'el'));
+    items = found.concat(items.filter(t => t.source === 'session'));
+    status = 'ready';
+    Bus.emit('library-changed');
+  }
+
+  /**
+   * Αρχικοποίηση: επανασύνδεση με τον φάκελο αν ο browser έχει ακόμα την άδεια.
+   * @returns {Promise<void>}
+   */
+  async function init() {
+    if (!supported()) {
+      status = 'unsupported';
+      Bus.emit('library-changed');
+      return;
+    }
+    try {
+      const handle = await idb('get');
+      if (!handle) {
+        Bus.emit('library-changed');
+        return;
+      }
+      folderName = handle.name;
+      const perm = await handle.queryPermission({ mode: 'readwrite' });
+      if (perm === 'granted') {
+        folder = handle;
+        await refresh();
+      } else {
+        status = 'needs-permission';
+        Bus.emit('library-changed');
+      }
+    } catch (e) {
+      status = 'none';
+      Bus.emit('library-changed');
+    }
+  }
+
+  /**
+   * Επιλογή φακέλου προτύπων.
+   * @returns {Promise<void>}
+   */
+  async function chooseFolder() {
+    try {
+      const handle = await window.showDirectoryPicker({ id: 'wf-templates', mode: 'readwrite', startIn: 'documents' });
+      folder = handle;
+      folderName = handle.name;
+      await idb('put', handle);
+      await refresh();
+      Toast.show(`Φάκελος προτύπων: «${handle.name}» (${items.filter(t => t.source === 'folder').length} πρότυπα)`, 'success', 5000);
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      Toast.show(`Ο φάκελος δεν ορίστηκε: ${e.message}`, 'error', 6000);
+    }
+  }
+
+  /**
+   * Ξαναδίνει άδεια πρόσβασης στον φάκελο (χρειάζεται κλικ του χρήστη).
+   * @returns {Promise<void>}
+   */
+  async function reconnect() {
+    try {
+      const handle = await idb('get');
+      if (!handle) {
+        await chooseFolder();
+        return;
+      }
+      const perm = await handle.requestPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') {
+        Toast.show('Δεν δόθηκε πρόσβαση στον φάκελο προτύπων', 'warning');
+        return;
+      }
+      folder = handle;
+      folderName = handle.name;
+      await refresh();
+    } catch (e) {
+      Toast.show(`Ο φάκελος δεν είναι διαθέσιμος (${e.message}). Όρισέ τον ξανά.`, 'error', 6000);
+      await idb('delete').catch(() => null);
+      status = 'none';
+      folder = null;
+      Bus.emit('library-changed');
+    }
+  }
+
+  /**
+   * Αποσύνδεση από τον φάκελο (τα αρχεία μένουν ανέγγιχτα).
+   * @returns {Promise<void>}
+   */
+  async function forget() {
+    await idb('delete').catch(() => null);
+    folder = null;
+    folderName = '';
+    status = supported() ? 'none' : 'unsupported';
+    items = items.filter(t => t.source === 'session');
+    Bus.emit('library-changed');
+  }
+
+  /**
+   * Ανοίγει αρχεία προτύπων (.json) και τα προσθέτει στη λίστα αυτής της συνεδρίας.
+   * @returns {Promise<void>}
+   */
+  async function openFiles() {
+    const files = await Util.pickFiles('.json,application/json', true);
+    let added = 0;
+    for (const file of files) {
+      try {
+        parse(JSON.parse(await Util.readAsText(file)), file.name.replace(/\.json$/i, '')).forEach(t => {
+          items = items.filter(x => !(x.source === 'session' && x.name === t.name));
+          items.push({ ...t, file: file.name, source: 'session' });
+          added++;
+        });
+      } catch (e) {
+        Toast.show(`Το «${file.name}» δεν είναι αρχείο προτύπου`, 'error');
+      }
+    }
+    if (added) {
+      Toast.show(`Προστέθηκαν ${added} ${added === 1 ? 'πρότυπο' : 'πρότυπα'}`, 'success');
+      Bus.emit('library-changed');
+    }
+  }
+
+  /**
+   * Αποθηκεύει πρότυπο ως αρχείο: στον φάκελο αν έχει οριστεί, αλλιώς με λήψη.
+   * @param {{name: string, sections: Object[], style: Object}} template
+   * @returns {Promise<boolean>}
+   */
+  async function save(template) {
+    const payload = { app: 'worksheet-forge-template', version: 2, name: template.name, savedAt: new Date().toISOString(), style: template.style, sections: template.sections };
+    const json = JSON.stringify(payload, null, 1);
+    const filename = Util.safeFilename(template.name, 'json');
+    if (folder) {
+      try {
+        let exists = false;
+        try {
+          await folder.getFileHandle(filename);
+          exists = true;
+        } catch (e) {
+          exists = false;
+        }
+        if (exists) {
+          const ok = await Modal.confirm({ title: 'Αντικατάσταση προτύπου', message: `Υπάρχει ήδη το αρχείο «${filename}» στον φάκελο «${folderName}». Να αντικατασταθεί;`, confirmLabel: 'Αντικατάσταση', danger: true });
+          if (!ok) return false;
+        }
+        const handle = await folder.getFileHandle(filename, { create: true });
+        const writable = await handle.createWritable();
+        await writable.write(json);
+        await writable.close();
+        await refresh();
+        Toast.show(`Το πρότυπο αποθηκεύτηκε: ${folderName}/${filename}`, 'success', 5000);
+        return true;
+      } catch (e) {
+        Toast.show(`Η αποθήκευση στον φάκελο απέτυχε: ${e.message}`, 'error', 6000);
+        return false;
+      }
+    }
+    const ok = await Util.downloadBlob(new Blob([json], { type: 'application/json' }), filename);
+    if (ok) {
+      items = items.filter(x => !(x.source === 'session' && x.name === template.name));
+      items.push({ ...payload, file: filename, source: 'session' });
+      Bus.emit('library-changed');
+      Toast.show(`Το πρότυπο αποθηκεύτηκε ως αρχείο «${filename}»`, 'success', 5000);
+    }
+    return ok;
+  }
+
+  /**
+   * Διαγράφει πρότυπο (από τον φάκελο ή από τη λίστα της συνεδρίας).
+   * @param {number} index
+   * @returns {Promise<void>}
+   */
+  async function remove(index) {
+    const t = items[index];
+    if (!t) return;
+    if (t.source === 'folder' && folder) {
+      const ok = await Modal.confirm({ title: 'Διαγραφή προτύπου', message: `Να διαγραφεί το αρχείο «${t.file}» από τον φάκελο «${folderName}»;`, confirmLabel: 'Διαγραφή', danger: true });
+      if (!ok) return;
+      try {
+        await folder.removeEntry(t.file);
+        await refresh();
+      } catch (e) {
+        Toast.show(`Η διαγραφή απέτυχε: ${e.message}`, 'error');
+      }
+      return;
+    }
+    items.splice(index, 1);
+    Bus.emit('library-changed');
+  }
+
+  /**
+   * Πρότυπα που είχαν αποθηκευτεί παλιότερα στον browser (για μεταφορά σε αρχεία).
+   * @returns {Object[]}
+   */
+  function legacy() {
+    const list = Storage.read(Storage.KEYS.templates, []);
+    return Array.isArray(list) ? list.filter(t => t && Array.isArray(t.sections)) : [];
+  }
+
+  /**
+   * Μεταφέρει τα πρότυπα του browser σε αρχεία και τα σβήνει από τον browser.
+   * @returns {Promise<void>}
+   */
+  async function migrate() {
+    const list = legacy();
+    let moved = 0;
+    for (const t of list) {
+      if (await save({ name: t.name, sections: t.sections, style: t.style || null })) moved++;
+    }
+    if (moved === list.length) {
+      try { window.localStorage.removeItem(Storage.KEYS.templates); } catch (e) { return; }
+      Toast.show('Τα πρότυπα μεταφέρθηκαν σε αρχεία και διαγράφηκαν από τον browser', 'success', 5000);
+    }
+    Bus.emit('library-changed');
+  }
+
+  return {
+    supported, init, chooseFolder, reconnect, forget, openFiles, save, remove, legacy, migrate,
+    list: () => items.slice(),
+    get: index => items[index] || null,
+    status: () => status,
+    folderName: () => folderName
   };
 })();
 
@@ -8901,8 +9207,11 @@ const UIController = (() => {
   /** Καρτέλα «Πρότυπο». */
   function bindTemplateTab() {
     const select = $('predefined-select');
-    TemplateManager.predefinedList().forEach(t => select.append(Util.h('option', { value: t.key, text: t.name })));
-    $('btn-load-predefined').addEventListener('click', () => TemplateManager.loadPredefined(select.value));
+    $('btn-load-predefined').addEventListener('click', () => {
+      const m = /^user:(\d+)$/.exec(select.value);
+      if (m) TemplateManager.loadFromLibrary(Number(m[1]));
+      else TemplateManager.loadPredefined(select.value);
+    });
     const nameInput = $('template-name');
     const saveTemplate = () => {
       TemplateManager.saveToLibrary(nameInput.value || AppState.get().templateName);
@@ -8915,29 +9224,90 @@ const UIController = (() => {
     $('btn-import-doc').addEventListener('click', () => ImportManager.run());
     $('btn-new-sheet').addEventListener('click', async () => {
       const ok = await Modal.confirm({
-        title: 'Νέο κενό φύλλο',
+        title: 'Νέο φύλλο',
         message: 'Το τρέχον φύλλο εργασίας (δομή και περιεχόμενο) θα διαγραφεί. Αν θέλεις να το κρατήσεις, αποθήκευσέ το πρώτα σε αρχείο.',
         confirmLabel: 'Νέο φύλλο', danger: true
       });
       if (!ok) return;
       AppState.replace(AppState.createEmpty(), 'new-sheet');
-      Toast.show('Δημιουργήθηκε νέο κενό φύλλο', 'success');
-    });
-    const empty = $('empty-actions');
-    TemplateManager.predefinedList().forEach((t, i) => {
-      const b = Util.h('button', { class: `btn ${i === 0 ? 'btn-primary' : 'btn-secondary'}`, type: 'button', text: t.name });
-      b.addEventListener('click', () => TemplateManager.loadPredefined(t.key));
-      empty.append(b);
+      Toast.show('Διάλεξε πρότυπο για το νέο φύλλο', 'info');
     });
     renderLibrary();
   }
 
-  /** Βιβλιοθήκη αποθηκευμένων προτύπων. */
+  /**
+   * Κουμπί που φορτώνει πρότυπο.
+   * @param {string} text
+   * @param {string} variant
+   * @param {Function} fn
+   * @param {string} [title]
+   * @returns {HTMLButtonElement}
+   */
+  function startButton(text, variant, fn, title) {
+    const b = Util.h('button', { class: `btn btn-${variant}`, type: 'button', text, title: title || text });
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  /** Οθόνη έναρξης «Ξεκίνα με ένα πρότυπο»: έτοιμα πρότυπα και τα πρότυπά μου από αρχεία. */
+  function renderStartScreen() {
+    const empty = $('empty-actions');
+    const builtIn = Util.h('div', { class: 'empty-actions' }, TemplateManager.predefinedList().map((t, i) => startButton(t.name, i === 0 ? 'primary' : 'secondary', () => TemplateManager.loadPredefined(t.key))));
+    const mine = TemplateLibrary.list();
+    const status = TemplateLibrary.status();
+    const own = Util.h('div', { class: 'empty-actions' });
+    mine.slice(0, 24).forEach((t, i) => own.append(startButton(t.name, 'secondary', () => TemplateManager.loadFromLibrary(i), `${t.name} (${t.sections.length} ενότητες)`)));
+    if (status === 'needs-permission') own.append(startButton(`Σύνδεση με τον φάκελο «${TemplateLibrary.folderName()}»`, 'primary', () => TemplateLibrary.reconnect()));
+    else if (status === 'none') own.append(startButton('Ορισμός φακέλου προτύπων…', 'ghost', () => TemplateLibrary.chooseFolder()));
+    own.append(startButton('Άνοιγμα προτύπου από αρχείο…', 'ghost', () => TemplateLibrary.openFiles()));
+    empty.replaceChildren(
+      Util.h('div', { class: 'empty-group' }, Util.h('span', { class: 'empty-group-title', text: 'Έτοιμα πρότυπα' }), builtIn),
+      Util.h('div', { class: 'empty-group' }, Util.h('span', { class: 'empty-group-title', text: 'Τα πρότυπά μου' }), own));
+    const select = $('predefined-select');
+    const current = select.value;
+    select.replaceChildren(
+      Util.h('optgroup', { label: 'Έτοιμα πρότυπα' }, TemplateManager.predefinedList().map(t => Util.h('option', { value: t.key, text: t.name }))),
+      mine.length ? Util.h('optgroup', { label: 'Τα πρότυπά μου' }, mine.map((t, i) => Util.h('option', { value: `user:${i}`, text: t.name }))) : null);
+    if (Array.from(select.options).some(o => o.value === current)) select.value = current;
+  }
+
+  /** Βιβλιοθήκη προτύπων σε αρχεία: πηγή (φάκελος), λίστα, μεταφορά παλιών προτύπων του browser. */
   function renderLibrary() {
+    renderStartScreen();
+    const source = $('library-source');
+    const status = TemplateLibrary.status();
+    const btn = (text, variant, fn) => startButton(text, `${variant} btn-sm`, fn);
+    if (status === 'ready') {
+      source.replaceChildren(
+        Util.h('div', { class: 'folder-line' }, Util.icon('folder', 16), Util.h('strong', { title: TemplateLibrary.folderName(), text: TemplateLibrary.folderName() })),
+        Util.h('div', { class: 'grid-2' }, btn('Αλλαγή φακέλου', 'secondary', () => TemplateLibrary.chooseFolder()), btn('Ανανέωση', 'ghost', () => TemplateLibrary.reconnect())));
+    } else if (status === 'needs-permission') {
+      source.replaceChildren(
+        Util.h('div', { class: 'folder-line' }, Util.icon('folder', 16), Util.h('strong', { text: TemplateLibrary.folderName() })),
+        btn('Σύνδεση με τον φάκελο', 'primary', () => TemplateLibrary.reconnect()),
+        Util.h('p', { class: 'hint', text: 'Ο browser ζητά ξανά άδεια πρόσβασης στον φάκελο σε κάθε νέο άνοιγμα.' }));
+    } else if (status === 'unsupported') {
+      source.replaceChildren(
+        Util.h('p', { class: 'hint', text: 'Τα πρότυπα αποθηκεύονται ως αρχεία .json (λήψη). Για να τα χρησιμοποιήσεις, άνοιξέ τα από εδώ ή από την οθόνη έναρξης.' }),
+        btn('Άνοιγμα προτύπων…', 'secondary', () => TemplateLibrary.openFiles()));
+    } else {
+      source.replaceChildren(
+        Util.h('p', { class: 'hint', text: 'Όρισε έναν φάκελο στον υπολογιστή σου. Κάθε πρότυπο αποθηκεύεται εκεί ως αρχείο .json και εμφανίζεται στην οθόνη έναρξης.' }),
+        btn('Ορισμός φακέλου προτύπων…', 'primary', () => TemplateLibrary.chooseFolder()),
+        btn('Άνοιγμα αρχείων προτύπων…', 'ghost', () => TemplateLibrary.openFiles()));
+    }
+    const legacyBox = $('library-legacy');
+    const legacy = TemplateLibrary.legacy();
+    legacyBox.hidden = !legacy.length;
+    if (legacy.length) {
+      legacyBox.replaceChildren(
+        Util.h('span', { text: `Βρέθηκαν ${legacy.length} πρότυπα αποθηκευμένα στον browser από παλαιότερη έκδοση.` }),
+        btn(status === 'ready' ? 'Μεταφορά στον φάκελο' : 'Μεταφορά σε αρχεία (λήψη)', 'secondary', () => TemplateLibrary.migrate()));
+    }
     const list = $('template-library');
     const items = TemplateManager.library();
     if (!items.length) {
-      list.replaceChildren(Util.h('li', { class: 'empty-note', text: 'Δεν υπάρχουν αποθηκευμένα πρότυπα.' }));
+      list.replaceChildren(Util.h('li', { class: 'empty-note', text: status === 'ready' ? 'Ο φάκελος δεν έχει ακόμα πρότυπα.' : 'Δεν υπάρχουν πρότυπα σε αυτή τη συνεδρία.' }));
       return;
     }
     list.replaceChildren(...items.map((t, i) => {
@@ -8946,7 +9316,8 @@ const UIController = (() => {
       main.addEventListener('click', () => TemplateManager.loadFromLibrary(i));
       const del = Util.h('button', { class: 'btn-icon btn-sm is-danger', type: 'button', title: 'Διαγραφή προτύπου', 'aria-label': `Διαγραφή προτύπου ${t.name}` }, Util.icon('x', 14));
       del.addEventListener('click', () => TemplateManager.deleteFromLibrary(i));
-      return Util.h('li', { class: 'mini-item' }, main, Util.h('span', { class: 'section-item-type', text: String(t.sections.length) }), del);
+      del.title = t.source === 'folder' ? 'Διαγραφή του αρχείου από τον φάκελο' : 'Αφαίρεση από τη λίστα';
+      return Util.h('li', { class: 'mini-item', title: t.file || '' }, main, Util.h('span', { class: 'source-tag', text: t.source === 'folder' ? `${t.sections.length} ενότ.` : 'αρχείο' }), del);
     }));
   }
 
@@ -9359,6 +9730,7 @@ const UIController = (() => {
     bindTools();
     bindKeys();
     bindEvents();
+    TemplateLibrary.init();
     const restored = Autosave.restore();
     if (!restored) {
       TemplateManager.render(true);
