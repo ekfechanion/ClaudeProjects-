@@ -249,9 +249,9 @@ button { cursor: pointer; }
 .panel-toggle:hover { color: var(--primary); }
 .app-body.panel-collapsed .panel-toggle { left: 4px; }
 
-.tabs { display: flex; gap: 4px; padding: 12px 12px 0; border-bottom: 1px solid var(--border); }
+.tabs { display: flex; gap: 0; padding: 12px 18px 0 6px; border-bottom: 1px solid var(--border); }
 .tab {
-  flex: 1; height: 32px; padding: 0 8px; border: none; border-bottom: 2px solid transparent;
+  flex: 1 1 auto; height: 32px; padding: 0 3px; font-size: 12.5px !important; white-space: nowrap; border: none; border-bottom: 2px solid transparent;
   background: transparent; color: var(--text-2); font-size: 14px; font-weight: 500;
   transition: all 0.15s ease;
 }
@@ -687,6 +687,69 @@ kbd {
 
 #print-root { display: none; }
 
+:root {
+  --card-note-bg: #EFF6FF; --card-note-bd: #2563EB;
+  --card-tip-bg: #F0FDF4; --card-tip-bd: #16A34A;
+  --card-warn-bg: #FFFBEB; --card-warn-bd: #D97706;
+  --card-def-bg: #F5F3FF; --card-def-bd: #7C3AED;
+  --card-remember-bg: #F1F5F9; --card-remember-bd: #475569;
+}
+:root[data-theme="dark"] {
+  --card-note-bg: rgba(37, 99, 235, 0.16); --card-tip-bg: rgba(22, 163, 74, 0.16); --card-warn-bg: rgba(217, 119, 6, 0.16);
+  --card-def-bg: rgba(124, 58, 237, 0.18); --card-remember-bg: rgba(148, 163, 184, 0.14); --card-remember-bd: #94A3B8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --card-note-bg: rgba(37, 99, 235, 0.16); --card-tip-bg: rgba(22, 163, 74, 0.16); --card-warn-bg: rgba(217, 119, 6, 0.16);
+    --card-def-bg: rgba(124, 58, 237, 0.18); --card-remember-bg: rgba(148, 163, 184, 0.14); --card-remember-bd: #94A3B8;
+  }
+}
+.doc-content .wf-card {
+  margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--card-bd); border-left-width: 4px; border-radius: 4px;
+  background: var(--card-bg);
+}
+.doc-content .wf-card > :last-child { margin-bottom: 0; }
+.doc-content .wf-card-title { font-weight: 700; margin-bottom: 4px !important; color: var(--card-bd); }
+.doc-content .wf-card-note { --card-bg: var(--card-note-bg); --card-bd: var(--card-note-bd); }
+.doc-content .wf-card-tip { --card-bg: var(--card-tip-bg); --card-bd: var(--card-tip-bd); }
+.doc-content .wf-card-warn { --card-bg: var(--card-warn-bg); --card-bd: var(--card-warn-bd); }
+.doc-content .wf-card-def { --card-bg: var(--card-def-bg); --card-bd: var(--card-def-bd); }
+.doc-content .wf-card-remember { --card-bg: var(--card-remember-bg); --card-bd: var(--card-remember-bd); }
+.wf-print-doc .wf-card-note { --card-bg: #EFF6FF; --card-bd: #2563EB; }
+.wf-print-doc .wf-card-tip { --card-bg: #F0FDF4; --card-bd: #16A34A; }
+.wf-print-doc .wf-card-warn { --card-bg: #FFFBEB; --card-bd: #D97706; }
+.wf-print-doc .wf-card-def { --card-bg: #F5F3FF; --card-bd: #7C3AED; }
+.wf-print-doc .wf-card-remember { --card-bg: #F1F5F9; --card-bd: #475569; }
+.wf-print-doc .wf-card { break-inside: avoid; page-break-inside: avoid; }
+.doc-content table.wf-grid td { vertical-align: top; }
+.doc-content table.wf-grid th { text-align: center; vertical-align: middle; }
+.doc-content table.wf-grid td > :last-child { margin-bottom: 0; }
+.doc-content .wf-tip { font-style: italic; }
+.editor-content table.wf-grid-plain td, .editor-content table.wf-grid-plain th { border: 1px dashed var(--border-strong); background: transparent; }
+.wf-print-doc table.wf-grid-plain td, .wf-print-doc table.wf-grid-plain th { border-color: transparent !important; background: transparent !important; }
+.wf-print-doc table.wf-grid td { height: auto; }
+.card-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.card-kind { padding: 0; border: 2px solid transparent; border-radius: var(--radius-card); background: transparent; text-align: left; font: 14px var(--font-ui); }
+.card-kind .wf-card { margin: 0; }
+.card-kind[aria-checked="true"] { border-color: var(--primary); }
+.editor-block.title-hidden .block-title { opacity: 0.55; font-style: italic; }
+#sections-container .editor-content { font-family: var(--editor-font, var(--font-doc)); }
+.color-input { padding: 2px 4px; height: 32px; cursor: pointer; }
+.logo-box { display: flex; align-items: center; justify-content: center; min-height: 56px; padding: 8px; border: 1px dashed var(--border-strong); border-radius: var(--radius-btn); background: #FFFFFF; }
+.logo-box img { max-height: 64px; max-width: 100%; }
+.logo-box .empty-note { color: #64748B; }
+
+.wf-print-doc { font-family: var(--doc-font, Georgia, serif); font-size: var(--doc-size, 12pt); }
+.wf-print-doc .wf-print-section-title { color: var(--doc-accent, #000000); border-bottom-color: var(--doc-accent, #000000); }
+.wf-print-doc.wf-st-bar .wf-print-section-title { background: var(--doc-accent, #000000); color: #FFFFFF; border: none; padding: 3pt 8pt; }
+.wf-print-doc.wf-st-box .wf-print-section-title { border: 1.5px solid var(--doc-accent, #000000); padding: 3pt 8pt; }
+.wf-print-doc.wf-st-plain .wf-print-section-title { border: none; padding: 0; margin-bottom: 6pt; }
+.wf-print-doc.wf-sec-card .wf-print-section { border: 1px solid var(--doc-accent, #000000); border-radius: 3mm; padding: 4mm 5mm; }
+.wf-print-doc .doc-content th { background: var(--doc-th, #F1F5F9) !important; }
+.wf-print-doc .wf-doc-head { display: flex; align-items: center; gap: 6mm; text-align: var(--doc-title-align, center); }
+.wf-print-doc .wf-doc-head-text { flex: 1; min-width: 0; }
+.wf-print-doc .wf-doc-logo { flex-shrink: 0; height: auto; max-width: 40%; }
+
 @media (max-width: 1200px) {
   .btn .btn-text { display: none; }
   .btn.has-text { padding: 0 8px; }
@@ -726,7 +789,7 @@ kbd {
   body { display: block; font-size: 12pt; }
   body > :not(#print-root) { display: none !important; }
   #print-root { display: block !important; }
-  .wf-print-doc { width: auto; }
+  .wf-print-doc { width: auto !important; }
   .wf-print-section { border-bottom: none; }
 }
 
@@ -775,6 +838,7 @@ kbd {
         <button class="tab" role="tab" type="button" id="tab-template" aria-controls="panel-template" aria-selected="true">Πρότυπο</button>
         <button class="tab" role="tab" type="button" id="tab-sections" aria-controls="panel-sections" aria-selected="false">Ενότητες</button>
         <button class="tab" role="tab" type="button" id="tab-tools" aria-controls="panel-tools" aria-selected="false">Εργαλεία</button>
+        <button class="tab" role="tab" type="button" id="tab-style" aria-controls="panel-style" aria-selected="false">Εμφάνιση</button>
       </div>
 
       <div class="tab-panel" role="tabpanel" id="panel-template" aria-labelledby="tab-template">
@@ -785,7 +849,13 @@ kbd {
           <p class="hint">Ενότητες με το ίδιο αναγνωριστικό κρατούν το περιεχόμενό τους.</p>
         </section>
         <section class="panel-section">
+          <h3 class="panel-heading">Εξωτερικό φύλλο</h3>
+          <button id="btn-import-doc" class="btn btn-secondary btn-block" type="button"><span data-icon="import"></span>Εισαγωγή εγγράφου (.odt, .docx)</button>
+          <p class="hint">Μετατρέπει ένα υπάρχον φύλλο εργασίας σε επεξεργάσιμες ενότητες, με πίνακες, εικόνες και λογότυπο.</p>
+        </section>
+        <section class="panel-section">
           <h3 class="panel-heading">Τα πρότυπά μου</h3>
+          <label class="check" title="Το πρότυπο κρατά και το περιεχόμενο των ενοτήτων (πίνακες, ερωτήσεις, εικόνες), όχι μόνο τη δομή"><input id="template-with-content" type="checkbox" checked>Με περιεχόμενο και εμφάνιση</label>
           <div class="row">
             <input id="template-name" class="input grow" type="text" maxlength="100" placeholder="Όνομα προτύπου" aria-label="Όνομα προτύπου">
             <button id="btn-save-template" class="btn btn-secondary" type="button" title="Αποθήκευση της τρέχουσας δομής στη βιβλιοθήκη του browser">Αποθήκευση</button>
@@ -821,6 +891,63 @@ kbd {
           <ul id="section-list" class="section-list" aria-label="Λίστα ενοτήτων"></ul>
           <p id="section-list-empty" class="empty-note">Δεν υπάρχουν ενότητες ακόμα.</p>
           <p class="hint">Σύρε από τη λαβή για αναδιάταξη. Κλικ για μετάβαση στην ενότητα.</p>
+        </section>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" id="panel-style" aria-labelledby="tab-style" hidden>
+        <section class="panel-section">
+          <h3 class="panel-heading">Έτοιμη εμφάνιση</h3>
+          <select id="style-preset" class="select" aria-label="Έτοιμη εμφάνιση"></select>
+          <p class="hint">Ισχύει για την εκτύπωση, το PDF και το DOCX. Αποθηκεύεται μαζί με το έργο και τα πρότυπα.</p>
+        </section>
+        <section class="panel-section">
+          <h3 class="panel-heading">Κείμενο</h3>
+          <div class="row">
+            <select id="style-font" class="select grow" aria-label="Γραμματοσειρά"></select>
+            <select id="style-size" class="select" style="width: 84px" aria-label="Μέγεθος γραμμάτων"></select>
+          </div>
+          <div class="grid-2">
+            <label class="field"><span>Χρώμα έμφασης</span><input id="style-accent" class="input color-input" type="color"></label>
+            <label class="field"><span>Κεφαλίδες πινάκων</span><input id="style-thfill" class="input color-input" type="color"></label>
+          </div>
+        </section>
+        <section class="panel-section">
+          <h3 class="panel-heading">Ενότητες</h3>
+          <label class="field"><span>Τίτλοι ενοτήτων</span>
+            <select id="style-section-title" class="select">
+              <option value="underline">Με γραμμή από κάτω</option>
+              <option value="bar">Χρωματιστή μπάρα</option>
+              <option value="box">Σε πλαίσιο</option>
+              <option value="plain">Απλοί έντονοι</option>
+            </select>
+          </label>
+          <label class="check"><input id="style-cards" type="checkbox">Κάθε ενότητα σε κάρτα (πλαίσιο)</label>
+        </section>
+        <section class="panel-section">
+          <h3 class="panel-heading">Κεφαλίδα φύλλου</h3>
+          <label class="field"><span>Στοίχιση τίτλου</span>
+            <select id="style-title-align" class="select"><option value="center">Στο κέντρο</option><option value="left">Αριστερά</option></select>
+          </label>
+          <div class="logo-box">
+            <img id="style-logo-preview" alt="Λογότυπο" hidden>
+            <span id="style-logo-empty" class="empty-note">Χωρίς λογότυπο</span>
+          </div>
+          <div class="grid-2">
+            <button id="btn-logo" class="btn btn-secondary" type="button">Λογότυπο…</button>
+            <button id="btn-logo-remove" class="btn btn-ghost" type="button">Αφαίρεση</button>
+          </div>
+          <div class="grid-2">
+            <label class="field"><span>Θέση</span><select id="style-logo-pos" class="select"><option value="right">Δεξιά</option><option value="left">Αριστερά</option></select></label>
+            <label class="field"><span>Πλάτος (mm)</span><input id="style-logo-width" class="input" type="number" min="10" max="80" step="1"></label>
+          </div>
+        </section>
+        <section class="panel-section">
+          <h3 class="panel-heading">Σελίδα A4</h3>
+          <div class="grid-2">
+            <label class="field"><span>Προσανατολισμός</span><select id="style-orientation" class="select"><option value="portrait">Κατακόρυφος</option><option value="landscape">Οριζόντιος</option></select></label>
+            <label class="field"><span>Περιθώρια</span><select id="style-margins" class="select"><option value="normal">Κανονικά</option><option value="narrow">Στενά</option></select></label>
+          </div>
+          <button id="btn-style-preview" class="btn btn-primary btn-block" type="button"><span data-icon="eye"></span>Προεπισκόπηση</button>
         </section>
       </div>
 
@@ -1421,7 +1548,12 @@ const Util = (() => {
     external: ['M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5', 'M7.5 16.5L21 3', 'M15.75 3H21v5.25'],
     unlink: ['M13.19 8.69a4.5 4.5 0 0 1 1.24 7.24l-1.5 1.5', 'M10.81 15.31a4.5 4.5 0 0 1-1.24-7.24l1.5-1.5', 'M4 4l16 16'],
     text: ['M4 7V5h16v2', 'M12 5v14', 'M9 19h6'],
-    caption: ['M4 5h16v10H4z', 'M7 19h10']
+    caption: ['M4 5h16v10H4z', 'M7 19h10'],
+    columns: ['M3.75 4.5h16.5v15H3.75z', 'M9.25 4.5v15', 'M14.75 4.5v15'],
+    card: ['M4.5 4.5h15a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18V6a1.5 1.5 0 0 1 1.5-1.5z', 'M3 4.5v15', 'M7 9h9', 'M7 13h6'],
+    'eye-off': ['M3.98 8.22A10.48 10.48 0 0 0 1.93 12c1.29 4.34 5.31 7.5 10.07 7.5.99 0 1.95-.14 2.86-.4', 'M6.23 6.23A10.45 10.45 0 0 1 12 4.5c4.76 0 8.77 3.16 10.07 7.5a10.52 10.52 0 0 1-4.29 5.77', 'M6.23 6.23L3 3m3.23 3.23l3.65 3.65m7.89 7.89L21 21m-3.23-3.23l-3.65-3.65m0 0a3 3 0 1 0-4.24-4.24m4.24 4.24L9.88 9.88'],
+    import: ['M19.5 14.25v-2.63a3.38 3.38 0 0 0-3.38-3.37h-1.5a1.13 1.13 0 0 1-1.12-1.13v-1.5a3.38 3.38 0 0 0-3.38-3.37H8.25', 'M10.5 2.25H5.63c-.62 0-1.13.5-1.13 1.13v17.25c0 .62.5 1.12 1.13 1.12h12.75c.62 0 1.12-.5 1.12-1.12V11.25a9 9 0 0 0-9-9z', 'M12 11.25v6', 'M9.75 15L12 17.25 14.25 15'],
+    palette: ['M4.1 19.9a3 3 0 0 0 4.24 0l9.9-9.9a3 3 0 0 0 0-4.24l-.7-.7a3 3 0 0 0-4.24 0L3.4 15a3 3 0 0 0 0 4.24z', 'M12 6.5l5.5 5.5', 'M6.5 17.5h.01']
   };
 
   /**
@@ -1968,7 +2100,8 @@ const Sanitizer = (() => {
   const STYLE_PROPS = ['text-align', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'text-decoration-line',
     'vertical-align', 'width', 'margin-left', 'margin-right', 'margin', 'padding-left', 'padding', 'border', 'display'];
   const PASTE_STYLE_PROPS = ['text-align', 'font-weight', 'font-style', 'text-decoration-line', 'vertical-align'];
-  const CLASSES = new Set(['wf-table', 'wf-caption', 'wf-graph', 'wf-img']);
+  const CLASSES = new Set(['wf-table', 'wf-caption', 'wf-graph', 'wf-img', 'wf-grid', 'wf-grid-plain', 'wf-tip', 'wf-card', 'wf-card-title',
+    'wf-card-note', 'wf-card-tip', 'wf-card-warn', 'wf-card-def', 'wf-card-remember']);
   const IMG_SRC = /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[a-z0-9+/=\s]+$/i;
   const HREF = /^(https?:\/\/|mailto:)/i;
 
@@ -2397,6 +2530,21 @@ const Busy = (() => {
 const AppState = (() => {
   const TYPES = ['text', 'table', 'image', 'math', 'mixed', 'graph'];
   const CLASSES = ['', 'Α΄ Γυμνασίου', 'Β΄ Γυμνασίου', 'Γ΄ Γυμνασίου', 'Α΄ Λυκείου', 'Β΄ Λυκείου', 'Γ΄ Λυκείου', 'ΕΠΑΛ', 'Άλλο'];
+  const FONTS = {
+    'Georgia': "Georgia, 'Times New Roman', serif",
+    'Times New Roman': "'Times New Roman', Times, 'Liberation Serif', serif",
+    'Cambria': "Cambria, Caladea, Georgia, serif",
+    'Arial': "Arial, Helvetica, 'Liberation Sans', sans-serif",
+    'Calibri': "Calibri, Carlito, 'Segoe UI', Arial, sans-serif",
+    'Verdana': "Verdana, Geneva, 'DejaVu Sans', sans-serif",
+    'Tahoma': "Tahoma, Verdana, 'DejaVu Sans', sans-serif"
+  };
+  const STYLE_DEFAULTS = {
+    preset: 'classic', fontFamily: 'Georgia', fontSize: 12, accent: '#000000', tableHeaderFill: '#F1F5F9',
+    titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow',
+    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal'
+  };
+  const LOGO_SRC = /^data:image\/(png|jpe?g|gif);base64,[a-z0-9+/=]+$/i;
   let state = createEmpty();
   let dirty = false;
 
@@ -2410,7 +2558,36 @@ const AppState = (() => {
       template: [],
       content: {},
       graphs: {},
-      metadata: { title: '', school: '', subject: '', className: '', date: Util.todayISO(), teacher: '', studentFields: true }
+      metadata: { title: '', school: '', subject: '', className: '', date: Util.todayISO(), teacher: '', studentFields: true },
+      style: { ...STYLE_DEFAULTS }
+    };
+  }
+
+  /**
+   * Κανονικοποιεί τις ρυθμίσεις εμφάνισης του τελικού φύλλου.
+   * @param {Object} s
+   * @returns {Object}
+   */
+  function normalizeStyle(s) {
+    const src = s && typeof s === 'object' ? s : {};
+    const pick = (key, allowed) => (allowed.includes(src[key]) ? src[key] : STYLE_DEFAULTS[key]);
+    const color = key => (/^#[0-9a-f]{6}$/i.test(src[key] || '') ? src[key].toUpperCase() : STYLE_DEFAULTS[key]);
+    const size = Number(src.fontSize);
+    const logoWidth = Number(src.logoWidth);
+    return {
+      preset: String(src.preset || STYLE_DEFAULTS.preset).slice(0, 30),
+      fontFamily: Object.prototype.hasOwnProperty.call(FONTS, src.fontFamily) ? src.fontFamily : STYLE_DEFAULTS.fontFamily,
+      fontSize: Number.isFinite(size) ? Util.clamp(Math.round(size), 9, 16) : STYLE_DEFAULTS.fontSize,
+      accent: color('accent'),
+      tableHeaderFill: color('tableHeaderFill'),
+      titleAlign: pick('titleAlign', ['center', 'left']),
+      sectionTitle: pick('sectionTitle', ['underline', 'bar', 'box', 'plain']),
+      sectionStyle: pick('sectionStyle', ['flow', 'card']),
+      logo: typeof src.logo === 'string' && src.logo.length < 3000000 && LOGO_SRC.test(src.logo) ? src.logo : '',
+      logoPosition: pick('logoPosition', ['right', 'left']),
+      logoWidth: Number.isFinite(logoWidth) ? Util.clamp(Math.round(logoWidth), 10, 80) : STYLE_DEFAULTS.logoWidth,
+      orientation: pick('orientation', ['portrait', 'landscape']),
+      margins: pick('margins', ['normal', 'narrow'])
     };
   }
 
@@ -2429,7 +2606,8 @@ const AppState = (() => {
       required: !!d.required,
       order: Number.isFinite(order) ? order : (Number.isFinite(d.order) ? d.order : 0),
       placeholder: String(d.placeholder ?? '').slice(0, 300),
-      collapsed: !!d.collapsed
+      collapsed: !!d.collapsed,
+      hideTitle: !!d.hideTitle
     };
   }
 
@@ -2503,7 +2681,8 @@ const AppState = (() => {
       version: 1,
       templateName: String(raw.templateName ?? '').slice(0, 100),
       template, content, graphs,
-      metadata: normalizeMetadata(raw.metadata)
+      metadata: normalizeMetadata(raw.metadata),
+      style: normalizeStyle(raw.style)
     };
   }
 
@@ -2625,8 +2804,16 @@ const AppState = (() => {
    * Αντικαθιστά τη δομή (πρότυπο) διατηρώντας μεταδεδομένα.
    * @param {{template: Object[], content: Object, graphs: Object, templateName: string}} structure
    */
-  function setStructure({ template, content, graphs, templateName }) {
-    set({ ...state, template, content, graphs, templateName }, 'template-applied', {});
+  function setStructure({ template, content, graphs, templateName, style }) {
+    set({ ...state, template, content, graphs, templateName, style: style ? normalizeStyle({ ...state.style, ...style }) : state.style }, 'template-applied', {});
+  }
+
+  /**
+   * Αλλάζει ρυθμίσεις εμφάνισης.
+   * @param {Object} patch
+   */
+  function setStyle(patch) {
+    set({ ...state, style: normalizeStyle({ ...state.style, ...patch }) }, 'style-changed', { patch });
   }
 
   /**
@@ -2651,7 +2838,7 @@ const AppState = (() => {
   function markClean() { dirty = false; }
 
   return {
-    TYPES, CLASSES, get, sections, getSection, setMetadata, addSection, removeSection, updateSection, reorder,
+    TYPES, CLASSES, FONTS, STYLE_DEFAULTS, normalizeStyle, setStyle, get, sections, getSection, setMetadata, addSection, removeSection, updateSection, reorder,
     setContent, setGraph, pruneGraphs, setStructure, replace, toJSON, isDirty, markClean, normalizeSection, createEmpty
   };
 })();
@@ -2733,10 +2920,10 @@ const TemplateManager = (() => {
    * @param {string} name
    * @returns {Promise<boolean>}
    */
-  async function applyTemplate(defs, name) {
+  async function applyTemplate(defs, name, style) {
     EditorManager.flushAll();
     const st = AppState.get();
-    const incoming = defs.slice(0, 100).map((d, i) => ({ desc: AppState.normalizeSection(d, i), starter: d.starter || '' }));
+    const incoming = defs.slice(0, 100).map((d, i) => ({ desc: AppState.normalizeSection(d, i), starter: typeof d.starter === 'string' ? d.starter : '' }));
     const ids = new Set();
     incoming.forEach(item => {
       while (ids.has(item.desc.id)) item.desc.id = Util.uuid();
@@ -2773,7 +2960,7 @@ const TemplateManager = (() => {
     }
     const valid = new Set(template.map(s => s.id));
     const graphs = Object.fromEntries(Object.entries(st.graphs).filter(([, g]) => valid.has(g.sectionId)));
-    AppState.setStructure({ template, content, graphs, templateName: String(name || '').slice(0, 100) });
+    AppState.setStructure({ template, content, graphs, templateName: String(name || '').slice(0, 100), style: style && typeof style === 'object' ? style : null });
     Toast.show(`Φορτώθηκε το πρότυπο «${name}»`, 'success');
     return true;
   }
@@ -2849,19 +3036,31 @@ const TemplateManager = (() => {
   /**
    * @returns {Object[]} τρέχουσα δομή χωρίς περιεχόμενο
    */
-  function currentStructure() {
-    return AppState.sections().map(({ id, title, type, required, order, placeholder }) => ({ id, title, type, required, order, placeholder }));
+  function currentStructure(withContent = false) {
+    EditorManager.flushAll();
+    const content = AppState.get().content;
+    return AppState.sections().map(({ id, title, type, required, order, placeholder, hideTitle }) => {
+      const s = { id, title, type, required, order, placeholder, hideTitle };
+      if (withContent && content[id]) s.starter = content[id];
+      return s;
+    });
+  }
+
+  /** @returns {boolean} αν τα πρότυπα αποθηκεύονται μαζί με το περιεχόμενο */
+  function withContent() {
+    const box = document.getElementById('template-with-content');
+    return !box || box.checked;
   }
 
   /** Εξάγει τη δομή σε αρχείο JSON. */
   async function exportTemplate() {
-    const sections = currentStructure();
+    const sections = currentStructure(withContent());
     if (!sections.length) {
       Toast.show('Δεν υπάρχουν ενότητες για εξαγωγή', 'warning');
       return;
     }
     const name = document.getElementById('template-name').value.trim() || AppState.get().templateName || 'Πρότυπο';
-    const payload = { app: 'worksheet-forge-template', version: 1, name, savedAt: new Date().toISOString(), sections };
+    const payload = { app: 'worksheet-forge-template', version: 2, name, savedAt: new Date().toISOString(), style: AppState.get().style, sections };
     if (await Util.downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), Util.safeFilename(`πρότυπο-${name}`, 'json'))) Toast.show('Το πρότυπο εξήχθη', 'success');
   }
 
@@ -2877,7 +3076,7 @@ const TemplateManager = (() => {
       const sections = Array.isArray(data) ? data : (data && Array.isArray(data.sections) ? data.sections : (data && data.state && Array.isArray(data.state.template) ? data.state.template : null));
       if (!sections || !sections.length) throw new Error('Το αρχείο δεν περιέχει ενότητες προτύπου');
       const ordered = sections.slice().sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-      await applyTemplate(ordered, String((data && data.name) || file.name.replace(/\.json$/i, '')));
+      await applyTemplate(ordered, String((data && data.name) || file.name.replace(/\.json$/i, '')), (data && (data.style || (data.state && data.state.style))) || null);
     } catch (e) {
       Toast.show(`Σφάλμα εισαγωγής προτύπου: ${e.message}`, 'error', 6000);
     }
@@ -2894,20 +3093,20 @@ const TemplateManager = (() => {
    * @param {string} name
    */
   function saveToLibrary(name) {
-    const sections = currentStructure();
+    const sections = currentStructure(withContent());
     if (!sections.length) {
       Toast.show('Δεν υπάρχουν ενότητες για αποθήκευση', 'warning');
       return;
     }
     const clean = String(name || '').trim().slice(0, 100) || `Πρότυπο ${library().length + 1}`;
     const list = library().filter(t => t.name !== clean);
-    list.unshift({ name: clean, sections, savedAt: new Date().toISOString() });
+    list.unshift({ name: clean, sections, style: AppState.get().style, savedAt: new Date().toISOString() });
     Storage.write(Storage.KEYS.templates, list.slice(0, 50))
       .then(() => {
         Toast.show(`Το πρότυπο «${clean}» αποθηκεύτηκε`, 'success');
         Bus.emit('library-changed');
       })
-      .catch(() => Toast.show('Σφάλμα αποθήκευσης προτύπου', 'error'));
+      .catch(() => Toast.show('Το πρότυπο δεν χωράει στον χώρο του browser (πιθανώς λόγω εικόνων). Χρησιμοποίησε «Εξαγωγή» σε αρχείο.', 'error', 7000));
   }
 
   /**
@@ -2916,7 +3115,7 @@ const TemplateManager = (() => {
    */
   function loadFromLibrary(index) {
     const t = library()[index];
-    return t ? applyTemplate(t.sections, t.name) : Promise.resolve(false);
+    return t ? applyTemplate(t.sections, t.name, t.style || null) : Promise.resolve(false);
   }
 
   /**
@@ -2965,12 +3164,12 @@ const EditorManager = (() => {
   };
 
   const TYPE_TOOLS = {
-    text: ['block', 'inline', 'list', 'align', 'link'],
-    table: ['inline', 'align', 'table'],
+    text: ['block', 'inline', 'list', 'align', 'card', 'link'],
+    table: ['inline', 'align', 'table', 'columns'],
     image: ['align', 'image', 'caption'],
     math: ['inlineBasic', 'align', 'math'],
     graph: ['inline', 'align', 'graph', 'image', 'caption'],
-    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'math', 'graph', 'link', 'pagebreak']
+    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'pagebreak']
   };
 
   const BUTTONS = {
@@ -2994,6 +3193,8 @@ const EditorManager = (() => {
     math: { glyph: '∑', label: 'Μαθηματικά', title: 'Εισαγωγή μαθηματικής έκφρασης (Ctrl+M)', run: id => MathEngine.open({ sectionId: id }) },
     graph: { icon: 'chart', title: 'Γραφική παράσταση (Ctrl+Alt+G)', run: id => GraphEngine.open({ sectionId: id }) },
     link: { icon: 'link', title: 'Εισαγωγή συνδέσμου (Ctrl+K)', run: id => InsertTools.link(id) },
+    columns: { icon: 'columns', title: 'Διάταξη σε στήλες (π.χ. Παρατήρηση / Πείραμα / Συμπέρασμα)', run: id => InsertTools.columns(id) },
+    card: { icon: 'card', title: 'Πλαίσιο περιεχομένου (Σημείωση, Tip, Προσοχή, Ορισμός…)', run: id => InsertTools.card(id) },
     pagebreak: { icon: 'pagebreak', title: 'Αλλαγή σελίδας στην εκτύπωση', run: id => InsertTools.pageBreak(id) },
     undo: { icon: 'undo', title: 'Αναίρεση (Ctrl+Z)', run: id => undo(id) },
     redo: { icon: 'redo', title: 'Επανάληψη (Ctrl+Y)', run: id => redo(id) },
@@ -3092,9 +3293,13 @@ const EditorManager = (() => {
     });
     block.collapseBtn.classList.add('collapse-btn');
     block.focusBtn = iconButton('expand', 'Λειτουργία εστίασης (Ctrl+Shift+F)', () => toggleFocus(block.id));
+    block.titleBtn = iconButton('eye', 'Ο τίτλος εμφανίζεται στο τελικό φύλλο', () => {
+      const s = AppState.getSection(block.id);
+      if (s) AppState.updateSection(block.id, { hideTitle: !s.hideTitle });
+    });
     const deleteBtn = iconButton('trash', 'Διαγραφή ενότητας', () => TemplateManager.removeSection(block.id), true);
     const header = Util.h('div', { class: 'block-header' }, handle, indexEl, titleInput, typeSelect, reqBtn,
-      Util.h('div', { class: 'block-actions' }, block.collapseBtn, block.focusBtn, deleteBtn));
+      Util.h('div', { class: 'block-actions' }, block.titleBtn, block.collapseBtn, block.focusBtn, deleteBtn));
     block.el = Util.h('article', { class: 'editor-block', dataset: { sectionId: section.id } }, header, block.toolbar, content);
     blocks.set(section.id, block);
     wire(block, handle);
@@ -3178,6 +3383,14 @@ const EditorManager = (() => {
     block.reqBtn.setAttribute('aria-pressed', String(section.required));
     block.reqBtn.textContent = section.required ? 'Υποχρεωτική' : 'Προαιρετική';
     block.el.classList.toggle('is-collapsed', section.collapsed);
+    block.el.classList.toggle('title-hidden', !!section.hideTitle);
+    if (block.titleHidden !== !!section.hideTitle) {
+      block.titleHidden = !!section.hideTitle;
+      block.titleBtn.replaceChildren(Util.icon(section.hideTitle ? 'eye-off' : 'eye'));
+      block.titleBtn.title = section.hideTitle ? 'Ο τίτλος δεν εμφανίζεται στο τελικό φύλλο (κλικ για εμφάνιση)' : 'Ο τίτλος εμφανίζεται στο τελικό φύλλο (κλικ για απόκρυψη)';
+      block.titleBtn.setAttribute('aria-label', block.titleBtn.title);
+      block.titleBtn.setAttribute('aria-pressed', String(!!section.hideTitle));
+    }
     block.collapseBtn.title = section.collapsed ? 'Ανάπτυξη ενότητας' : 'Σύμπτυξη ενότητας';
     block.collapseBtn.setAttribute('aria-label', block.collapseBtn.title);
     block.collapseBtn.setAttribute('aria-expanded', String(!section.collapsed));
@@ -3206,7 +3419,7 @@ const EditorManager = (() => {
     else if (tools.has('inlineBasic')) groups.push(['bold', 'italic', 'underline', 'sup', 'sub'].map(k => toolButton(block, k)));
     if (tools.has('list')) groups.push(['ul', 'ol', 'indent', 'outdent'].map(k => toolButton(block, k)));
     if (tools.has('align')) groups.push(['left', 'center', 'right', 'justify'].map(k => toolButton(block, k)));
-    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'link', 'pagebreak'].filter(k => tools.has(k));
+    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'pagebreak'].filter(k => tools.has(k));
     if (inserts.length) groups.push(inserts.map(k => toolButton(block, k)));
     groups.push(['undo', 'redo', 'clear'].map(k => toolButton(block, k)));
     groups.forEach((group, i) => {
@@ -3761,8 +3974,11 @@ const EditorManager = (() => {
       last.after(next);
     }
     if (options.caret === 'cell') {
-      const cell = nodes[0].querySelector && nodes[0].querySelector('td, th');
+      const cell = nodes[0].querySelector && (nodes[0].querySelector('td') || nodes[0].querySelector('th'));
       caretIn(cell || next);
+    } else if (options.caret === 'inside') {
+      const inner = nodes[0].lastElementChild;
+      caretIn(inner || nodes[0], true);
     } else {
       caretIn(next);
     }
@@ -4779,9 +4995,152 @@ const InsertTools = (() => {
     EditorManager.insertBlock(id, [Util.h('div', { class: 'wf-pagebreak', contenteditable: 'false' })]);
   }
 
+  const GRID_PRESETS = [
+    { key: 'ekfe', label: 'ΕΚΦΕ: Παρατήρηση / Πείραμα / Συμπέρασμα', cols: 3, rows: 2, titles: ['Παρατήρηση, υπόθεση / πρόβλεψη', 'Πείραμα, έλεγχος', 'Συμπέρασμα - γενίκευση'], tip: true },
+    { key: 'qa', label: 'Ερώτηση / Απάντηση', cols: 2, rows: 4, titles: ['Ερώτηση', 'Απάντηση'], tip: false },
+    { key: 'kwl', label: 'Τι ξέρω / Τι θέλω να μάθω / Τι έμαθα', cols: 3, rows: 1, titles: ['Τι ξέρω', 'Τι θέλω να μάθω', 'Τι έμαθα'], tip: false },
+    { key: 'two', label: '2 στήλες', cols: 2, rows: 1, titles: ['', ''], tip: false },
+    { key: 'three', label: '3 στήλες', cols: 3, rows: 1, titles: ['', '', ''], tip: false },
+    { key: 'four', label: '4 στήλες', cols: 4, rows: 1, titles: ['', '', '', ''], tip: false }
+  ];
+
+  /**
+   * Δημιουργεί διάταξη σε στήλες (πίνακας διάταξης με προαιρετικούς τίτλους στηλών και γραμμή Tip).
+   * @param {{cols: number, rows: number, titles: string[], header: boolean, borders: boolean, tip: boolean}} o
+   * @returns {HTMLTableElement}
+   */
+  function buildGrid(o) {
+    const table = Util.h('table', { class: `wf-table wf-grid${o.borders ? '' : ' wf-grid-plain'}` });
+    if (o.header) {
+      table.append(Util.h('thead', null, Util.h('tr', null, Array.from({ length: o.cols }, (_, i) => Util.h('th', null, o.titles[i] ? o.titles[i] : Util.h('br'))))));
+    }
+    const tbody = Util.h('tbody');
+    for (let r = 0; r < o.rows; r++) tbody.append(Util.h('tr', null, Array.from({ length: o.cols }, () => Util.h('td', null, Util.h('p', null, Util.h('br'))))));
+    if (o.tip) tbody.append(Util.h('tr', null, Util.h('td', { colspan: String(o.cols) }, Util.h('p', { class: 'wf-tip' }, 'Tip: '))));
+    table.append(tbody);
+    return table;
+  }
+
+  /**
+   * Διάλογος διάταξης σε στήλες.
+   * @param {string} [sectionId]
+   */
+  function columns(sectionId) {
+    const id = target(sectionId);
+    if (!id) return;
+    const preset = Util.h('select', { class: 'select', id: 'grid-preset' }, GRID_PRESETS.map(p => Util.h('option', { value: p.key, text: p.label })));
+    const colsInput = Util.h('select', { class: 'select', id: 'grid-cols' }, [2, 3, 4].map(n => Util.h('option', { value: String(n), text: `${n} στήλες` })));
+    const rowsInput = Util.h('input', { class: 'input', type: 'number', min: '1', max: '10', value: '2', id: 'grid-rows' });
+    const header = Util.h('input', { type: 'checkbox', checked: true, id: 'grid-header' });
+    const borders = Util.h('input', { type: 'checkbox', checked: true, id: 'grid-borders' });
+    const tip = Util.h('input', { type: 'checkbox', checked: true, id: 'grid-tip' });
+    const titlesBox = Util.h('div', { class: 'stack', style: { gap: '8px' } });
+    let titles = [];
+    const renderTitles = () => {
+      const n = Number(colsInput.value);
+      titles = Array.from({ length: n }, (_, i) => titles[i] || '');
+      titlesBox.replaceChildren(...titles.map((t, i) => {
+        const input = Util.h('input', { class: 'input', type: 'text', maxlength: '80', value: t, placeholder: `Τίτλος στήλης ${i + 1}`, 'aria-label': `Τίτλος στήλης ${i + 1}` });
+        input.addEventListener('input', () => { titles[i] = input.value; });
+        return input;
+      }));
+      titlesBox.hidden = !header.checked;
+    };
+    const applyPreset = () => {
+      const p = GRID_PRESETS.find(x => x.key === preset.value) || GRID_PRESETS[0];
+      colsInput.value = String(p.cols);
+      rowsInput.value = String(p.rows);
+      titles = p.titles.slice();
+      tip.checked = p.tip;
+      header.checked = p.titles.some(Boolean);
+      renderTitles();
+    };
+    preset.addEventListener('change', applyPreset);
+    colsInput.addEventListener('change', renderTitles);
+    header.addEventListener('change', renderTitles);
+    applyPreset();
+    Modal.open({
+      title: 'Διάταξη σε στήλες', size: 'sm',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Έτοιμη διάταξη' }), preset),
+        Util.h('div', { class: 'grid-2' },
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Στήλες' }), colsInput),
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Γραμμές (έως 10)' }), rowsInput)),
+        Util.h('label', { class: 'check' }, header, 'Τίτλοι στηλών'),
+        titlesBox,
+        Util.h('label', { class: 'check' }, borders, 'Περιγράμματα στο τελικό φύλλο'),
+        Util.h('label', { class: 'check' }, tip, 'Γραμμή σημείωσης (Tip) στο τέλος'),
+        Util.h('p', { class: 'hint', text: 'Κάθε κελί δέχεται κείμενο, λίστες, εικόνες και εξισώσεις. Δεξί κλικ σε κελί για προσθήκη ή διαγραφή γραμμών και στηλών.' })),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        {
+          label: 'Εισαγωγή', variant: 'primary', onClick: () => {
+            const grid = buildGrid({
+              cols: Number(colsInput.value), rows: Util.clamp(Math.round(Number(rowsInput.value)) || 1, 1, 10),
+              titles, header: header.checked, borders: borders.checked, tip: tip.checked
+            });
+            EditorManager.insertBlock(id, [grid], { caret: 'cell' });
+            return true;
+          }
+        }
+      ],
+      initialFocus: preset
+    });
+  }
+
+  const CARD_TYPES = [
+    { key: 'note', label: 'Σημείωση' },
+    { key: 'tip', label: 'Tip' },
+    { key: 'warn', label: 'Προσοχή' },
+    { key: 'def', label: 'Ορισμός' },
+    { key: 'remember', label: 'Θυμήσου' }
+  ];
+
+  /**
+   * Διάλογος πλαισίου περιεχομένου (κάρτα με τίτλο και χρώμα ανά είδος).
+   * @param {string} [sectionId]
+   */
+  function card(sectionId) {
+    const id = target(sectionId);
+    if (!id) return;
+    let kind = 'note';
+    const titleInput = Util.h('input', { class: 'input', type: 'text', maxlength: '80', value: 'Σημείωση', id: 'card-title' });
+    const kinds = Util.h('div', { class: 'card-kinds', role: 'radiogroup', 'aria-label': 'Είδος πλαισίου' });
+    const select = key => {
+      const prev = CARD_TYPES.find(c => c.key === kind);
+      if (!titleInput.value.trim() || (prev && titleInput.value === prev.label)) titleInput.value = CARD_TYPES.find(c => c.key === key).label;
+      kind = key;
+      kinds.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.kind === key)));
+    };
+    CARD_TYPES.forEach(c => {
+      const b = Util.h('button', { type: 'button', role: 'radio', class: `card-kind doc-content`, dataset: { kind: c.key } },
+        Util.h('div', { class: `wf-card wf-card-${c.key}` }, Util.h('p', { class: 'wf-card-title', text: c.label })));
+      b.addEventListener('click', () => select(c.key));
+      kinds.append(b);
+    });
+    select('note');
+    Modal.open({
+      title: 'Πλαίσιο περιεχομένου', size: 'sm',
+      body: Util.h('div', { class: 'stack' }, kinds,
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Τίτλος πλαισίου (κενό για χωρίς τίτλο)' }), titleInput)),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        {
+          label: 'Εισαγωγή', variant: 'primary', onClick: () => {
+            const t = titleInput.value.trim();
+            const box = Util.h('div', { class: `wf-card wf-card-${kind}` }, t ? Util.h('p', { class: 'wf-card-title', text: t }) : null, Util.h('p', null, Util.h('br')));
+            EditorManager.insertBlock(id, [box], { caret: 'inside' });
+            return true;
+          }
+        }
+      ],
+      initialFocus: titleInput
+    });
+  }
+
   return {
-    init, table, addRow, tableMenu, image, insertImageFile, insertImageData, selectImage, selectedImage,
-    removeSelectedImage, hideOverlays, link, linkPopover, caption, pageBreak, target
+    init, table, addRow, tableMenu, image, insertImageFile, insertImageData, prepareImage, selectImage, selectedImage,
+    removeSelectedImage, hideOverlays, link, linkPopover, caption, pageBreak, columns, card, target
   };
 })();
 
@@ -5688,10 +6047,24 @@ const GraphEngine = (() => {
  * @namespace ExportManager
  */
 const ExportManager = (() => {
-  const CONTENT_W_MM = 160;
-  const CONTENT_H_MM = 257;
-  const DOCX_CONTENT_TWIPS = 9072;
-  const DOCX_MAX_IMG_PX = 604;
+  const TWIPS_PER_MM = 56.6929;
+  const PX_PER_MM = 96 / 25.4;
+  const CARD_COLORS = {
+    note: ['EFF6FF', '2563EB'], tip: ['F0FDF4', '16A34A'], warn: ['FFFBEB', 'D97706'], def: ['F5F3FF', '7C3AED'], remember: ['F1F5F9', '475569']
+  };
+
+  /**
+   * Γεωμετρία σελίδας (mm) από τις ρυθμίσεις εμφάνισης: προσανατολισμός και περιθώρια.
+   * @returns {{pageW: number, pageH: number, top: number, bottom: number, left: number, right: number, contentW: number, contentH: number, landscape: boolean}}
+   */
+  function geometry() {
+    const st = AppState.get().style;
+    const landscape = st.orientation === 'landscape';
+    const pageW = landscape ? 297 : 210;
+    const pageH = landscape ? 210 : 297;
+    const m = st.margins === 'narrow' ? { top: 12.7, bottom: 12.7, left: 12.7, right: 12.7 } : { top: 20, bottom: 20, left: 25, right: 25 };
+    return { pageW, pageH, ...m, contentW: pageW - m.left - m.right, contentH: pageH - m.top - m.bottom, landscape };
+  }
 
   /** @returns {Object} επιλογές εκτύπωσης */
   function options() {
@@ -5711,17 +6084,32 @@ const ExportManager = (() => {
   function buildPrintable(opts) {
     EditorManager.flushAll();
     const m = AppState.get().metadata;
-    const root = Util.h('div', { class: 'wf-print-doc' });
+    const st = AppState.get().style;
+    const g = geometry();
+    const root = Util.h('div', { class: `wf-print-doc wf-st-${st.sectionTitle} wf-sec-${st.sectionStyle}`, style: { width: `${g.contentW}mm` } });
+    root.style.setProperty('--doc-font', AppState.FONTS[st.fontFamily]);
+    root.style.setProperty('--doc-size', `${st.fontSize}pt`);
+    root.style.setProperty('--doc-accent', st.accent);
+    root.style.setProperty('--doc-th', st.tableHeaderFill);
+    root.style.setProperty('--doc-title-align', st.titleAlign);
     const head = Util.h('header', { class: 'wf-doc-head' });
-    if (m.school) head.append(Util.h('div', { class: 'wf-doc-school', text: m.school }));
-    head.append(Util.h('h1', { class: 'wf-doc-title', text: docTitle() }));
+    const headText = Util.h('div', { class: 'wf-doc-head-text' });
+    if (st.logo) {
+      const logo = Util.h('img', { class: 'wf-doc-logo', src: st.logo, alt: 'Λογότυπο', style: { width: `${st.logoWidth}mm` } });
+      if (st.logoPosition === 'left') head.append(logo, headText);
+      else head.append(headText, logo);
+    } else {
+      head.append(headText);
+    }
+    if (m.school) headText.append(Util.h('div', { class: 'wf-doc-school', text: m.school }));
+    headText.append(Util.h('h1', { class: 'wf-doc-title', text: docTitle() }));
     const meta = [
       m.subject && `Μάθημα: ${m.subject}`,
       m.className && `Τάξη: ${m.className}`,
       m.date && `Ημερομηνία: ${Util.formatDate(m.date)}`,
       m.teacher && `Εκπαιδευτικός: ${m.teacher}`
     ].filter(Boolean);
-    if (meta.length) head.append(Util.h('div', { class: 'wf-doc-meta', text: meta.join('   ·   ') }));
+    if (meta.length) headText.append(Util.h('div', { class: 'wf-doc-meta', text: meta.join('   ·   ') }));
     root.append(head);
     if (m.studentFields && opts.studentFields) {
       const field = (label, width) => Util.h('span', null, label, Util.h('span', { class: 'line', style: { width } }));
@@ -5732,7 +6120,7 @@ const ExportManager = (() => {
       if (s.collapsed && !opts.includeCollapsed) return;
       n++;
       const section = Util.h('section', { class: `wf-print-section${opts.breakPerSection && n > 1 ? ' wf-break-before' : ''}`, dataset: { sectionId: s.id } });
-      section.append(Util.h('h2', { class: 'wf-print-section-title', text: `${opts.numbering ? `${n}. ` : ''}${s.title || 'Χωρίς τίτλο'}` }));
+      if (!s.hideTitle) section.append(Util.h('h2', { class: 'wf-print-section-title', text: `${opts.numbering ? `${n}. ` : ''}${s.title || 'Χωρίς τίτλο'}` }));
       const content = Util.h('div', { class: 'wf-print-content doc-content' });
       const tpl = document.createElement('template');
       tpl.innerHTML = EditorManager.getRenderedHTML(s.id);
@@ -5882,7 +6270,8 @@ const ExportManager = (() => {
     if (opts.headerTitle) boxes.push(`@top-left { content: ${cssString(docTitle())}; ${font} }`);
     if (opts.headerDate && m.date) boxes.push(`@top-right { content: ${cssString(Util.formatDate(m.date))}; ${font} }`);
     if (opts.pageNumbers) boxes.push(`@bottom-center { content: "Σελίδα " counter(page) " από " counter(pages); ${font} }`);
-    style.textContent = `@media print { @page { size: A4; margin: 2cm 2.5cm; ${boxes.join(' ')} } }`;
+    const g = geometry();
+    style.textContent = `@media print { @page { size: A4 ${g.landscape ? 'landscape' : 'portrait'}; margin: ${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm; ${boxes.join(' ')} } }`;
   }
 
   /**
@@ -5978,15 +6367,16 @@ const ExportManager = (() => {
       }
       busy.set(0.3);
       const rect = root.getBoundingClientRect();
-      const pxPerMm = rect.width / CONTENT_W_MM;
-      const pages = paginate(root, CONTENT_H_MM * pxPerMm);
+      const g = geometry();
+      const pxPerMm = rect.width / g.contentW;
+      const pages = paginate(root, g.contentH * pxPerMm);
       const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
       const canvas = await window.html2canvas(root, {
         scale, backgroundColor: '#ffffff', logging: false, useCORS: false, onclone: revealStage,
         windowWidth: document.documentElement.clientWidth, windowHeight: Math.max(window.innerHeight, Math.ceil(rect.height) + 100)
       });
       busy.set(0.7);
-      const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+      const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: g.landscape ? 'landscape' : 'portrait', compress: true });
       const m = AppState.get().metadata;
       pages.forEach((p, i) => {
         if (i) pdf.addPage();
@@ -5997,18 +6387,18 @@ const ExportManager = (() => {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, slice.width, slice.height);
         ctx.drawImage(canvas, 0, Math.round(p.start * scale), canvas.width, slice.height, 0, 0, canvas.width, slice.height);
-        pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', 25, 20, CONTENT_W_MM, (p.end - p.start) / pxPerMm, undefined, 'FAST');
+        pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left, g.top, g.contentW, (p.end - p.start) / pxPerMm, undefined, 'FAST');
         if (opts.headerTitle) {
-          const t = textImage(docTitle(), 'left', 110);
-          pdf.addImage(t.data, 'PNG', 25, 8, t.w, t.h);
+          const t = textImage(docTitle(), 'left', g.contentW - 50);
+          pdf.addImage(t.data, 'PNG', g.left, g.top / 2 - 3, t.w, t.h);
         }
         if (opts.headerDate && m.date) {
           const t = textImage(Util.formatDate(m.date), 'right', 45);
-          pdf.addImage(t.data, 'PNG', 140, 8, t.w, t.h);
+          pdf.addImage(t.data, 'PNG', g.left + g.contentW - 45, g.top / 2 - 3, t.w, t.h);
         }
         if (opts.pageNumbers) {
-          const t = textImage(`Σελίδα ${i + 1} από ${pages.length}`, 'center', CONTENT_W_MM);
-          pdf.addImage(t.data, 'PNG', 25, 283, t.w, t.h);
+          const t = textImage(`Σελίδα ${i + 1} από ${pages.length}`, 'center', g.contentW);
+          pdf.addImage(t.data, 'PNG', g.left, g.pageH - g.bottom / 2 - 3, t.w, t.h);
         }
         busy.set(0.7 + (0.3 * (i + 1)) / pages.length);
       });
@@ -6131,6 +6521,12 @@ const ExportManager = (() => {
    */
   function buildDocx(root, mathImages, opts) {
     const D = window.docx;
+    const st = AppState.get().style;
+    const g = geometry();
+    const DOCX_CONTENT_TWIPS = Math.round(g.contentW * TWIPS_PER_MM);
+    const DOCX_MAX_IMG_PX = Math.round(g.contentW * PX_PER_MM);
+    const accent = st.accent.replace('#', '');
+    const thFill = st.tableHeaderFill.replace('#', '');
     const ALIGN = { left: D.AlignmentType.LEFT, center: D.AlignmentType.CENTER, right: D.AlignmentType.RIGHT, justify: D.AlignmentType.JUSTIFIED };
     const BLOCK = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'UL', 'OL', 'LI', 'TABLE', 'BLOCKQUOTE', 'FIGURE', 'FIGCAPTION', 'PRE', 'HR', 'SECTION', 'HEADER']);
     let olInstance = 0;
@@ -6143,7 +6539,8 @@ const ExportManager = (() => {
 
     const baseFmt = para => {
       const f = {};
-      if (para.bold) f.bold = true;
+      if (para.bold || para.cardTitle) f.bold = true;
+      if (para.tip) f.italics = true;
       if (para.caption) Object.assign(f, { italics: true, size: 20, color: '333333' });
       return f;
     };
@@ -6225,7 +6622,32 @@ const ExportManager = (() => {
 
     const hasBlockChild = el => Array.from(el.children).some(c => BLOCK.has(c.tagName) || c.classList.contains('math-display') || c.classList.contains('wf-pagebreak'));
 
+    const none = { style: D.BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+    const noBorders = { top: none, bottom: none, left: none, right: none };
+
+    const cardTable = (el, para) => {
+      const kind = (Array.from(el.classList).find(c => /^wf-card-(note|tip|warn|def|remember)$/.test(c)) || 'wf-card-note').slice(8);
+      const [fill, color] = CARD_COLORS[kind] || CARD_COLORS.note;
+      const thin = { style: D.BorderStyle.SINGLE, size: 4, color };
+      let kids = blocks(el, { ...para, cell: true });
+      if (!kids.length) kids = [new D.Paragraph({ children: [] })];
+      return new D.Table({
+        width: { size: DOCX_CONTENT_TWIPS, type: D.WidthType.DXA },
+        columnWidths: [DOCX_CONTENT_TWIPS],
+        rows: [new D.TableRow({
+          children: [new D.TableCell({
+            children: kids,
+            width: { size: DOCX_CONTENT_TWIPS, type: D.WidthType.DXA },
+            shading: { fill, type: D.ShadingType.CLEAR, color: 'auto' },
+            margins: { top: 100, bottom: 100, left: 160, right: 160 },
+            borders: { top: thin, bottom: thin, right: thin, left: { style: D.BorderStyle.SINGLE, size: 24, color } }
+          })]
+        })]
+      });
+    };
+
     const table = tableEl => {
+      const plain = tableEl.classList.contains('wf-grid-plain');
       const rows = Array.from(tableEl.rows);
       const cols = Math.max(1, ...rows.map(r => Array.from(r.cells).reduce((s, c) => s + (c.colSpan || 1), 0)));
       const colW = Math.floor(DOCX_CONTENT_TWIPS / cols);
@@ -6245,7 +6667,8 @@ const ExportManager = (() => {
               columnSpan: cell.colSpan > 1 ? cell.colSpan : undefined,
               rowSpan: cell.rowSpan > 1 ? cell.rowSpan : undefined,
               width: { size: colW * (cell.colSpan || 1), type: D.WidthType.DXA },
-              shading: isTh ? { fill: 'F1F5F9', type: D.ShadingType.CLEAR, color: 'auto' } : undefined,
+              shading: isTh ? { fill: thFill, type: D.ShadingType.CLEAR, color: 'auto' } : undefined,
+              borders: plain ? noBorders : undefined,
               margins: { top: 60, bottom: 60, left: 100, right: 100 },
               verticalAlign: D.VerticalAlign.CENTER
             });
@@ -6312,6 +6735,11 @@ const ExportManager = (() => {
           out.push(new D.Paragraph({ children: [new D.PageBreak()] }));
           return;
         }
+        if (el.classList.contains('wf-card')) {
+          flush();
+          out.push(cardTable(el, para), new D.Paragraph({ children: [], spacing: { after: 120 } }));
+          return;
+        }
         if (el.classList.contains('math-display')) {
           flush();
           out.push(paragraph(inline(el, {}), { ...para, align: 'center' }));
@@ -6322,7 +6750,7 @@ const ExportManager = (() => {
           return;
         }
         flush();
-        const p2 = { ...para, align: alignOf(el) || para.align, caption: el.classList.contains('wf-caption') || para.caption };
+        const p2 = { ...para, align: alignOf(el) || para.align, caption: el.classList.contains('wf-caption') || para.caption, cardTitle: el.classList.contains('wf-card-title'), tip: el.classList.contains('wf-tip') };
         if (tag === 'UL' || tag === 'OL') out.push(...list(el, p2, 0));
         else if (tag === 'TABLE') out.push(table(el), new D.Paragraph({ children: [], spacing: { after: 120 } }));
         else if (/^H[1-4]$/.test(tag)) out.push(paragraph(inlineChildren(el, {}), { ...p2, heading: tag }));
@@ -6337,11 +6765,17 @@ const ExportManager = (() => {
     };
 
     const children = [];
-    if (m.school) children.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, children: [new D.TextRun({ text: m.school.toUpperCase(), size: 20, color: '333333' })] }));
-    children.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { before: 60, after: 80 }, children: [new D.TextRun({ text: docTitle(), bold: true, size: 40 })] }));
+    const headAlign = st.titleAlign === 'left' ? D.AlignmentType.LEFT : D.AlignmentType.CENTER;
+    const logoEl = root.querySelector('.wf-doc-logo');
+    if (logoEl) {
+      const logoRun = imageRun(logoEl);
+      children.push(new D.Paragraph({ alignment: st.logoPosition === 'left' ? D.AlignmentType.LEFT : D.AlignmentType.RIGHT, children: logoRun }));
+    }
+    if (m.school) children.push(new D.Paragraph({ alignment: headAlign, children: [new D.TextRun({ text: m.school.toUpperCase(), size: 20, color: '333333' })] }));
+    children.push(new D.Paragraph({ alignment: headAlign, spacing: { before: 60, after: 80 }, children: [new D.TextRun({ text: docTitle(), bold: true, size: 40 })] }));
     const meta = root.querySelector('.wf-doc-meta');
     children.push(new D.Paragraph({
-      alignment: D.AlignmentType.CENTER, spacing: { after: 240 },
+      alignment: headAlign, spacing: { after: 240 },
       border: { bottom: { color: '000000', space: 6, style: D.BorderStyle.SINGLE, size: 6 } },
       children: meta ? [new D.TextRun({ text: meta.textContent, size: 20, color: '333333' })] : []
     }));
@@ -6355,25 +6789,54 @@ const ExportManager = (() => {
         ]
       }));
     }
-    root.querySelectorAll(':scope > .wf-print-section').forEach(sec => {
-      children.push(new D.Paragraph({
-        keepNext: true,
-        pageBreakBefore: sec.classList.contains('wf-break-before'),
-        spacing: { before: 240, after: 160 },
-        border: { bottom: { color: '000000', space: 2, style: D.BorderStyle.SINGLE, size: 12 } },
-        children: [new D.TextRun({ text: sec.querySelector('.wf-print-section-title').textContent, bold: true, size: 28 })]
-      }));
+    const titleSize = Math.round((st.fontSize + 2) * 2);
+    const titleBorder = side => ({ color: accent, space: 2, style: D.BorderStyle.SINGLE, size: side === 'bottom' && st.sectionTitle === 'underline' ? 12 : 8 });
+    root.querySelectorAll(':scope > .wf-print-section').forEach((sec, si) => {
+      const startIdx = children.length;
+      const target = st.sectionStyle === 'card' ? [] : children;
+      const titleEl = sec.querySelector('.wf-print-section-title');
+      if (titleEl) {
+        const opts2 = {
+          keepNext: true,
+          spacing: { before: st.sectionStyle === 'card' ? 0 : 240, after: 160 },
+          children: [new D.TextRun({ text: titleEl.textContent, bold: true, size: titleSize, color: st.sectionTitle === 'bar' ? 'FFFFFF' : accent })]
+        };
+        if (st.sectionTitle === 'underline') opts2.border = { bottom: titleBorder('bottom') };
+        if (st.sectionTitle === 'box') opts2.border = { top: titleBorder('top'), bottom: titleBorder('bottom'), left: titleBorder('left'), right: titleBorder('right') };
+        if (st.sectionTitle === 'bar') opts2.shading = { fill: accent, type: D.ShadingType.CLEAR, color: 'auto' };
+        target.push(new D.Paragraph(opts2));
+      }
       const content = sec.querySelector('.wf-print-content');
       if (content.querySelector('.wf-answer-lines')) {
         for (let i = 0; i < 5; i++) {
-          children.push(new D.Paragraph({
+          target.push(new D.Paragraph({
             spacing: { before: 200 },
             tabStops: [{ type: D.TabStopType.RIGHT, position: DOCX_CONTENT_TWIPS, leader: D.LeaderType.UNDERSCORE }],
             children: [new D.TextRun({ children: [new D.Tab()], color: '999999' })]
           }));
         }
       } else {
-        children.push(...blocks(content, {}));
+        target.push(...blocks(content, {}));
+      }
+      const breakBefore = sec.classList.contains('wf-break-before');
+      if (st.sectionStyle === 'card') {
+        const line = { style: D.BorderStyle.SINGLE, size: 8, color: accent };
+        if (breakBefore) children.push(new D.Paragraph({ children: [new D.PageBreak()] }));
+        else if (si > 0) children.push(new D.Paragraph({ children: [], spacing: { after: 120 } }));
+        children.push(new D.Table({
+          width: { size: DOCX_CONTENT_TWIPS, type: D.WidthType.DXA },
+          columnWidths: [DOCX_CONTENT_TWIPS],
+          rows: [new D.TableRow({
+            children: [new D.TableCell({
+              children: target.length ? target : [new D.Paragraph({ children: [] })],
+              width: { size: DOCX_CONTENT_TWIPS, type: D.WidthType.DXA },
+              margins: { top: 140, bottom: 140, left: 200, right: 200 },
+              borders: { top: line, bottom: line, left: line, right: line }
+            })]
+          })]
+        }));
+      } else if (breakBefore) {
+        children.splice(startIdx, 0, new D.Paragraph({ children: [new D.PageBreak()] }));
       }
     });
 
@@ -6400,10 +6863,10 @@ const ExportManager = (() => {
       title: docTitle(),
       description: [m.subject, m.className].filter(Boolean).join(' · '),
       styles: {
-        default: { document: { run: { font: 'Georgia', size: 24 } } },
+        default: { document: { run: { font: st.fontFamily, size: st.fontSize * 2 } } },
         paragraphStyles: [1, 2, 3, 4].map(n => ({
           id: `Heading${n}`, name: `Heading ${n}`, basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { font: 'Georgia', bold: true, size: [36, 32, 28, 26][n - 1], color: '000000' },
+          run: { font: st.fontFamily, bold: true, size: [36, 32, 28, 26][n - 1], color: '000000' },
           paragraph: { spacing: { before: 240, after: 120 }, keepNext: true }
         }))
       },
@@ -6414,7 +6877,12 @@ const ExportManager = (() => {
         ]
       },
       sections: [{
-        properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, left: 1417, right: 1417, header: 567, footer: 567 } } },
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838, orientation: g.landscape ? D.PageOrientation.LANDSCAPE : D.PageOrientation.PORTRAIT },
+            margin: { top: Math.round(g.top * TWIPS_PER_MM), bottom: Math.round(g.bottom * TWIPS_PER_MM), left: Math.round(g.left * TWIPS_PER_MM), right: Math.round(g.right * TWIPS_PER_MM), header: 567, footer: 567 }
+          }
+        },
         headers: { default: header },
         footers: { default: footer },
         children
@@ -6480,24 +6948,25 @@ const ExportManager = (() => {
         stage.remove();
         return;
       }
-      const pxPerMm = root.getBoundingClientRect().width / CONTENT_W_MM;
-      const pages = paginate(root, CONTENT_H_MM * pxPerMm);
+      const g = geometry();
+      const pxPerMm = root.getBoundingClientRect().width / g.contentW;
+      const pages = paginate(root, g.contentH * pxPerMm);
       stage.remove();
       const m = AppState.get().metadata;
-      const zoom = Math.min(1, (pagesEl.clientWidth - 48) / (210 * pxPerMm));
+      const zoom = Math.min(1, (pagesEl.clientWidth - 48) / (g.pageW * pxPerMm));
       pagesEl.replaceChildren(...pages.map((p, i) => {
         const clone = root.cloneNode(true);
         clone.style.marginTop = `${-p.start}px`;
-        const page = Util.h('div', { class: 'preview-page', 'aria-label': `Σελίδα ${i + 1}` },
-          Util.h('div', { class: 'preview-head' },
+        const page = Util.h('div', { class: 'preview-page', 'aria-label': `Σελίδα ${i + 1}`, style: { width: `${g.pageW}mm`, height: `${g.pageH}mm`, padding: `${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm` } },
+          Util.h('div', { class: 'preview-head', style: { left: `${g.left}mm`, right: `${g.right}mm`, top: `${Math.max(3, g.top / 2 - 3)}mm` } },
             Util.h('span', { text: opts.headerTitle ? docTitle() : '' }),
             Util.h('span', { text: opts.headerDate ? Util.formatDate(m.date) : '' })),
           Util.h('div', { class: 'preview-viewport', style: { height: `${p.end - p.start}px` } }, clone),
-          Util.h('div', { class: 'preview-foot', text: opts.pageNumbers ? `Σελίδα ${i + 1} από ${pages.length}` : '' }));
+          Util.h('div', { class: 'preview-foot', style: { left: `${g.left}mm`, right: `${g.right}mm`, bottom: `${Math.max(3, g.bottom / 2 - 3)}mm` }, text: opts.pageNumbers ? `Σελίδα ${i + 1} από ${pages.length}` : '' }));
         if (zoom > 0 && zoom < 1) page.style.zoom = String(zoom);
         return page;
       }));
-      info.textContent = `${pages.length} ${pages.length === 1 ? 'σελίδα' : 'σελίδες'} A4 · περιθώρια 2 × 2,5 cm`;
+      info.textContent = `${pages.length} ${pages.length === 1 ? 'σελίδα' : 'σελίδες'} A4 ${g.landscape ? 'οριζόντια' : 'κατακόρυφα'} · περιθώρια ${AppState.get().style.margins === 'narrow' ? 'στενά' : 'κανονικά'}`;
     };
     const checks = [
       ['headerTitle', 'Τίτλος στην κεφαλίδα'],
@@ -6581,6 +7050,974 @@ const ExportManager = (() => {
   }
 
   return { init, buildPrintable, paginate, validate, print, printElement, exportPdf, exportDocx, preview, saveProject, openProject };
+})();
+
+
+/**
+ * Εισαγωγή εξωτερικών φύλλων εργασίας (.odt, .docx) ως επεξεργάσιμων ενοτήτων:
+ * κείμενο, μορφοποίηση, λίστες, πίνακες με συγχωνεύσεις, εικόνες, λογότυπο κεφαλίδας.
+ * @namespace ImportManager
+ */
+const ImportManager = (() => {
+  const IMG_TYPES = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp' };
+  const FONT_ALIASES = {
+    cambria: 'Cambria', caladea: 'Cambria', calibri: 'Calibri', carlito: 'Calibri', arial: 'Arial', 'liberation sans': 'Arial',
+    helvetica: 'Arial', 'times new roman': 'Times New Roman', 'liberation serif': 'Times New Roman', georgia: 'Georgia',
+    verdana: 'Verdana', tahoma: 'Tahoma', 'dejavu sans': 'Verdana'
+  };
+
+  /**
+   * Ανοίγει αρχείο ZIP (DOCX/ODT) με την ενσωματωμένη αποσυμπίεση του browser.
+   * @param {ArrayBuffer} buf
+   * @returns {{names: string[], read: Function, text: Function}}
+   */
+  function openZip(buf) {
+    const dv = new DataView(buf);
+    const u8 = new Uint8Array(buf);
+    let eocd = -1;
+    for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) {
+        eocd = i;
+        break;
+      }
+    }
+    if (eocd < 0) throw new Error('το αρχείο δεν είναι έγκυρο έγγραφο .docx ή .odt');
+    const count = dv.getUint16(eocd + 10, true);
+    let p = dv.getUint32(eocd + 16, true);
+    const entries = new Map();
+    const utf8 = new TextDecoder();
+    for (let i = 0; i < count && p + 46 <= buf.byteLength; i++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) break;
+      const method = dv.getUint16(p + 10, true);
+      const csize = dv.getUint32(p + 20, true);
+      const nameLen = dv.getUint16(p + 28, true);
+      const extraLen = dv.getUint16(p + 30, true);
+      const commentLen = dv.getUint16(p + 32, true);
+      const local = dv.getUint32(p + 42, true);
+      entries.set(utf8.decode(u8.subarray(p + 46, p + 46 + nameLen)), { method, csize, local });
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    const read = async name => {
+      const e = entries.get(name);
+      if (!e) return null;
+      const start = e.local + 30 + dv.getUint16(e.local + 26, true) + dv.getUint16(e.local + 28, true);
+      const data = u8.subarray(start, start + e.csize);
+      if (e.method === 0) return data.slice();
+      if (e.method !== 8) throw new Error('μη υποστηριζόμενη συμπίεση αρχείου');
+      if (typeof DecompressionStream !== 'function') throw new Error('ο browser δεν υποστηρίζει αποσυμπίεση· χρησιμοποίησε νεότερη έκδοση Chrome, Edge ή Firefox');
+      const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    };
+    const text = async name => {
+      const b = await read(name);
+      return b ? utf8.decode(b) : null;
+    };
+    return { names: Array.from(entries.keys()), read, text };
+  }
+
+  /**
+   * @param {string} xml
+   * @returns {Document}
+   */
+  function parseXml(xml) {
+    const doc = new DOMParser().parseFromString(xml || '<empty/>', 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) throw new Error('το έγγραφο περιέχει μη έγκυρο XML');
+    return doc;
+  }
+
+  /**
+   * Παιδιά-στοιχεία με συγκεκριμένο qualified name.
+   * @param {Element} el
+   * @param {string} name
+   * @returns {Element[]}
+   */
+  function kids(el, name) {
+    return Array.from(el ? el.children : []).filter(c => !name || c.tagName === name);
+  }
+
+  /**
+   * Πρώτος απόγονος με συγκεκριμένο qualified name.
+   * @param {Element|Document} el
+   * @param {string} name
+   * @returns {Element|null}
+   */
+  function find(el, name) {
+    return el ? el.getElementsByTagName(name)[0] || null : null;
+  }
+
+  /**
+   * Μετατρέπει bytes εικόνας σε data URL· οι μεγάλες φωτογραφίες συμπιέζονται σε JPEG.
+   * @param {Uint8Array} bytes
+   * @param {string} mime
+   * @returns {Promise<string>}
+   */
+  async function imageDataURL(bytes, mime) {
+    const blob = new Blob([bytes], { type: mime });
+    let url = await Util.readAsDataURL(blob);
+    if (mime === 'image/bmp' || bytes.length > 350000) {
+      try {
+        const img = await Util.loadImage(url);
+        const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = Util.h('canvas');
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const smaller = mime === 'image/png' && bytes.length < 900000 ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85);
+        if (smaller.length < url.length || mime === 'image/bmp') url = smaller;
+      } catch (e) {
+        return url;
+      }
+    }
+    return url;
+  }
+
+  /**
+   * Μετατροπή μήκους (cm, mm, in, pt, px) σε px.
+   * @param {string} value
+   * @returns {number}
+   */
+  function lengthPx(value) {
+    const m = /^([\d.]+)\s*(cm|mm|in|pt|px)?$/.exec(String(value || '').trim());
+    if (!m) return 0;
+    const n = Number(m[1]);
+    return { cm: n * 37.795, mm: n * 3.7795, in: n * 96, pt: n * 1.3333, px: n }[m[2] || 'px'];
+  }
+
+  /**
+   * Ονομασία γραμματοσειράς από το έγγραφο → μία από τις γραμματοσειρές της εφαρμογής.
+   * @param {string} name
+   * @returns {string|null}
+   */
+  function mapFont(name) {
+    const key = String(name || '').replace(/['"]/g, '').replace(/\d+$/, '').trim().toLowerCase();
+    return FONT_ALIASES[key] || null;
+  }
+
+  /**
+   * Προσθέτει κείμενο με μορφοποίηση (έντονα, πλάγια, υπογράμμιση, διαγραφή, εκθέτης/δείκτης).
+   * @param {Node} target
+   * @param {string} text
+   * @param {Object} fmt
+   */
+  function appendText(target, text, fmt) {
+    if (!text) return;
+    let node = document.createTextNode(text);
+    if (fmt.pos === 'super') node = Util.h('sup', null, node);
+    if (fmt.pos === 'sub') node = Util.h('sub', null, node);
+    if (fmt.strike) node = Util.h('s', null, node);
+    if (fmt.underline) node = Util.h('u', null, node);
+    if (fmt.italic) node = Util.h('i', null, node);
+    if (fmt.bold) node = Util.h('b', null, node);
+    target.append(node);
+  }
+
+  /**
+   * Συνδυάζει δύο σύνολα μορφοποίησης (το δεύτερο υπερισχύει όπου ορίζεται).
+   * @param {Object} a
+   * @param {Object} b
+   * @returns {Object}
+   */
+  function merge(a, b) {
+    const out = { ...a };
+    Object.entries(b || {}).forEach(([k, v]) => { if (v !== undefined) out[k] = v; });
+    return out;
+  }
+
+  /**
+   * Μετατρέπει έγγραφο ODT σε HTML.
+   * @param {Object} zip
+   * @returns {Promise<{root: HTMLElement, images: Array, logo: string, font: string|null}>}
+   */
+  async function convertOdt(zip) {
+    const content = parseXml(await zip.text('content.xml'));
+    const styles = parseXml((await zip.text('styles.xml')) || '<empty/>');
+    const styleMap = new Map();
+    const listKinds = new Map();
+    const fontCount = new Map();
+    const images = [];
+    [styles, content].forEach(doc => {
+      Array.from(doc.getElementsByTagName('style:style')).forEach(el => {
+        const tp = find(el, 'style:text-properties');
+        const pp = find(el, 'style:paragraph-properties');
+        const info = { parent: el.getAttribute('style:parent-style-name'), display: el.getAttribute('style:display-name') || el.getAttribute('style:name') };
+        if (tp) {
+          const w = tp.getAttribute('fo:font-weight');
+          if (w) info.bold = w === 'bold' || Number(w) >= 600;
+          const st = tp.getAttribute('fo:font-style');
+          if (st) info.italic = st === 'italic';
+          const u = tp.getAttribute('style:text-underline-style');
+          if (u) info.underline = u !== 'none';
+          const lt = tp.getAttribute('style:text-line-through-style');
+          if (lt) info.strike = lt !== 'none';
+          const pos = tp.getAttribute('style:text-position');
+          if (pos) {
+            const first = pos.trim().split(/\s+/)[0];
+            const num = parseFloat(first);
+            info.pos = first === 'super' || num > 0 ? 'super' : (first === 'sub' || num < 0 ? 'sub' : '');
+          }
+          const font = tp.getAttribute('style:font-name');
+          if (font) fontCount.set(font, (fontCount.get(font) || 0) + 1);
+        }
+        if (pp) {
+          const a = pp.getAttribute('fo:text-align');
+          if (a) info.align = { start: 'left', left: 'left', end: 'right', right: 'right', center: 'center', justify: 'justify' }[a];
+        }
+        styleMap.set(el.getAttribute('style:name'), info);
+      });
+      Array.from(doc.getElementsByTagName('text:list-style')).forEach(el => {
+        const first = el.children[0];
+        listKinds.set(el.getAttribute('style:name'), first && first.tagName === 'text:list-level-style-number' ? 'ol' : 'ul');
+      });
+    });
+    const resolve = (name, key) => {
+      let n = name;
+      for (let guard = 0; n && guard < 20; guard++) {
+        const s = styleMap.get(n);
+        if (!s) return undefined;
+        if (s[key] !== undefined) return s[key];
+        n = s.parent;
+      }
+      return undefined;
+    };
+    const fmtOf = name => (name ? { bold: resolve(name, 'bold'), italic: resolve(name, 'italic'), underline: resolve(name, 'underline'), strike: resolve(name, 'strike'), pos: resolve(name, 'pos') } : {});
+    const headingOf = name => {
+      let n = name;
+      for (let guard = 0; n && guard < 20; guard++) {
+        const m = /^Heading_20_(\d)$/.exec(n) || /^Heading (\d)$/.exec((styleMap.get(n) || {}).display || '');
+        if (m) return Number(m[1]);
+        if (n === 'Title') return 1;
+        n = (styleMap.get(n) || {}).parent;
+      }
+      return 0;
+    };
+
+    const frame = (el, target, extras) => {
+      const img = find(el, 'draw:image');
+      const box = kids(el, 'draw:text-box')[0];
+      if (img && img.getAttribute('xlink:href')) {
+        const node = Util.h('img', { alt: (find(el, 'svg:title') || {}).textContent || '' });
+        const w = lengthPx(el.getAttribute('svg:width'));
+        if (w) node.style.width = `${Math.round(w)}px`;
+        images.push({ el: node, path: img.getAttribute('xlink:href') });
+        target.append(node);
+      } else if (box) {
+        blocks(box, extras);
+      }
+    };
+
+    const inline = (node, target, fmt, extras) => {
+      Array.from(node.childNodes).forEach(child => {
+        if (child.nodeType === 3) {
+          appendText(target, child.nodeValue, fmt);
+          return;
+        }
+        if (child.nodeType !== 1) return;
+        switch (child.tagName) {
+          case 'text:span': inline(child, target, merge(fmt, fmtOf(child.getAttribute('text:style-name'))), extras); break;
+          case 'text:s': appendText(target, ' '.repeat(Math.max(1, Number(child.getAttribute('text:c')) || 1) - 1) + ' ', fmt); break;
+          case 'text:tab': appendText(target, ' ', fmt); break;
+          case 'text:line-break': target.append(Util.h('br')); break;
+          case 'text:a': {
+            const a = Util.h('a', { href: child.getAttribute('xlink:href') || '', target: '_blank', rel: 'noopener noreferrer' });
+            inline(child, a, fmt, extras);
+            target.append(a);
+            break;
+          }
+          case 'draw:frame': frame(child, target, extras); break;
+          case 'draw:a': inline(child, target, fmt, extras); break;
+          case 'text:note': case 'office:annotation': case 'office:annotation-end': case 'text:bookmark':
+          case 'text:bookmark-start': case 'text:bookmark-end': case 'text:soft-page-break': case 'text:reference-mark':
+            break;
+          default: inline(child, target, fmt, extras);
+        }
+      });
+    };
+
+    const paragraph = (el, out) => {
+      const styleName = el.getAttribute('text:style-name');
+      let level = headingOf(styleName);
+      if (el.tagName === 'text:h') level = level || Number(el.getAttribute('text:outline-level')) || 2;
+      const tag = level ? `h${Util.clamp(level + 1, 2, 4)}` : 'p';
+      const p = Util.h(tag);
+      const align = resolve(styleName, 'align');
+      if (align && align !== 'left') p.style.textAlign = align;
+      const extras = [];
+      inline(el, p, fmtOf(styleName), extras);
+      if (!p.childNodes.length) p.append(Util.h('br'));
+      out.append(p, ...extras);
+    };
+
+    const onlyHeadings = list => Array.from(list.getElementsByTagName('text:p')).length === 0 && list.getElementsByTagName('text:h').length > 0;
+
+    const list = (el, out, inherited) => {
+      const styleName = el.getAttribute('text:style-name') || inherited;
+      if (onlyHeadings(el)) {
+        kids(el, 'text:list-item').forEach(item => blocks(item, out, styleName));
+        return;
+      }
+      const kind = listKinds.get(styleName) || 'ul';
+      const listEl = Util.h(kind);
+      kids(el).forEach(item => {
+        if (item.tagName !== 'text:list-item' && item.tagName !== 'text:list-header') return;
+        const li = Util.h('li');
+        kids(item).forEach(c => {
+          if (c.tagName === 'text:list') list(c, li, styleName);
+          else if (c.tagName === 'text:p' || c.tagName === 'text:h') {
+            if (li.childNodes.length && li.lastChild.tagName !== 'UL' && li.lastChild.tagName !== 'OL') li.append(Util.h('br'));
+            const extras = [];
+            inline(c, li, fmtOf(c.getAttribute('text:style-name')), extras);
+            extras.forEach(x => li.append(x));
+          } else blocks({ children: [c], childNodes: [c] }, li);
+        });
+        if (!li.childNodes.length) li.append(Util.h('br'));
+        listEl.append(li);
+      });
+      if (listEl.children.length) out.append(listEl);
+    };
+
+    const table = (el, out) => {
+      const t = Util.h('table', { class: 'wf-table' });
+      const thead = Util.h('thead');
+      const tbody = Util.h('tbody');
+      const rows = (node, header) => kids(node).forEach(r => {
+        if (r.tagName === 'table:table-header-rows') rows(r, true);
+        else if (r.tagName === 'table:table-rows' || r.tagName === 'table:table-row-group') rows(r, header);
+        else if (r.tagName === 'table:table-row') {
+          const tr = Util.h('tr');
+          kids(r).forEach(c => {
+            if (c.tagName !== 'table:table-cell') return;
+            const repeat = Util.clamp(Number(c.getAttribute('table:number-columns-repeated')) || 1, 1, 20);
+            for (let k = 0; k < repeat; k++) {
+              const cell = Util.h(header ? 'th' : 'td');
+              const cs = Number(c.getAttribute('table:number-columns-spanned')) || 1;
+              const rs = Number(c.getAttribute('table:number-rows-spanned')) || 1;
+              if (cs > 1) cell.setAttribute('colspan', String(Math.min(cs, 20)));
+              if (rs > 1) cell.setAttribute('rowspan', String(Math.min(rs, 20)));
+              blocks(c, cell);
+              tr.append(cell);
+            }
+          });
+          (header ? thead : tbody).append(tr);
+        }
+      });
+      rows(el, false);
+      if (thead.children.length) t.append(thead);
+      if (tbody.children.length) t.append(tbody);
+      if (t.rows.length) out.append(t);
+    };
+
+    const blocks = (parent, out, listStyle) => {
+      Array.from(parent.children).forEach(el => {
+        switch (el.tagName) {
+          case 'text:p': case 'text:h': paragraph(el, out); break;
+          case 'text:list': list(el, out, listStyle); break;
+          case 'table:table': table(el, out); break;
+          case 'text:section': case 'text:index-body': case 'text:table-of-content': blocks(el, out); break;
+          case 'draw:frame': frame(el, out, []); break;
+          default: break;
+        }
+      });
+    };
+
+    const body = find(content, 'office:text');
+    if (!body) throw new Error('το έγγραφο ODT δεν έχει κείμενο');
+    const root = Util.h('div');
+    blocks(body, root);
+
+    let logo = '';
+    const header = find(styles, 'style:header');
+    const logoImg = header ? find(header, 'draw:image') : null;
+    if (logoImg && logoImg.getAttribute('xlink:href')) logo = await loadImage(zip, logoImg.getAttribute('xlink:href'));
+    const topFont = Array.from(fontCount.entries()).sort((a, b) => b[1] - a[1])[0];
+    return { root, images, logo, font: topFont ? mapFont(topFont[0]) : null };
+  }
+
+  /**
+   * Διαβάζει εικόνα από το ZIP ως data URL (κενό για μη υποστηριζόμενες μορφές, π.χ. WMF/EMF).
+   * @param {Object} zip
+   * @param {string} path
+   * @returns {Promise<string>}
+   */
+  async function loadImage(zip, path) {
+    const clean = path.replace(/^\.\//, '');
+    const ext = (clean.split('.').pop() || '').toLowerCase();
+    const mime = IMG_TYPES[ext];
+    if (!mime) return '';
+    const bytes = await zip.read(clean);
+    return bytes ? imageDataURL(bytes, mime) : '';
+  }
+
+  /**
+   * Σχέσεις (relationships) ενός μέρους DOCX.
+   * @param {string|null} xml
+   * @param {string} base φάκελος στόχων (π.χ. "word/")
+   * @returns {Map<string, {target: string, external: boolean, type: string}>}
+   */
+  function parseRels(xml, base) {
+    const map = new Map();
+    if (!xml) return map;
+    Array.from(parseXml(xml).getElementsByTagName('Relationship')).forEach(r => {
+      const external = r.getAttribute('TargetMode') === 'External';
+      let target = r.getAttribute('Target') || '';
+      if (!external) target = target.startsWith('/') ? target.slice(1) : base + target;
+      map.set(r.getAttribute('Id'), { target: target.replace(/[^/]+\/\.\.\//g, ''), external, type: r.getAttribute('Type') || '' });
+    });
+    return map;
+  }
+
+  /**
+   * Τιμή boolean ιδιότητας WordprocessingML (π.χ. <w:b/>, <w:b w:val="0"/>).
+   * @param {Element|null} el
+   * @returns {boolean|undefined}
+   */
+  function onOff(el) {
+    if (!el) return undefined;
+    const v = el.getAttribute('w:val');
+    return !(v === '0' || v === 'false' || v === 'none');
+  }
+
+  /**
+   * Μετατρέπει έγγραφο DOCX σε HTML.
+   * @param {Object} zip
+   * @returns {Promise<{root: HTMLElement, images: Array, logo: string, font: string|null}>}
+   */
+  async function convertDocx(zip) {
+    const doc = parseXml(await zip.text('word/document.xml'));
+    const rels = parseRels(await zip.text('word/_rels/document.xml.rels'), 'word/');
+    const images = [];
+    const numKinds = new Map();
+    const numXml = await zip.text('word/numbering.xml');
+    if (numXml) {
+      const num = parseXml(numXml);
+      const abstract = new Map();
+      Array.from(num.getElementsByTagName('w:abstractNum')).forEach(a => {
+        const levels = {};
+        kids(a, 'w:lvl').forEach(l => {
+          const fmt = find(l, 'w:numFmt');
+          levels[l.getAttribute('w:ilvl')] = fmt && fmt.getAttribute('w:val') === 'bullet' ? 'ul' : 'ol';
+        });
+        abstract.set(a.getAttribute('w:abstractNumId'), levels);
+      });
+      Array.from(num.getElementsByTagName('w:num')).forEach(n => {
+        const ref = find(n, 'w:abstractNumId');
+        numKinds.set(n.getAttribute('w:numId'), abstract.get(ref ? ref.getAttribute('w:val') : '') || {});
+      });
+    }
+    const styleInfo = new Map();
+    let font = null;
+    const stylesXml = await zip.text('word/styles.xml');
+    if (stylesXml) {
+      const sd = parseXml(stylesXml);
+      Array.from(sd.getElementsByTagName('w:style')).forEach(s => {
+        const rPr = find(s, 'w:rPr');
+        const name = find(s, 'w:name');
+        const based = find(s, 'w:basedOn');
+        const jc = find(s, 'w:jc');
+        styleInfo.set(s.getAttribute('w:styleId'), {
+          name: name ? name.getAttribute('w:val') : '',
+          parent: based ? based.getAttribute('w:val') : null,
+          bold: rPr ? onOff(find(rPr, 'w:b')) : undefined,
+          italic: rPr ? onOff(find(rPr, 'w:i')) : undefined,
+          align: jc ? jc.getAttribute('w:val') : undefined
+        });
+      });
+      const defaults = find(sd, 'w:rPrDefault');
+      const rFonts = defaults ? find(defaults, 'w:rFonts') : null;
+      if (rFonts && rFonts.getAttribute('w:ascii')) font = mapFont(rFonts.getAttribute('w:ascii'));
+      else if (rFonts && rFonts.getAttribute('w:asciiTheme')) {
+        const themeXml = await zip.text('word/theme/theme1.xml');
+        const minor = themeXml ? find(parseXml(themeXml), 'a:minorFont') : null;
+        const latin = minor ? find(minor, 'a:latin') : null;
+        if (latin) font = mapFont(latin.getAttribute('typeface'));
+      }
+    }
+    const styleProp = (id, key) => {
+      let n = id;
+      for (let guard = 0; n && guard < 20; guard++) {
+        const s = styleInfo.get(n);
+        if (!s) return undefined;
+        if (s[key] !== undefined) return s[key];
+        n = s.parent;
+      }
+      return undefined;
+    };
+    const headingOf = id => {
+      let n = id;
+      for (let guard = 0; n && guard < 20; guard++) {
+        const s = styleInfo.get(n) || {};
+        const m = /^heading\s*(\d)$/i.exec(s.name || '') || /^Heading(\d)$/.exec(n);
+        if (m) return Number(m[1]);
+        if (/^title$/i.test(s.name || n)) return 1;
+        n = s.parent;
+      }
+      return 0;
+    };
+    const ALIGN = { left: 'left', start: 'left', center: 'center', right: 'right', end: 'right', both: 'justify', distribute: 'justify' };
+
+    const runFmt = (rPr, base) => {
+      if (!rPr) return base;
+      const rStyle = find(rPr, 'w:rStyle');
+      const fromStyle = rStyle ? { bold: styleProp(rStyle.getAttribute('w:val'), 'bold'), italic: styleProp(rStyle.getAttribute('w:val'), 'italic') } : {};
+      const u = find(rPr, 'w:u');
+      const va = find(rPr, 'w:vertAlign');
+      const vaVal = va ? va.getAttribute('w:val') : '';
+      return merge(merge(base, fromStyle), {
+        bold: onOff(kids(rPr, 'w:b')[0]),
+        italic: onOff(kids(rPr, 'w:i')[0]),
+        underline: u ? u.getAttribute('w:val') !== 'none' : undefined,
+        strike: onOff(kids(rPr, 'w:strike')[0]) || onOff(kids(rPr, 'w:dstrike')[0]),
+        pos: vaVal === 'superscript' ? 'super' : (vaVal === 'subscript' ? 'sub' : undefined)
+      });
+    };
+
+    const drawing = (el, target, relMap) => {
+      const blip = find(el, 'a:blip') || find(el, 'v:imagedata');
+      const rid = blip ? (blip.getAttribute('r:embed') || blip.getAttribute('r:id')) : null;
+      const rel = rid ? relMap.get(rid) : null;
+      if (!rel || rel.external) return;
+      const extent = find(el, 'wp:extent');
+      const docPr = find(el, 'wp:docPr');
+      const node = Util.h('img', { alt: docPr ? (docPr.getAttribute('descr') || docPr.getAttribute('title') || '') : '' });
+      const cx = extent ? Number(extent.getAttribute('cx')) : 0;
+      if (cx) node.style.width = `${Math.round(cx / 9525)}px`;
+      images.push({ el: node, path: rel.target });
+      target.append(node);
+    };
+
+    const runs = (parent, target, base, relMap) => {
+      kids(parent).forEach(el => {
+        switch (el.tagName) {
+          case 'w:r': {
+            const fmt = runFmt(kids(el, 'w:rPr')[0], base);
+            kids(el).forEach(c => {
+              if (c.tagName === 'w:t') appendText(target, c.textContent, fmt);
+              else if (c.tagName === 'w:tab' || c.tagName === 'w:ptab') appendText(target, ' ', fmt);
+              else if (c.tagName === 'w:br' || c.tagName === 'w:cr') target.append(Util.h('br'));
+              else if (c.tagName === 'w:noBreakHyphen') appendText(target, '-', fmt);
+              else if (c.tagName === 'w:sym') {
+                const code = parseInt(c.getAttribute('w:char') || '', 16);
+                if (code) appendText(target, String.fromCharCode(code > 0xF000 ? code - 0xF000 : code), fmt);
+              } else if (c.tagName === 'w:drawing' || c.tagName === 'w:pict' || c.tagName === 'w:object') drawing(c, target, relMap);
+            });
+            break;
+          }
+          case 'w:hyperlink': {
+            const rel = relMap.get(el.getAttribute('r:id'));
+            if (rel && rel.external) {
+              const a = Util.h('a', { href: rel.target, target: '_blank', rel: 'noopener noreferrer' });
+              runs(el, a, base, relMap);
+              target.append(a);
+            } else runs(el, target, base, relMap);
+            break;
+          }
+          case 'w:ins': case 'w:smartTag': case 'w:fldSimple': case 'w:customXml': case 'w:sdtContent': runs(el, target, base, relMap); break;
+          case 'w:sdt': runs(kids(el, 'w:sdtContent')[0] || el, target, base, relMap); break;
+          case 'm:oMath': case 'm:oMathPara': appendText(target, el.textContent, merge(base, { italic: true })); break;
+          default: break;
+        }
+      });
+    };
+
+    const blocks = (parent, out, relMap) => {
+      const state = { stack: [] };
+      const addItem = (kind, level, li) => {
+        while (state.stack.length > level + 1) state.stack.pop();
+        if (state.stack.length === level + 1 && state.stack[level].kind !== kind) state.stack.pop();
+        while (state.stack.length < level + 1) {
+          const listEl = Util.h(kind);
+          if (!state.stack.length) out.append(listEl);
+          else {
+            const parentList = state.stack[state.stack.length - 1].el;
+            let last = parentList.lastElementChild;
+            if (!last) {
+              last = Util.h('li');
+              parentList.append(last);
+            }
+            last.append(listEl);
+          }
+          state.stack.push({ el: listEl, kind });
+        }
+        state.stack[level].el.append(li);
+      };
+      kids(parent).forEach(el => {
+        if (el.tagName === 'w:p') {
+          const pPr = kids(el, 'w:pPr')[0];
+          const pStyle = pPr ? find(pPr, 'w:pStyle') : null;
+          const styleId = pStyle ? pStyle.getAttribute('w:val') : null;
+          const numPr = pPr ? kids(pPr, 'w:numPr')[0] : null;
+          const numId = numPr && find(numPr, 'w:numId') ? find(numPr, 'w:numId').getAttribute('w:val') : null;
+          const ilvl = numPr && find(numPr, 'w:ilvl') ? Number(find(numPr, 'w:ilvl').getAttribute('w:val')) || 0 : 0;
+          const base = { bold: styleProp(styleId, 'bold'), italic: styleProp(styleId, 'italic') };
+          if (numId && numId !== '0') {
+            const li = Util.h('li');
+            runs(el, li, base, relMap);
+            if (!li.childNodes.length) li.append(Util.h('br'));
+            addItem((numKinds.get(numId) || {})[String(ilvl)] || 'ul', Util.clamp(ilvl, 0, 5), li);
+            return;
+          }
+          state.stack = [];
+          const level = headingOf(styleId);
+          const p = Util.h(level ? `h${Util.clamp(level + 1, 2, 4)}` : 'p');
+          const jc = pPr ? kids(pPr, 'w:jc')[0] : null;
+          const align = ALIGN[jc ? jc.getAttribute('w:val') : styleProp(styleId, 'align')];
+          if (align && align !== 'left') p.style.textAlign = align;
+          runs(el, p, base, relMap);
+          if (!p.childNodes.length) p.append(Util.h('br'));
+          out.append(p);
+        } else if (el.tagName === 'w:tbl') {
+          state.stack = [];
+          out.append(table(el, relMap));
+        } else if (el.tagName === 'w:sdt') {
+          blocks(kids(el, 'w:sdtContent')[0] || el, out, relMap);
+        }
+      });
+    };
+
+    const table = (tbl, relMap) => {
+      const t = Util.h('table', { class: 'wf-table' });
+      const thead = Util.h('thead');
+      const tbody = Util.h('tbody');
+      const open = new Map();
+      kids(tbl, 'w:tr').forEach(tr => {
+        const trPr = kids(tr, 'w:trPr')[0];
+        const header = !!(trPr && find(trPr, 'w:tblHeader')) && !tbody.children.length;
+        const row = Util.h('tr');
+        let col = 0;
+        kids(tr, 'w:tc').forEach(tc => {
+          const tcPr = kids(tc, 'w:tcPr')[0];
+          const span = tcPr && find(tcPr, 'w:gridSpan') ? Number(find(tcPr, 'w:gridSpan').getAttribute('w:val')) || 1 : 1;
+          const vMerge = tcPr ? find(tcPr, 'w:vMerge') : null;
+          const vVal = vMerge ? vMerge.getAttribute('w:val') : null;
+          if (vMerge && vVal !== 'restart') {
+            const startCell = open.get(col);
+            if (startCell) startCell.rowSpan = Math.min(20, (startCell.rowSpan || 1) + 1);
+            col += span;
+            return;
+          }
+          const cell = Util.h(header ? 'th' : 'td');
+          if (span > 1) cell.setAttribute('colspan', String(Math.min(span, 20)));
+          blocks(tc, cell, relMap);
+          if (vVal === 'restart') open.set(col, cell);
+          else open.delete(col);
+          row.append(cell);
+          col += span;
+        });
+        (header ? thead : tbody).append(row);
+      });
+      t.querySelectorAll('td, th').forEach(c => { if (c.rowSpan > 1) c.setAttribute('rowspan', String(c.rowSpan)); });
+      if (thead.children.length) t.append(thead);
+      t.append(tbody);
+      return t;
+    };
+
+    const body = find(doc, 'w:body');
+    if (!body) throw new Error('το έγγραφο DOCX δεν έχει κείμενο');
+    const root = Util.h('div');
+    blocks(body, root, rels);
+
+    let logo = '';
+    for (const rel of rels.values()) {
+      if (!/\/header$/.test(rel.type) || logo) continue;
+      const xml = await zip.text(rel.target);
+      if (!xml) continue;
+      const headerRels = parseRels(await zip.text(rel.target.replace(/([^/]+)$/, '_rels/$1.rels')), rel.target.replace(/[^/]+$/, ''));
+      const blip = find(parseXml(xml), 'a:blip') || find(parseXml(xml), 'v:imagedata');
+      const rid = blip ? (blip.getAttribute('r:embed') || blip.getAttribute('r:id')) : null;
+      const target = rid ? headerRels.get(rid) : null;
+      if (target && !target.external) logo = await loadImage(zip, target.target);
+    }
+    return { root, images, logo, font };
+  }
+
+  /**
+   * Επιλύει τις εικόνες (bytes από το ZIP → data URL)· αφαιρεί όσες δεν υποστηρίζονται.
+   * @param {Object} zip
+   * @param {Array<{el: HTMLImageElement, path: string}>} images
+   * @returns {Promise<number>} πλήθος εικόνων που παραλείφθηκαν
+   */
+  async function resolveImages(zip, images) {
+    let skipped = 0;
+    for (const item of images) {
+      let url = '';
+      try { url = await loadImage(zip, item.path); } catch (e) { url = ''; }
+      if (url) item.el.setAttribute('src', url);
+      else {
+        skipped++;
+        item.el.replaceWith(Util.h('span', { text: '[εικόνα]' }));
+      }
+    }
+    return skipped;
+  }
+
+  /**
+   * Βελτιώνει τους πίνακες: πρώτη γραμμή με έντονους σύντομους τίτλους → κεφαλίδες στηλών.
+   * @param {HTMLElement} root
+   */
+  function tidyTables(root) {
+    root.querySelectorAll('td h2, td h3, td h4, th h2, th h3, th h4').forEach(hd => {
+      const p = Util.h('p');
+      if (hd.style.textAlign) p.style.textAlign = hd.style.textAlign;
+      p.append(...Array.from(hd.childNodes));
+      hd.replaceWith(p);
+    });
+    root.querySelectorAll('table').forEach(t => {
+      if (t.tHead || !t.rows.length) return;
+      const first = t.rows[0];
+      const cells = Array.from(first.cells);
+      const isHeader = cells.length >= 2 && cells.every(c => {
+        const text = c.textContent.trim();
+        if (!text || text.length > 80 || c.querySelector('img, table')) return false;
+        const walker = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          if (n.nodeValue.trim() && !(n.parentElement && n.parentElement.closest('b, strong'))) return false;
+        }
+        return true;
+      });
+      if (isHeader) {
+        const thead = Util.h('thead');
+        const tr = Util.h('tr');
+        cells.forEach(c => {
+          const th = Util.h('th');
+          Array.from(c.attributes).forEach(a => th.setAttribute(a.name, a.value));
+          th.textContent = c.textContent.trim();
+          tr.append(th);
+        });
+        thead.append(tr);
+        first.remove();
+        t.prepend(thead);
+      }
+      const cols = t.rows[0] ? Array.from(t.rows[0].cells).reduce((s, c) => s + (c.colSpan || 1), 0) : 0;
+      if (cols >= 2 && t.tHead) t.classList.add('wf-grid');
+      t.querySelectorAll('td').forEach(td => {
+        if (td.colSpan === cols && cols >= 2 && /^\s*tip/i.test(td.textContent)) td.querySelectorAll('p').forEach(p => p.classList.add('wf-tip'));
+      });
+    });
+  }
+
+  /**
+   * Αφαιρεί κενές παραγράφους στην αρχή/τέλος και συμπτύσσει διαδοχικές κενές.
+   * @param {HTMLElement} el
+   */
+  function tidyBlanks(el) {
+    const blank = n => n && n.nodeType === 1 && /^(P|H[1-4])$/.test(n.tagName) && !n.textContent.trim() && !n.querySelector('img');
+    Array.from(el.children).forEach(c => {
+      if (blank(c) && blank(c.previousElementSibling)) c.remove();
+    });
+    el.querySelectorAll('td, th, li').forEach(cell => {
+      while (cell.children.length > 1 && blank(cell.lastElementChild)) cell.lastElementChild.remove();
+    });
+    while (blank(el.firstElementChild)) el.firstElementChild.remove();
+    while (blank(el.lastElementChild)) el.lastElementChild.remove();
+  }
+
+  /**
+   * Κρατά μόνο τη δομή: αδειάζει τα κελιά (εκτός από κεφαλίδες και σημειώσεις Tip).
+   * @param {HTMLElement} root
+   */
+  function structureOnly(root) {
+    root.querySelectorAll('td').forEach(td => {
+      if (td.querySelector('.wf-tip')) return;
+      td.replaceChildren(Util.h('p', null, Util.h('br')));
+    });
+  }
+
+  /**
+   * Χωρίζει το έγγραφο σε ενότητες.
+   * @param {HTMLElement} root
+   * @param {{mode: string, useTitle: boolean}} opts
+   * @returns {{title: string, sections: Array<{title: string, html: string}>}}
+   */
+  function split(root, opts) {
+    const nodes = Array.from(root.children);
+    let title = '';
+    if (opts.useTitle) {
+      const first = nodes.find(n => n.tagName !== 'TABLE' && n.textContent.trim());
+      const firstTable = nodes.findIndex(n => n.tagName === 'TABLE');
+      if (first && (firstTable < 0 || nodes.indexOf(first) < firstTable)) {
+        const text = first.textContent.replace(/\s+/g, ' ').trim();
+        const placeholder = /:$/.test(text) && text.length <= 20;
+        if (text.length <= 200 && !placeholder) {
+          title = text.replace(/:\s*$/, '');
+          nodes.splice(nodes.indexOf(first), 1);
+        }
+      }
+    }
+    const sections = [];
+    const start = name => {
+      const s = { title: name, nodes: [], hasTable: false };
+      sections.push(s);
+      return s;
+    };
+    const isHeading = n => /^H[1-4]$/.test(n.tagName) && n.textContent.trim();
+    if (opts.mode === 'single') {
+      start('Περιεχόμενο').nodes = nodes;
+    } else {
+      let current = null;
+      let activity = 0;
+      nodes.forEach(n => {
+        if (isHeading(n)) {
+          current = start(n.textContent.replace(/\s+/g, ' ').trim().slice(0, 100));
+          current.nodes.push(n);
+          return;
+        }
+        if (opts.mode === 'smart' && n.tagName === 'TABLE') {
+          if (!current || current.hasTable) current = start(`Δραστηριότητα ${++activity}`);
+          else if (/^(Εισαγωγή|Δραστηριότητα)/.test(current.title) && !current.named) current.title = `Δραστηριότητα ${++activity}`;
+          current.nodes.push(n);
+          current.hasTable = true;
+          return;
+        }
+        if (!current) current = start('Εισαγωγή');
+        current.nodes.push(n);
+      });
+      sections.forEach(s => { if (s.nodes.some(isHeading)) s.named = true; });
+    }
+    return {
+      title,
+      sections: sections.filter(s => s.nodes.some(n => n.textContent.trim() || n.querySelector('img, table')))
+        .map(s => {
+          const wrap = Util.h('div');
+          s.nodes.forEach(n => wrap.append(n));
+          tidyBlanks(wrap);
+          return { title: s.title || 'Ενότητα', html: wrap.innerHTML };
+        })
+    };
+  }
+
+  /**
+   * Διαβάζει και μετατρέπει ένα αρχείο.
+   * @param {File} file
+   * @returns {Promise<Object>}
+   */
+  async function convert(file) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ext === 'pdf') throw new Error('τα PDF δεν μετατρέπονται σε επεξεργάσιμο φύλλο. Άνοιξε το αρχικό αρχείο (.odt ή .docx) από το οποίο φτιάχτηκε το PDF');
+    if (ext === 'doc') throw new Error('το παλιό format .doc δεν υποστηρίζεται. Αποθήκευσέ το πρώτα ως .docx από το Word ή το LibreOffice');
+    const zip = openZip(await file.arrayBuffer());
+    let result;
+    if (zip.names.includes('word/document.xml')) result = await convertDocx(zip);
+    else if (zip.names.includes('content.xml')) result = await convertOdt(zip);
+    else throw new Error('το αρχείο δεν είναι έγγραφο .docx ή .odt');
+    const skipped = await resolveImages(zip, result.images);
+    tidyTables(result.root);
+    return { ...result, skipped, name: file.name.replace(/\.[^.]+$/, '') };
+  }
+
+  /**
+   * Ροή εισαγωγής: επιλογή αρχείου, επιλογές, δημιουργία ενοτήτων.
+   * @returns {Promise<void>}
+   */
+  async function run() {
+    const [file] = await Util.pickFiles('.docx,.odt,.pdf,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text');
+    if (!file) return;
+    const busy = Busy.show('Ανάγνωση εγγράφου…');
+    let data;
+    try {
+      data = await convert(file);
+    } catch (e) {
+      busy.hide();
+      Toast.show(`Η εισαγωγή απέτυχε: ${e.message}`, 'error', 8000);
+      return;
+    }
+    busy.hide();
+    const stats = {
+      tables: data.root.querySelectorAll('table').length,
+      images: data.root.querySelectorAll('img').length,
+      paragraphs: data.root.querySelectorAll('p, h2, h3, h4, li').length
+    };
+    const radio = (value, label, hint, checked) => Util.h('label', { class: 'check', style: { alignItems: 'flex-start' } },
+      Util.h('input', { type: 'radio', name: 'import-mode', value, checked }),
+      Util.h('span', null, label, Util.h('span', { class: 'hint', style: { display: 'block' }, text: hint })));
+    const box = (id, label, checked, disabled) => Util.h('label', { class: 'check' }, Util.h('input', { type: 'checkbox', id, checked, disabled }), label);
+    const hasContent = AppState.sections().some(s => EditorManager.hasContent(s.id));
+    const target = Util.h('select', { class: 'select', id: 'import-target' },
+      Util.h('option', { value: 'replace', text: 'Νέο φύλλο (αντικατάσταση του τρέχοντος)' }),
+      Util.h('option', { value: 'append', text: 'Προσθήκη στο τέλος του τρέχοντος φύλλου' }));
+    target.value = hasContent ? 'append' : 'replace';
+    const summary = [`${stats.tables} ${stats.tables === 1 ? 'πίνακας' : 'πίνακες'}`, `${stats.images} ${stats.images === 1 ? 'εικόνα' : 'εικόνες'}`, `${stats.paragraphs} παράγραφοι`];
+    if (data.logo) summary.push('λογότυπο κεφαλίδας');
+    if (data.skipped) summary.push(`${data.skipped} εικόνες σε μη υποστηριζόμενη μορφή`);
+    Modal.open({
+      title: `Εισαγωγή: ${file.name}`, size: 'md',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('p', { class: 'hint', text: `Βρέθηκαν: ${summary.join(' · ')}.` }),
+        Util.h('fieldset', { class: 'stack import-modes', style: { gap: '8px', border: 'none', padding: '0', margin: '0' } },
+          Util.h('legend', { class: 'field-label', text: 'Χωρισμός σε ενότητες' }),
+          radio('smart', 'Αυτόματος', 'Κάθε επικεφαλίδα ή πίνακας-δραστηριότητα γίνεται ξεχωριστή ενότητα.', true),
+          radio('headings', 'Μόνο στις επικεφαλίδες', 'Νέα ενότητα σε κάθε επικεφαλίδα του εγγράφου.', false),
+          radio('single', 'Όλο το έγγραφο σε μία ενότητα', 'Κρατά το φύλλο ενιαίο.', false)),
+        Util.h('div', { class: 'stack', style: { gap: '8px' } },
+          box('import-title', 'Η πρώτη γραμμή γίνεται τίτλος του φύλλου', true),
+          box('import-logo', 'Χρήση του λογότυπου της κεφαλίδας', !!data.logo, !data.logo),
+          box('import-font', `Χρήση της γραμματοσειράς του εγγράφου${data.font ? ` (${data.font})` : ''}`, !!data.font, !data.font),
+          box('import-ekfe', 'Εμφάνιση τύπου ΕΚΦΕ (τίτλος αριστερά, απλοί τίτλοι ενοτήτων)', stats.tables > 0),
+          box('import-structure', 'Μόνο η δομή: άδειασμα των κελιών (για κενό πρότυπο)', false)),
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Προορισμός' }), target),
+        Util.h('p', { class: 'hint', text: 'Μετά την εισαγωγή, αποθήκευσέ το ως πρότυπο από την καρτέλα «Πρότυπο» (με επιλεγμένο το «Με περιεχόμενο»).' })),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        {
+          label: 'Εισαγωγή', variant: 'primary', onClick: async h => {
+            const opts = {
+              mode: h.el.querySelector('input[name="import-mode"]:checked').value,
+              useTitle: h.el.querySelector('#import-title').checked
+            };
+            if (h.el.querySelector('#import-structure').checked) structureOnly(data.root);
+            const result = split(data.root, opts);
+            if (!result.sections.length) {
+              Toast.show('Το έγγραφο δεν έχει περιεχόμενο για εισαγωγή', 'warning');
+              return false;
+            }
+            const stylePatch = {};
+            if (h.el.querySelector('#import-logo').checked && data.logo) stylePatch.logo = data.logo;
+            if (h.el.querySelector('#import-font').checked && data.font) stylePatch.fontFamily = data.font;
+            if (h.el.querySelector('#import-ekfe').checked) Object.assign(stylePatch, { preset: 'ekfe', titleAlign: 'left', sectionTitle: 'plain', tableHeaderFill: '#FFFFFF', fontSize: 11 });
+            await apply(result, stylePatch, target.value, data.name);
+            return true;
+          }
+        }
+      ]
+    });
+  }
+
+  /**
+   * Δημιουργεί τις ενότητες στο φύλλο.
+   * @param {{title: string, sections: Array}} result
+   * @param {Object} stylePatch
+   * @param {'replace'|'append'} mode
+   * @param {string} name
+   * @returns {Promise<void>}
+   */
+  async function apply(result, stylePatch, mode, name) {
+    EditorManager.flushAll();
+    if (mode === 'replace') {
+      if (AppState.sections().some(s => EditorManager.hasContent(s.id))) {
+        const ok = await Modal.confirm({ title: 'Αντικατάσταση φύλλου', message: 'Το τρέχον φύλλο εργασίας θα αντικατασταθεί από το έγγραφο που εισάγεις.', confirmLabel: 'Αντικατάσταση', danger: true });
+        if (!ok) return;
+      }
+      const st = AppState.get();
+      const template = result.sections.map((s, i) => ({ id: `imp-${Util.uuid()}`, title: s.title, type: 'mixed', required: false, order: i, placeholder: '', hideTitle: true }));
+      const content = {};
+      template.forEach((s, i) => { content[s.id] = result.sections[i].html; });
+      AppState.replace({
+        ...st,
+        templateName: name,
+        template, content, graphs: {},
+        metadata: { ...st.metadata, title: result.title || st.metadata.title },
+        style: { ...st.style, ...stylePatch }
+      }, 'document-imported');
+    } else {
+      result.sections.forEach(s => AppState.addSection({ title: s.title, type: 'mixed', hideTitle: true }, undefined, s.html));
+      if (Object.keys(stylePatch).length) AppState.setStyle(stylePatch);
+      if (result.title && !AppState.get().metadata.title) AppState.setMetadata({ title: result.title });
+    }
+    Toast.show(`Εισήχθησαν ${result.sections.length} ${result.sections.length === 1 ? 'ενότητα' : 'ενότητες'} από «${name}»`, 'success', 5000);
+  }
+
+  return { run, convert, split };
 })();
 
 
@@ -6849,6 +8286,7 @@ const UIController = (() => {
     nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveTemplate(); } });
     $('btn-export-template').addEventListener('click', () => TemplateManager.exportTemplate());
     $('btn-import-template').addEventListener('click', () => TemplateManager.importTemplate());
+    $('btn-import-doc').addEventListener('click', () => ImportManager.run());
     $('btn-new-sheet').addEventListener('click', async () => {
       const ok = await Modal.confirm({
         title: 'Νέο κενό φύλλο',
@@ -6884,6 +8322,91 @@ const UIController = (() => {
       del.addEventListener('click', () => TemplateManager.deleteFromLibrary(i));
       return Util.h('li', { class: 'mini-item' }, main, Util.h('span', { class: 'section-item-type', text: String(t.sections.length) }), del);
     }));
+  }
+
+  const STYLE_PRESETS = {
+    classic: { label: 'Κλασική', values: { fontFamily: 'Georgia', fontSize: 12, accent: '#000000', tableHeaderFill: '#F1F5F9', titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow' } },
+    ekfe: { label: 'ΕΚΦΕ (πίνακας στηλών)', values: { fontFamily: 'Calibri', fontSize: 11, accent: '#000000', tableHeaderFill: '#FFFFFF', titleAlign: 'left', sectionTitle: 'plain', sectionStyle: 'flow' } },
+    modern: { label: 'Σύγχρονη', values: { fontFamily: 'Arial', fontSize: 11, accent: '#1D4ED8', tableHeaderFill: '#DBEAFE', titleAlign: 'left', sectionTitle: 'bar', sectionStyle: 'flow' } },
+    cards: { label: 'Κάρτες', values: { fontFamily: 'Verdana', fontSize: 10, accent: '#0F766E', tableHeaderFill: '#CCFBF1', titleAlign: 'center', sectionTitle: 'plain', sectionStyle: 'card' } },
+    minimal: { label: 'Λιτή', values: { fontFamily: 'Times New Roman', fontSize: 12, accent: '#334155', tableHeaderFill: '#FFFFFF', titleAlign: 'left', sectionTitle: 'box', sectionStyle: 'flow' } },
+    custom: { label: 'Προσαρμοσμένη', values: null }
+  };
+
+  /** Καρτέλα «Εμφάνιση»: στυλ του τελικού φύλλου. */
+  function bindStyleTab() {
+    const preset = $('style-preset');
+    Object.entries(STYLE_PRESETS).forEach(([key, p]) => preset.append(Util.h('option', { value: key, text: p.label })));
+    preset.addEventListener('change', () => {
+      const p = STYLE_PRESETS[preset.value];
+      if (p && p.values) AppState.setStyle({ preset: preset.value, ...p.values });
+    });
+    const font = $('style-font');
+    Object.keys(AppState.FONTS).forEach(f => font.append(Util.h('option', { value: f, text: f, style: { fontFamily: AppState.FONTS[f] } })));
+    const size = $('style-size');
+    [9, 10, 11, 12, 13, 14].forEach(n => size.append(Util.h('option', { value: String(n), text: `${n} pt` })));
+    const fields = [
+      ['style-font', 'fontFamily', 'change', v => v],
+      ['style-size', 'fontSize', 'change', Number],
+      ['style-accent', 'accent', 'input', v => v],
+      ['style-thfill', 'tableHeaderFill', 'input', v => v],
+      ['style-section-title', 'sectionTitle', 'change', v => v],
+      ['style-title-align', 'titleAlign', 'change', v => v],
+      ['style-logo-pos', 'logoPosition', 'change', v => v],
+      ['style-logo-width', 'logoWidth', 'change', Number],
+      ['style-orientation', 'orientation', 'change', v => v],
+      ['style-margins', 'margins', 'change', v => v]
+    ];
+    const visual = new Set(['fontFamily', 'fontSize', 'accent', 'tableHeaderFill', 'sectionTitle', 'titleAlign']);
+    fields.forEach(([id, key, ev, conv]) => {
+      $(id).addEventListener(ev, Util.debounce(() => {
+        const patch = { [key]: conv($(id).value) };
+        if (visual.has(key)) patch.preset = 'custom';
+        AppState.setStyle(patch);
+      }, ev === 'input' ? 150 : 0));
+    });
+    $('style-cards').addEventListener('change', e => AppState.setStyle({ sectionStyle: e.target.checked ? 'card' : 'flow', preset: 'custom' }));
+    $('btn-logo').addEventListener('click', async () => {
+      const [file] = await Util.pickFiles('image/png,image/jpeg,image/gif');
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        Toast.show('Το λογότυπο πρέπει να είναι μικρότερο από 2MB', 'warning');
+        return;
+      }
+      const data = await InsertTools.prepareImage(file);
+      if (data) AppState.setStyle({ logo: data });
+    });
+    $('btn-logo-remove').addEventListener('click', () => AppState.setStyle({ logo: '' }));
+    $('btn-style-preview').addEventListener('click', () => ExportManager.preview());
+    renderStyle();
+  }
+
+  /** Συγχρονίζει τη φόρμα εμφάνισης και τη γραμματοσειρά του επεξεργαστή με την κατάσταση. */
+  function renderStyle() {
+    const st = AppState.get().style;
+    const set = (id, value) => {
+      const el = $(id);
+      if (document.activeElement !== el) el.value = String(value);
+    };
+    set('style-preset', STYLE_PRESETS[st.preset] ? st.preset : 'custom');
+    set('style-font', st.fontFamily);
+    set('style-size', st.fontSize);
+    set('style-accent', st.accent.toLowerCase());
+    set('style-thfill', st.tableHeaderFill.toLowerCase());
+    set('style-section-title', st.sectionTitle);
+    set('style-title-align', st.titleAlign);
+    set('style-logo-pos', st.logoPosition);
+    set('style-logo-width', st.logoWidth);
+    set('style-orientation', st.orientation);
+    set('style-margins', st.margins);
+    $('style-cards').checked = st.sectionStyle === 'card';
+    const img = $('style-logo-preview');
+    if (st.logo) img.src = st.logo;
+    else img.removeAttribute('src');
+    img.hidden = !st.logo;
+    $('style-logo-empty').hidden = !!st.logo;
+    $('btn-logo-remove').disabled = !st.logo;
+    $('sections-container').style.setProperty('--editor-font', AppState.FONTS[st.fontFamily]);
   }
 
   /** Καρτέλα «Ενότητες». */
@@ -7159,12 +8682,14 @@ const UIController = (() => {
       updateStatus();
     }));
     Bus.on('template-applied', () => {
+      renderStyle();
       TemplateManager.render(true);
       renderSectionList();
       renderGraphs();
       updateStatus();
     });
     Bus.on('state-replaced', () => {
+      renderStyle();
       TemplateManager.render(true);
       renderMeta();
       renderSectionList();
@@ -7173,6 +8698,7 @@ const UIController = (() => {
       updateStatus();
     });
     Bus.on('metadata-changed', renderMeta);
+    Bus.on('style-changed', renderStyle);
     Bus.on('editor-input', () => { updateStatus(); refreshList(); });
     Bus.on('content-changed', () => refreshList());
     Bus.on('active-changed', () => { renderActiveTarget(); updateStatus(); });
@@ -7202,6 +8728,7 @@ const UIController = (() => {
     bindTemplateTab();
     bindSectionsTab();
     bindMeta();
+    bindStyleTab();
     bindTools();
     bindKeys();
     bindEvents();
