@@ -735,6 +735,12 @@ kbd {
 .card-kind .wf-card { margin: 0; }
 .card-kind[aria-checked="true"] { border-color: var(--primary); }
 .editor-block.title-hidden .block-title { opacity: 0.55; font-style: italic; }
+.editor-block.is-excluded { border-style: dashed; }
+.editor-block.is-excluded .block-title, .editor-block.is-excluded .editor-content { opacity: 0.45; }
+.editor-block.is-excluded .block-header::after { content: 'Κρυμμένη από το τελικό φύλλο'; order: 1; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-3); font-size: 12px; white-space: nowrap; }
+.editor-block.is-excluded .block-actions { order: 2; }
+.btn-icon.is-off { position: relative; opacity: 0.6; }
+.btn-icon.is-off::after { content: ''; position: absolute; left: 7px; right: 7px; top: 50%; border-top: 2px solid currentColor; transform: rotate(-45deg); }
 #sections-container .editor-content { font-family: var(--editor-font, var(--font-doc)); }
 .color-input { padding: 2px 4px; height: 32px; cursor: pointer; }
 .logo-box { display: flex; align-items: center; justify-content: center; min-height: 56px; padding: 8px; border: 1px dashed var(--border-strong); border-radius: var(--radius-btn); background: #FFFFFF; }
@@ -2818,7 +2824,7 @@ const AppState = (() => {
    * Κανονικοποιεί περιγραφή ενότητας.
    * @param {Object} desc
    * @param {number} [order]
-   * @returns {{id: string, title: string, type: string, required: boolean, order: number, placeholder: string, collapsed: boolean}}
+   * @returns {{id: string, title: string, type: string, required: boolean, order: number, placeholder: string, collapsed: boolean, hideTitle: boolean, hidden: boolean, span: number, minHeight: number}}
    */
   function normalizeSection(desc, order) {
     const d = desc && typeof desc === 'object' ? desc : {};
@@ -2831,6 +2837,7 @@ const AppState = (() => {
       placeholder: String(d.placeholder ?? '').slice(0, 300),
       collapsed: !!d.collapsed,
       hideTitle: !!d.hideTitle,
+      hidden: !!d.hidden,
       span: SPANS.includes(Number(d.span)) ? Number(d.span) : 12,
       minHeight: Number.isFinite(Number(d.minHeight)) ? Util.clamp(Math.round(Number(d.minHeight)), 0, 250) : 0
     };
@@ -3265,8 +3272,8 @@ const TemplateManager = (() => {
   function currentStructure(withContent = false) {
     EditorManager.flushAll();
     const content = AppState.get().content;
-    return AppState.sections().map(({ id, title, type, required, order, placeholder, hideTitle, span, minHeight }) => {
-      const s = { id, title, type, required, order, placeholder, hideTitle, span, minHeight };
+    return AppState.sections().map(({ id, title, type, required, order, placeholder, hideTitle, hidden, span, minHeight }) => {
+      const s = { id, title, type, required, order, placeholder, hideTitle, hidden, span, minHeight };
       if (withContent && content[id]) s.starter = content[id];
       return s;
     });
@@ -3818,9 +3825,13 @@ const EditorManager = (() => {
     });
     block.collapseBtn.classList.add('collapse-btn');
     block.focusBtn = iconButton('expand', 'Λειτουργία εστίασης (Ctrl+Shift+F)', () => toggleFocus(block.id));
-    block.titleBtn = iconButton('eye', 'Ο τίτλος εμφανίζεται στο τελικό φύλλο', () => {
+    block.titleBtn = iconButton('text', 'Ο τίτλος εμφανίζεται στο τελικό φύλλο', () => {
       const s = AppState.getSection(block.id);
       if (s) AppState.updateSection(block.id, { hideTitle: !s.hideTitle });
+    });
+    block.hideBtn = iconButton('eye', 'Η ενότητα εμφανίζεται στο τελικό φύλλο', () => {
+      const s = AppState.getSection(block.id);
+      if (s) AppState.updateSection(block.id, { hidden: !s.hidden });
     });
     const deleteBtn = iconButton('trash', 'Διαγραφή ενότητας', () => TemplateManager.removeSection(block.id), true);
     block.spanSelect = Util.h('select', { class: 'chip-select span-select', title: 'Πλάτος καρτέλας', 'aria-label': 'Πλάτος καρτέλας' },
@@ -3830,7 +3841,7 @@ const EditorManager = (() => {
     block.resizer.addEventListener('mousedown', e => startBlockResize(e, block));
     block.resizer.addEventListener('dblclick', () => AppState.updateSection(block.id, { minHeight: 0 }));
     const header = Util.h('div', { class: 'block-header' }, handle, indexEl, titleInput, typeSelect, block.spanSelect, reqBtn,
-      Util.h('div', { class: 'block-actions' }, block.titleBtn, block.collapseBtn, block.focusBtn, deleteBtn));
+      Util.h('div', { class: 'block-actions' }, block.hideBtn, block.titleBtn, block.collapseBtn, block.focusBtn, deleteBtn));
     block.el = Util.h('article', { class: 'editor-block', dataset: { sectionId: section.id } }, header, block.toolbar, content, block.resizer);
     blocks.set(section.id, block);
     wire(block, handle);
@@ -3915,16 +3926,24 @@ const EditorManager = (() => {
     block.reqBtn.textContent = section.required ? 'Υποχρεωτική' : 'Προαιρετική';
     block.el.classList.toggle('is-collapsed', section.collapsed);
     block.el.classList.toggle('title-hidden', !!section.hideTitle);
+    block.el.classList.toggle('is-excluded', !!section.hidden);
     block.el.style.setProperty('--span', String(section.span || 12));
     if (section.minHeight) block.el.style.setProperty('--minh', `${section.minHeight}mm`);
     else block.el.style.removeProperty('--minh');
     block.spanSelect.value = String(section.span || 12);
     if (block.titleHidden !== !!section.hideTitle) {
       block.titleHidden = !!section.hideTitle;
-      block.titleBtn.replaceChildren(Util.icon(section.hideTitle ? 'eye-off' : 'eye'));
+      block.titleBtn.classList.toggle('is-off', block.titleHidden);
       block.titleBtn.title = section.hideTitle ? 'Ο τίτλος δεν εμφανίζεται στο τελικό φύλλο (κλικ για εμφάνιση)' : 'Ο τίτλος εμφανίζεται στο τελικό φύλλο (κλικ για απόκρυψη)';
       block.titleBtn.setAttribute('aria-label', block.titleBtn.title);
       block.titleBtn.setAttribute('aria-pressed', String(!!section.hideTitle));
+    }
+    if (block.excluded !== !!section.hidden) {
+      block.excluded = !!section.hidden;
+      block.hideBtn.replaceChildren(Util.icon(block.excluded ? 'eye-off' : 'eye'));
+      block.hideBtn.title = block.excluded ? 'Η ενότητα δεν εμφανίζεται στο τελικό φύλλο ούτε στις εξαγωγές (κλικ για εμφάνιση)' : 'Η ενότητα εμφανίζεται στο τελικό φύλλο (κλικ για απόκρυψη από εκτύπωση, PDF, DOCX και HTML)';
+      block.hideBtn.setAttribute('aria-label', block.hideBtn.title);
+      block.hideBtn.setAttribute('aria-pressed', String(block.excluded));
     }
     block.collapseBtn.title = section.collapsed ? 'Ανάπτυξη ενότητας' : 'Σύμπτυξη ενότητας';
     block.collapseBtn.setAttribute('aria-label', block.collapseBtn.title);
@@ -7641,7 +7660,7 @@ const ExportManager = (() => {
     }
     let n = 0;
     AppState.sections().forEach(s => {
-      if (s.collapsed && !opts.includeCollapsed) return;
+      if (s.hidden || (s.collapsed && !opts.includeCollapsed)) return;
       n++;
       const section = Util.h('section', { class: `wf-print-section${opts.breakPerSection && n > 1 ? ' wf-break-before' : ''}`, dataset: { sectionId: s.id, span: String(st.layout === 'grid' ? s.span : 12), minHeight: String(st.layout === 'grid' ? s.minHeight : 0) } });
       if (st.layout === 'grid') {
@@ -7757,9 +7776,9 @@ const ExportManager = (() => {
    */
   async function validate() {
     EditorManager.flushAll();
-    const sections = AppState.sections();
+    const sections = AppState.sections().filter(s => !s.hidden);
     if (!sections.length) {
-      Toast.show('Το φύλλο δεν έχει ενότητες ακόμα', 'warning');
+      Toast.show(AppState.sections().length ? 'Όλες οι ενότητες είναι κρυμμένες από το τελικό φύλλο' : 'Το φύλλο δεν έχει ενότητες ακόμα', 'warning');
       return false;
     }
     const missing = sections.filter(s => s.required && !EditorManager.hasContent(s.id));
@@ -8573,45 +8592,217 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
 .wf-embed-live .wf-embed-link { margin: 1mm 0 0; }
 @media (max-width: 860px) { .wf-export-page { margin: 0; padding: 12px !important; width: auto !important; } .wf-page-logo { position: static; display: block; margin-bottom: 8px; } }
 .wf-page-logo { position: absolute; object-fit: contain; object-position: left center; }
+.wf-pdf .wf-answer { border-color: #CBD5E1; }
+.wf-pdf td.wf-fill { background: transparent; }
 @media print { .wf-page-logo { display: none; } .wf-export-page { margin: 0; padding: 0 !important; box-shadow: none; width: auto !important; } .wf-answer { border-color: #CBD5E1; } td.wf-fill { background: transparent; } .wf-embed-live iframe { display: none; } .wf-embed-live { width: auto !important; float: none !important; } }
 `;
 
-  const INTERACTIVE_JS = `(function () {
-  var KEY = 'wf-answers:' + document.title;
-  function fields() { return Array.prototype.slice.call(document.querySelectorAll('[contenteditable="true"]')); }
-  function items() { return Array.prototype.slice.call(document.querySelectorAll('ul.wf-checklist > li')); }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ f: fields().map(function (f) { return f.innerText; }), c: items().map(function (li) { return li.getAttribute('data-checked'); }) })); } catch (e) { return; }
-  }
-  function setItem(li, v) { li.setAttribute('data-checked', v); li.setAttribute('aria-checked', v); }
-  function toggle(li) { setItem(li, li.getAttribute('data-checked') === 'true' ? 'false' : 'true'); save(); }
-  try {
-    var d = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (d) {
-      fields().forEach(function (f, i) { if (typeof d.f[i] === 'string' && d.f[i]) f.textContent = d.f[i]; });
-      items().forEach(function (li, i) { if (d.c[i] === 'true' || d.c[i] === 'false') setItem(li, d.c[i]); });
+  /**
+   * Κώδικας της σελίδας HTML που εξάγεται. Εκτελείται εκεί αυτόνομα (μέσω toString), οπότε δεν χρησιμοποιεί τίποτα από την εφαρμογή.
+   * @param {Function} paginate η ίδια σελιδοποίηση με την εξαγωγή PDF της εφαρμογής
+   */
+  function exportRuntime(paginate) {
+    const KEY = `wf-answers:${document.title}`;
+    const cfgEl = document.getElementById('wf-pdf-config');
+    const CFG = cfgEl ? JSON.parse(cfgEl.textContent) : null;
+    const fields = () => Array.from(document.querySelectorAll('#print-root [contenteditable="true"]'));
+    const items = () => Array.from(document.querySelectorAll('#print-root ul.wf-checklist > li'));
+    const save = () => {
+      try {
+        localStorage.setItem(KEY, JSON.stringify({ f: fields().map(f => f.innerText), c: items().map(li => li.getAttribute('data-checked')) }));
+      } catch (e) {
+        return;
+      }
+    };
+    const setItem = (li, v) => {
+      li.setAttribute('data-checked', v);
+      li.setAttribute('aria-checked', v);
+    };
+    const toggle = li => {
+      setItem(li, li.getAttribute('data-checked') === 'true' ? 'false' : 'true');
+      save();
+    };
+    const download = (blob, name) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+    };
+    let d = null;
+    try {
+      d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d) {
+        fields().forEach((f, i) => { if (typeof d.f[i] === 'string' && d.f[i]) f.textContent = d.f[i]; });
+        items().forEach((li, i) => { if (d.c[i] === 'true' || d.c[i] === 'false') setItem(li, d.c[i]); });
+      }
+    } catch (e) {
+      d = null;
     }
-  } catch (e) { d = null; }
-  document.addEventListener('click', function (e) { var li = e.target.closest && e.target.closest('ul.wf-checklist > li'); if (li && !e.target.closest('[contenteditable="true"]')) toggle(li); });
-  document.addEventListener('keydown', function (e) { var li = e.target.closest && e.target.closest('ul.wf-checklist > li'); if (li && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); toggle(li); } });
-  document.addEventListener('input', save);
-  document.getElementById('wf-print').addEventListener('click', function () { window.print(); });
-  document.getElementById('wf-clear').addEventListener('click', function () {
-    if (!window.confirm('Να διαγραφούν όλες οι απαντήσεις;')) return;
-    fields().forEach(function (f) { f.textContent = ''; });
-    items().forEach(function (li) { setItem(li, 'false'); });
-    save();
-  });
-  document.getElementById('wf-save').addEventListener('click', function () {
-    var html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-    a.download = (document.title || 'φύλλο') + ' - απαντήσεις.html';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  });
-})();`;
+    document.addEventListener('click', e => {
+      const li = e.target.closest && e.target.closest('ul.wf-checklist > li');
+      if (li && !e.target.closest('[contenteditable="true"]')) toggle(li);
+    });
+    document.addEventListener('keydown', e => {
+      const li = e.target.closest && e.target.closest('ul.wf-checklist > li');
+      if (li && (e.key === ' ' || e.key === 'Enter')) {
+        e.preventDefault();
+        toggle(li);
+      }
+    });
+    document.addEventListener('input', save);
+    document.getElementById('wf-clear').addEventListener('click', () => {
+      if (!window.confirm('Να διαγραφούν όλες οι απαντήσεις;')) return;
+      fields().forEach(f => { f.textContent = ''; });
+      items().forEach(li => setItem(li, 'false'));
+      save();
+    });
+    document.getElementById('wf-save').addEventListener('click', () => {
+      download(new Blob([`<!DOCTYPE html>${document.documentElement.outerHTML}`], { type: 'text/html' }), `${document.title || 'φύλλο'} - απαντήσεις.html`);
+    });
+    const printBtn = document.getElementById('wf-print');
+    if (printBtn) printBtn.addEventListener('click', () => window.print());
+    const pdfBtn = document.getElementById('wf-pdf');
+    if (!pdfBtn || !CFG) return;
+
+    const textImage = (text, align, widthMm) => {
+      const k = 12;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(widthMm * k);
+      canvas.height = Math.round(6 * k);
+      const ctx = canvas.getContext('2d');
+      ctx.font = `${Math.round(3.2 * k)}px Georgia, 'Times New Roman', serif`;
+      ctx.fillStyle = '#555555';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = align;
+      const x = align === 'left' ? 0 : (align === 'right' ? canvas.width : canvas.width / 2);
+      ctx.fillText(text, x, canvas.height / 2, canvas.width);
+      return { data: canvas.toDataURL('image/png'), w: widthMm, h: 6 };
+    };
+    const logoImage = () => {
+      const img = document.querySelector('.wf-page-logo');
+      if (!CFG.logo || !img) return null;
+      const src = img.getAttribute('src') || '';
+      if (/^data:image\/jpe?g/i.test(src)) return { data: src, format: 'JPEG' };
+      if (/^data:image\/png/i.test(src)) return { data: src, format: 'PNG' };
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || 1;
+      canvas.height = img.naturalHeight || 1;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      return { data: canvas.toDataURL('image/png'), format: 'PNG' };
+    };
+    // Αντίγραφο του φύλλου με τις απαντήσεις, σε μορφή εντύπου.
+    const printableCopy = () => {
+      const copy = document.querySelector('#print-root > .wf-print-doc').cloneNode(true);
+      copy.classList.add('wf-real-boxes', 'wf-pdf');
+      copy.querySelectorAll('[contenteditable]').forEach(el => {
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('data-placeholder');
+      });
+      copy.querySelectorAll('ul.wf-checklist > li').forEach(li => {
+        const checked = li.getAttribute('data-checked') === 'true';
+        const box = document.createElement('span');
+        box.className = `wf-check-box${checked ? ' is-checked' : ''}`;
+        box.setAttribute('aria-hidden', 'true');
+        box.textContent = checked ? '✓' : '';
+        li.prepend(box);
+      });
+      copy.querySelectorAll('.wf-embed-live').forEach(el => {
+        const link = el.querySelector('.wf-embed-link');
+        if (link) el.replaceWith(link);
+        else el.remove();
+      });
+      return copy;
+    };
+    const fileName = () => {
+      const line = document.querySelector('#print-root .wf-student .line');
+      const name = line ? line.textContent.replace(/\s+/g, ' ').trim() : '';
+      const base = `${CFG.title} - ${name || 'απαντήσεις'}`.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 100);
+      return `${base || 'φύλλο εργασίας'}.pdf`;
+    };
+    pdfBtn.addEventListener('click', async () => {
+      if (!window.jspdf || typeof window.html2canvas !== 'function') {
+        window.alert('Η δημιουργία PDF δεν είναι διαθέσιμη σε αυτόν τον browser.');
+        return;
+      }
+      const label = pdfBtn.textContent;
+      pdfBtn.disabled = true;
+      pdfBtn.textContent = 'Δημιουργία PDF…';
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const stage = document.createElement('div');
+      stage.className = 'export-stage';
+      stage.setAttribute('aria-hidden', 'true');
+      stage.style.visibility = 'hidden';
+      try {
+        const root = printableCopy();
+        stage.append(root);
+        document.body.append(stage);
+        await Promise.all(Array.from(root.querySelectorAll('img')).map(img => (img.complete ? null : new Promise(r => { img.onload = r; img.onerror = r; }))));
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await new Promise(r => requestAnimationFrame(() => r()));
+        const g = CFG.g;
+        const rect = root.getBoundingClientRect();
+        const pxPerMm = rect.width / g.contentW;
+        const pages = paginate(root, g.contentH * pxPerMm);
+        const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
+        const canvas = await window.html2canvas(root, {
+          scale, backgroundColor: '#ffffff', logging: false, useCORS: false,
+          onclone: doc => doc.querySelectorAll('.export-stage').forEach(s => { s.style.visibility = 'visible'; }),
+          windowWidth: Math.max(document.documentElement.clientWidth, Math.ceil(rect.width) + 40),
+          windowHeight: Math.max(window.innerHeight, Math.ceil(rect.height) + 100)
+        });
+        const logo = logoImage();
+        const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: g.landscape ? 'landscape' : 'portrait', compress: true });
+        pages.forEach((p, i) => {
+          if (i) pdf.addPage();
+          const slice = document.createElement('canvas');
+          slice.width = canvas.width;
+          slice.height = Math.max(1, Math.round((p.end - p.start) * scale));
+          const ctx = slice.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, slice.width, slice.height);
+          ctx.drawImage(canvas, 0, Math.round(p.start * scale), canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+          pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left, g.top, g.contentW, (p.end - p.start) / pxPerMm, undefined, 'FAST');
+          const L = CFG.logo;
+          const titleX = L ? L.w + 3 : 0;
+          if (logo) pdf.addImage(logo.data, logo.format, g.left, L.top, L.w, L.h, 'wf-logo', 'FAST');
+          if (CFG.headerTitle) {
+            const t = textImage(CFG.title, 'left', Math.max(20, g.contentW - 50 - titleX));
+            pdf.addImage(t.data, 'PNG', g.left + titleX, L ? L.top + (L.h / 2) - 3 : g.top / 2 - 3, t.w, t.h);
+          }
+          if (CFG.date) {
+            const t = textImage(CFG.date, 'right', 45);
+            pdf.addImage(t.data, 'PNG', g.left + g.contentW - 45, g.top / 2 - 3, t.w, t.h);
+          }
+          if (CFG.pageNumbers) {
+            const t = textImage(`Σελίδα ${i + 1} από ${pages.length}`, 'center', g.contentW);
+            pdf.addImage(t.data, 'PNG', g.left, g.pageH - g.bottom / 2 - 3, t.w, t.h);
+          }
+        });
+        pdf.setProperties({ title: CFG.title, creator: 'Σύνταξη φύλλων εργασίας' });
+        download(pdf.output('blob'), fileName());
+      } catch (e) {
+        window.alert(`Το PDF δεν δημιουργήθηκε: ${(e && e.message) || e}`);
+      } finally {
+        stage.remove();
+        pdfBtn.disabled = false;
+        pdfBtn.textContent = label;
+      }
+    });
+  }
+
+  /**
+   * Πηγαίος κώδικας βιβλιοθήκης από τα ενσωματωμένα script της εφαρμογής.
+   * @param {string} name
+   * @returns {string}
+   */
+  function librarySource(name) {
+    const marker = `/* === LIBRARY: ${name} === */`;
+    const script = Array.from(document.scripts).find(s => s.textContent.trimStart().startsWith(marker));
+    return script ? script.textContent : '';
+  }
 
   /**
    * Διαφυγή κειμένου για HTML.
@@ -8639,6 +8830,11 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const root = buildPrintable({ ...opts, liveEmbeds: true });
       stage = mountStage(root);
       await ready(root);
+      try {
+        applyMathImages(await rasterizeMath(root));
+      } catch (e) {
+        Toast.show('Οι εξισώσεις θα εμφανιστούν με περιορισμένη ακρίβεια στο PDF', 'warning');
+      }
       stage.remove();
       stage = null;
       root.querySelectorAll('ul.wf-checklist > li').forEach(li => {
@@ -8658,13 +8854,25 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         line.setAttribute('contenteditable', 'true');
         line.setAttribute('role', 'textbox');
       });
-      const css = Array.from(document.querySelectorAll('style')).filter(s => s.id !== 'page-style').map(s => s.textContent).join('\n');
+      let css = Array.from(document.querySelectorAll('style')).filter(s => s.id !== 'page-style').map(s => s.textContent).join('\n');
+      if (!root.querySelector('.katex')) css = css.replace(/\/\* === LIBRARY: KaTeX CSS[^*]*\*\/[\s\S]*?(?=\/\* === APPLICATION STYLES === \*\/)/, '');
+      const pdfLibs = ['jsPDF', 'html2canvas'].map(librarySource);
+      const canPdf = pdfLibs.every(Boolean);
+      const m = AppState.get().metadata;
+      const cfg = {
+        title: docTitle(), g, headerTitle: !!opts.headerTitle, date: opts.headerDate && m.date ? Util.formatDate(m.date) : '', pageNumbers: !!opts.pageNumbers,
+        logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null
+      };
       const logoHtml = logo ? `<img class="wf-page-logo" src="${logo.src}" alt="Λογότυπο" style="top:${logo.top.toFixed(2)}mm;left:${g.left}mm;width:${logo.w.toFixed(2)}mm;height:${logo.h.toFixed(2)}mm"><img class="wf-head-preload" src="${logo.svg}" alt="">` : '';
       const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${logoHtml}${root.outerHTML}</main>`;
-      const bar = '<div class="wf-export-bar"><span>Συμπλήρωσε τα κενά πεδία και τσέκαρε τα κουτάκια. Οι απαντήσεις κρατιούνται σε αυτόν τον browser.</span>'
-        + '<button type="button" id="wf-clear">Καθαρισμός</button><button type="button" id="wf-save">Αποθήκευση με απαντήσεις</button><button type="button" class="primary" id="wf-print">Εκτύπωση</button></div>';
+      const bar = `<div class="wf-export-bar"><span>Συμπλήρωσε τα κενά πεδία και τσέκαρε τα κουτάκια. Οι απαντήσεις κρατιούνται σε αυτόν τον browser${canPdf ? '· με «PDF με απαντήσεις» κατεβάζεις το φύλλο συμπληρωμένο' : ''}.</span>`
+        + '<button type="button" id="wf-clear">Καθαρισμός</button><button type="button" id="wf-save">Αποθήκευση HTML</button>'
+        + (canPdf ? '<button type="button" class="primary" id="wf-pdf">PDF με απαντήσεις</button>' : '<button type="button" class="primary" id="wf-print">Εκτύπωση</button>') + '</div>';
+      const scripts = (canPdf ? pdfLibs : []).map(src => `<script>\n${src}\n<\/script>\n`).join('')
+        + `<script type="application/json" id="wf-pdf-config">${JSON.stringify(cfg).replace(/</g, '\\u003c')}<\/script>\n`
+        + `<script>\n(${exportRuntime.toString()})(${paginate.toString()});\n<\/script>`;
       const pageCss = `@page { size: A4 ${g.landscape ? 'landscape' : 'portrait'}; margin: ${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm;${logo ? ` @top-left { content: url("${logo.svg}"); vertical-align: middle; }` : ''} }`;
-      const html = `<!DOCTYPE html>\n<html lang="el">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(docTitle())}</title>\n<style>\n${css}\n${INTERACTIVE_CSS}\n${pageCss}\n</style>\n</head>\n<body class="wf-export">\n${bar}\n${page}\n<script>\n${INTERACTIVE_JS}\n<\/script>\n</body>\n</html>\n`;
+      const html = `<!DOCTYPE html>\n<html lang="el">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(docTitle())}</title>\n<style>\n${css}\n${INTERACTIVE_CSS}\n${pageCss}\n</style>\n</head>\n<body class="wf-export">\n${bar}\n${page}\n${scripts}\n</body>\n</html>\n`;
       if (await Util.downloadBlob(new Blob([html], { type: 'text/html' }), Util.safeFilename(docTitle(), 'html'))) Toast.show('Το διαδραστικό HTML δημιουργήθηκε', 'success');
     } catch (e) {
       Toast.show(`Σφάλμα κατά την εξαγωγή: ${e.message}`, 'error', 6000);
@@ -8678,8 +8886,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
    * Προεπισκόπηση εκτύπωσης σε σελίδες A4 με επιλογές κεφαλίδας/υποσέλιδου.
    */
   function preview() {
-    if (!AppState.sections().length) {
-      Toast.show('Το φύλλο δεν έχει ενότητες ακόμα', 'info');
+    if (!AppState.sections().some(s => !s.hidden)) {
+      Toast.show(AppState.sections().length ? 'Όλες οι ενότητες είναι κρυμμένες από το τελικό φύλλο' : 'Το φύλλο δεν έχει ενότητες ακόμα', 'info');
       return;
     }
     const opts = options();
