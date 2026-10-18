@@ -1208,6 +1208,20 @@ kbd {
           </div>
         </section>
         <section class="panel-section">
+          <h3 class="panel-heading">Πίνακες</h3>
+          <label class="field"><span>Δεκαδικά στα αποτελέσματα τύπων</span>
+            <select id="formula-decimals" class="select" title="Πόσα δεκαδικά δείχνουν τα αποτελέσματα των τύπων (άθροισμα, μέση τιμή, πράξεις…) σε όλους τους πίνακες του φύλλου">
+              <option value="">Αυτόματα (έως 6 σημαντικά ψηφία)</option>
+              <option value="0">0 (ακέραιος)</option>
+              <option value="1">1 δεκαδικό</option>
+              <option value="2">2 δεκαδικά</option>
+              <option value="3">3 δεκαδικά</option>
+            </select>
+          </label>
+          <button id="btn-formula-decimals-all" class="btn btn-ghost btn-block" type="button" title="Αφαιρεί τα δεκαδικά που έχουν οριστεί σε μεμονωμένους τύπους, ώστε όλοι να ακολουθούν την παραπάνω ρύθμιση">Ίδια δεκαδικά σε όλους τους τύπους</button>
+          <p class="hint">Ισχύει για όλους τους τύπους του φύλλου. Ένας τύπος με δικά του δεκαδικά (διπλό κλικ στο αποτέλεσμα) τα κρατά, εκτός αν πατήσεις το κουμπί.</p>
+        </section>
+        <section class="panel-section">
           <h3 class="panel-heading">Σύμβολα</h3>
           <div id="symbol-palette" class="symbol-grid"></div>
           <p class="hint">Κλικ για εισαγωγή του συμβόλου ως κειμένου στην ενεργή ενότητα.</p>
@@ -2956,7 +2970,7 @@ const AppState = (() => {
   const STYLE_DEFAULTS = {
     preset: 'classic', fontFamily: 'Georgia', fontSize: 12, accent: '#000000', tableHeaderFill: '#F1F5F9',
     titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow', layout: 'flow',
-    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal', fitPages: false
+    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal', fitPages: false, formulaDecimals: ''
   };
   const SPANS = [3, 4, 6, 8, 9, 12];
   const LOGO_SRC = /^data:image\/(png|jpe?g|gif);base64,[a-z0-9+/=]+$/i;
@@ -3004,7 +3018,8 @@ const AppState = (() => {
       logoWidth: Number.isFinite(logoWidth) ? Util.clamp(Math.round(logoWidth), 10, 80) : STYLE_DEFAULTS.logoWidth,
       orientation: pick('orientation', ['portrait', 'landscape']),
       margins: pick('margins', ['normal', 'narrow']),
-      fitPages: src.fitPages === true
+      fitPages: src.fitPages === true,
+      formulaDecimals: ['0', '1', '2', '3'].includes(String(src.formulaDecimals)) ? String(src.formulaDecimals) : ''
     };
   }
 
@@ -7668,15 +7683,21 @@ const Formulas = (() => {
     }
   }
 
+  /** @returns {string} δεκαδικά για όλους τους τύπους του φύλλου (πάνελ Εργαλεία → Πίνακες), '' = αυτόματα */
+  function sheetDecimals() {
+    return AppState.get().style.formulaDecimals || '';
+  }
+
   /**
    * Μορφοποιεί αποτέλεσμα με δεκαδικό κόμμα.
    * @param {number} v
-   * @param {string|null} decimals '0'–'6' ή κενό για αυτόματα (έως 6 σημαντικά ψηφία)
+   * @param {string|null} decimals '0'–'6', ή κενό για τη ρύθμιση του φύλλου (αν κι εκείνη είναι κενή: έως 6 σημαντικά ψηφία)
    * @returns {string}
    */
   function format(v, decimals) {
     if (Object.is(v, -0)) v = 0;
-    if (decimals !== null && decimals !== undefined && decimals !== '') {
+    if (decimals === null || decimals === undefined || decimals === '') decimals = sheetDecimals();
+    if (decimals !== '') {
       const d = Number(decimals);
       return new Intl.NumberFormat('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: false }).format(v);
     }
@@ -7891,8 +7912,9 @@ const Formulas = (() => {
     const input = Util.h('input', { class: 'input formula-input', type: 'text', maxlength: String(MAX_LEN), spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Τύπος' });
     input.value = existing ? existing.getAttribute('data-formula') : '=';
     const decimals = Util.h('select', { class: 'select', 'aria-label': 'Δεκαδικά ψηφία' },
-      Util.h('option', { value: '', text: 'Αυτόματα' }), ['0', '1', '2', '3', '4'].map(d => Util.h('option', { value: d, text: d })));
+      Util.h('option', { value: '', text: `Όπως στο πάνελ (${sheetDecimals() || 'αυτόματα'})` }), ['0', '1', '2', '3'].map(d => Util.h('option', { value: d, text: d })));
     decimals.value = existing ? existing.getAttribute('data-decimals') || '' : '';
+    if (decimals.selectedIndex < 0) decimals.value = '';
     const result = Util.h('div', { class: 'fit-result', 'aria-live': 'polite' });
     const below = [];
     for (let r = tr + 1; r < g.cells.length; r++) {
@@ -8409,7 +8431,26 @@ const Formulas = (() => {
     window.addEventListener('resize', repaint);
   }
 
-  return { init, parse, recalc, shift, convert, convertPending, open, grid, values, colName, format, rewrite };
+  /**
+   * Ξαναϋπολογίζει όλους τους τύπους του φύλλου (π.χ. όταν αλλάξουν τα δεκαδικά στο πάνελ).
+   * @param {boolean} [resetOwn] αφαιρεί και τα δεκαδικά που είχαν οριστεί σε μεμονωμένους τύπους
+   * @returns {number} πόσοι τύποι υπάρχουν
+   */
+  function refreshAll(resetOwn) {
+    let count = 0;
+    document.querySelectorAll('.editor-block').forEach(blockEl => {
+      const content = blockEl.querySelector('.editor-content');
+      const spans = content ? content.querySelectorAll('.wf-formula') : [];
+      if (!spans.length) return;
+      count += spans.length;
+      if (resetOwn) spans.forEach(sp => sp.removeAttribute('data-decimals'));
+      recalc(content);
+      EditorManager.commit(blockEl.dataset.sectionId);
+    });
+    return count;
+  }
+
+  return { init, parse, recalc, refreshAll, shift, convert, convertPending, open, grid, values, colName, format, rewrite };
 })();
 
 /**
@@ -13090,6 +13131,14 @@ const UIController = (() => {
     });
     $('btn-logo-remove').addEventListener('click', () => AppState.setStyle({ logo: '' }));
     $('style-fit-pages').addEventListener('change', e => AppState.setStyle({ fitPages: e.target.checked }));
+    $('formula-decimals').addEventListener('change', e => {
+      AppState.setStyle({ formulaDecimals: e.target.value });
+      Formulas.refreshAll(false);
+    });
+    $('btn-formula-decimals-all').addEventListener('click', () => {
+      const n = Formulas.refreshAll(true);
+      Toast.show(n ? `Όλοι οι τύποι (${n}) δείχνουν πλέον ${AppState.get().style.formulaDecimals ? `${AppState.get().style.formulaDecimals} δεκαδικά` : 'αυτόματα δεκαδικά'}` : 'Δεν υπάρχουν τύποι στους πίνακες του φύλλου', n ? 'success' : 'info');
+    });
     $('btn-style-preview').addEventListener('click', () => ExportManager.preview());
     renderStyle();
   }
@@ -13113,6 +13162,7 @@ const UIController = (() => {
     set('style-orientation', st.orientation);
     set('style-margins', st.margins);
     $('style-fit-pages').checked = !!st.fitPages;
+    set('formula-decimals', st.formulaDecimals || '');
     $('layout-flow').setAttribute('aria-pressed', String(st.layout !== 'grid'));
     $('layout-grid').setAttribute('aria-pressed', String(st.layout === 'grid'));
     EditorManager.setLayout(st.layout);
