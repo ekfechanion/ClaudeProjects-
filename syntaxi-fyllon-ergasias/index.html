@@ -941,6 +941,7 @@ kbd {
   .sections-container.layout-grid > .editor-block { grid-column: 1 / -1; }
 }
 
+@media print { .wf-page-per-section > .wf-print-section ~ .wf-print-section { break-before: page; page-break-before: always; } }
 .wf-real-boxes ul.wf-checklist > li::before, .wf-real-boxes ul.wf-checklist > li::after { display: none; }
 .wf-check-box {
   position: absolute; left: -26px; top: 0.32em; width: 0.95em; height: 0.95em; box-sizing: border-box;
@@ -1196,7 +1197,15 @@ kbd {
             <label class="field"><span>Προσανατολισμός</span><select id="style-orientation" class="select"><option value="portrait">Κατακόρυφος</option><option value="landscape">Οριζόντιος</option></select></label>
             <label class="field"><span>Περιθώρια</span><select id="style-margins" class="select"><option value="normal">Κανονικά</option><option value="narrow">Στενά</option></select></label>
           </div>
-          <label class="check" title="Κάθε αλλαγή σελίδας που έβαλες γίνεται νέα σελίδα στο PDF, και ό,τι υπάρχει ανάμεσα μικραίνει (έως 70%) για να χωρέσει σε μία σελίδα. Αν χρειάζεται περισσότερη σμίκρυνση, χωρίζεται κανονικά. Ισχύει στο «PDF (προηγμένο)», στην προεπισκόπηση και στο PDF του διαδραστικού HTML."><input id="style-fit-pages" type="checkbox">Μία σελίδα PDF ανά αλλαγή σελίδας (με σμίκρυνση αν χρειάζεται)</label>
+          <label class="field" title="Πώς χωρίζεται το φύλλο σε σελίδες σε όλα τα PDF (PDF προηγμένο, Εκτύπωση/PDF, προεπισκόπηση, PDF με απαντήσεις των μαθητών). Το DOCX δεν επηρεάζεται.">
+            <span>Σελίδες στο PDF</span>
+            <select id="style-pdf-paging" class="select">
+              <option value="section">Μία ενότητα ανά σελίδα (σμίκρυνση αν χρειάζεται)</option>
+              <option value="breaks">Νέα σελίδα μόνο στις αλλαγές σελίδας (σμίκρυνση αν χρειάζεται)</option>
+              <option value="flow">Συνεχόμενα, με αυτόματες αλλαγές σελίδας</option>
+            </select>
+          </label>
+          <p class="hint">Η σμίκρυνση φτάνει έως 65%. Αν μια ενότητα θέλει περισσότερη, συνεχίζει στην επόμενη σελίδα για να μένει ευανάγνωστη. Οι αλλαγές σελίδας που έβαλες ισχύουν πάντα.</p>
           <button id="btn-style-preview" class="btn btn-primary btn-block" type="button"><span data-icon="eye"></span>Προεπισκόπηση</button>
         </section>
       </div>
@@ -2978,7 +2987,7 @@ const AppState = (() => {
   const STYLE_DEFAULTS = {
     preset: 'classic', fontFamily: 'Georgia', fontSize: 12, accent: '#000000', tableHeaderFill: '#F1F5F9',
     titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow', layout: 'flow',
-    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal', fitPages: false, formulaDecimals: ''
+    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal', pdfPaging: 'section', formulaDecimals: ''
   };
   const SPANS = [3, 4, 6, 8, 9, 12];
   const LOGO_SRC = /^data:image\/(png|jpe?g|gif);base64,[a-z0-9+/=]+$/i;
@@ -3026,7 +3035,8 @@ const AppState = (() => {
       logoWidth: Number.isFinite(logoWidth) ? Util.clamp(Math.round(logoWidth), 10, 80) : STYLE_DEFAULTS.logoWidth,
       orientation: pick('orientation', ['portrait', 'landscape']),
       margins: pick('margins', ['normal', 'narrow']),
-      fitPages: src.fitPages === true,
+      // Παλιά φύλλα με «μία σελίδα ανά αλλαγή σελίδας» κρατούν αυτή τη ρύθμιση.
+      pdfPaging: src.pdfPaging === undefined && src.fitPages === true ? 'breaks' : pick('pdfPaging', ['section', 'breaks', 'flow']),
       formulaDecimals: ['0', '1', '2', '3'].includes(String(src.formulaDecimals)) ? String(src.formulaDecimals) : ''
     };
   }
@@ -10238,9 +10248,14 @@ const ExportManager = (() => {
     return { pageW, pageH, ...m, contentW: pageW - m.left - m.right, contentH: pageH - m.top - m.bottom, landscape };
   }
 
-  /** @returns {number} ελάχιστη σμίκρυνση όταν κάθε αλλαγή σελίδας γίνεται μία σελίδα PDF, αλλιώς 0 */
+  /** @returns {boolean} αν κάθε ενότητα ξεκινά νέα σελίδα στο PDF */
+  function bySection() {
+    return AppState.get().style.pdfPaging === 'section';
+  }
+
+  /** @returns {number} ελάχιστη σμίκρυνση όταν κάθε κομμάτι γίνεται μία σελίδα PDF (ανά ενότητα ή ανά αλλαγή σελίδας), αλλιώς 0 */
   function fitScale() {
-    return AppState.get().style.fitPages ? 0.7 : 0;
+    return AppState.get().style.pdfPaging === 'flow' ? 0 : 0.65;
   }
 
   /** @returns {Object} επιλογές εκτύπωσης */
@@ -10409,9 +10424,10 @@ const ExportManager = (() => {
    * @param {HTMLElement} root
    * @param {number} pageH ύψος περιοχής κειμένου σε px
    * @param {number} [minScale] 0 για κανονική σελιδοποίηση
+   * @param {boolean} [sections] κάθε ενότητα (εκτός από την πρώτη, που μένει με την κεφαλίδα) ξεκινά νέα σελίδα
    * @returns {Array<{start: number, end: number, scale: number}>}
    */
-  function paginate(root, pageH, minScale = 0) {
+  function paginate(root, pageH, minScale = 0, sections = false) {
     const rootTop = root.getBoundingClientRect().top;
     const total = Math.ceil(root.getBoundingClientRect().height);
     const y = el => Math.round(el.getBoundingClientRect().top - rootTop);
@@ -10449,7 +10465,8 @@ const ExportManager = (() => {
       }
     };
     if (minScale > 0) {
-      const bounds = [0, ...forced.filter(v => v > 1 && v < total - 1), total];
+      const starts = sections ? Array.from(root.querySelectorAll('.wf-print-section')).slice(1).map(y) : [];
+      const bounds = [0, ...[...new Set([...forced, ...starts])].filter(v => v > 1 && v < total - 1).sort((a, b) => a - b), total];
       for (let i = 0; i + 1 < bounds.length; i++) {
         const [a, b] = [bounds[i], bounds[i + 1]];
         if (b - a <= 1) continue;
@@ -10534,11 +10551,30 @@ const ExportManager = (() => {
     const doc = el || buildPrintable(opts);
     const stage = mountStage(doc);
     MathEngine.fit(doc);
+    if (!el && bySection() && AppState.get().style.layout !== 'grid') fitSectionsForPrint(doc);
     stage.remove();
     const logo = opts.noLogo ? null : headerLogo();
     document.getElementById('print-root').replaceChildren(doc, ...(logo ? [Util.h('img', { class: 'wf-head-preload', src: logo.svg, alt: '' })] : []));
     setPageStyle(opts);
     document.body.classList.add('print-mode');
+  }
+
+  /**
+   * Εκτύπωση του browser με μία ενότητα ανά σελίδα: νέα σελίδα πριν από κάθε ενότητα,
+   * και σμίκρυνση (zoom, έως 65%) όσων δεν χωρούν.
+   * @param {HTMLElement} doc τοποθετημένο στη σκηνή, για μέτρηση
+   */
+  function fitSectionsForPrint(doc) {
+    const g = geometry();
+    const top = doc.getBoundingClientRect().top;
+    const pageH = g.contentH * (doc.getBoundingClientRect().width / g.contentW);
+    doc.classList.add('wf-page-per-section');
+    doc.querySelectorAll(':scope > .wf-print-section').forEach((sec, i) => {
+      const r = sec.getBoundingClientRect();
+      const room = pageH - (i === 0 ? r.top - top : 0);
+      const scale = room / r.height;
+      if (scale < 1 && scale >= 0.65) sec.style.zoom = scale.toFixed(3);
+    });
   }
 
   /** Καθαρίζει μετά την εκτύπωση. */
@@ -10636,7 +10672,7 @@ const ExportManager = (() => {
       const rect = root.getBoundingClientRect();
       const g = geometry();
       const pxPerMm = rect.width / g.contentW;
-      const pages = paginate(root, g.contentH * pxPerMm, fitScale());
+      const pages = paginate(root, g.contentH * pxPerMm, fitScale(), bySection());
       const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
       const canvas = await window.html2canvas(root, {
         scale, backgroundColor: '#ffffff', logging: false, useCORS: false, onclone: revealStage,
@@ -11507,7 +11543,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         const g = CFG.g;
         const rect = root.getBoundingClientRect();
         const pxPerMm = rect.width / g.contentW;
-        const pages = paginate(root, g.contentH * pxPerMm, CFG.fit || 0);
+        const pages = paginate(root, g.contentH * pxPerMm, CFG.fit || 0, !!CFG.bySection);
         const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
         const canvas = await window.html2canvas(root, {
           scale, backgroundColor: '#ffffff', logging: false, useCORS: false,
@@ -11641,7 +11677,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const m = AppState.get().metadata;
       const cfg = {
         title: docTitle(), g, headerTitle: !!opts.headerTitle, date: opts.headerDate && m.date ? Util.formatDate(m.date) : '', pageNumbers: !!opts.pageNumbers,
-        logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null, fit: fitScale()
+        logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null, fit: fitScale(), bySection: bySection()
       };
       const logoHtml = logo ? `<img class="wf-page-logo" src="${logo.src}" alt="Λογότυπο" style="top:${logo.top.toFixed(2)}mm;left:${g.left}mm;width:${logo.w.toFixed(2)}mm;height:${logo.h.toFixed(2)}mm"><img class="wf-head-preload" src="${logo.svg}" alt="">` : '';
       const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${logoHtml}${root.outerHTML}</main>`;
@@ -11687,7 +11723,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       }
       const g = geometry();
       const pxPerMm = root.getBoundingClientRect().width / g.contentW;
-      const pages = paginate(root, g.contentH * pxPerMm, fitScale());
+      const pages = paginate(root, g.contentH * pxPerMm, fitScale(), bySection());
       stage.remove();
       const m = AppState.get().metadata;
       const zoom = Math.min(1, (pagesEl.clientWidth - 48) / (g.pageW * pxPerMm));
@@ -11709,6 +11745,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       }));
       const shrunk = pages.filter(p => p.scale < 1).map(p => Math.round(p.scale * 100));
       info.textContent = `${pages.length} ${pages.length === 1 ? 'σελίδα' : 'σελίδες'} A4 ${g.landscape ? 'οριζόντια' : 'κατακόρυφα'} · περιθώρια ${AppState.get().style.margins === 'narrow' ? 'στενά' : 'κανονικά'}`
+        + (bySection() ? ' · μία ενότητα ανά σελίδα' : '')
         + (shrunk.length ? ` · σμίκρυνση για να χωρέσουν: ${shrunk.map(v => `${v}%`).join(', ')}` : '');
     };
     const checks = [
@@ -13210,7 +13247,7 @@ const UIController = (() => {
       if (data) AppState.setStyle({ logo: data });
     });
     $('btn-logo-remove').addEventListener('click', () => AppState.setStyle({ logo: '' }));
-    $('style-fit-pages').addEventListener('change', e => AppState.setStyle({ fitPages: e.target.checked }));
+    $('style-pdf-paging').addEventListener('change', e => AppState.setStyle({ pdfPaging: e.target.value }));
     $('formula-decimals').addEventListener('change', e => {
       AppState.setStyle({ formulaDecimals: e.target.value });
       Formulas.refreshAll(false);
@@ -13241,7 +13278,7 @@ const UIController = (() => {
     set('style-logo-width', st.logoWidth);
     set('style-orientation', st.orientation);
     set('style-margins', st.margins);
-    $('style-fit-pages').checked = !!st.fitPages;
+    set('style-pdf-paging', st.pdfPaging);
     set('formula-decimals', st.formulaDecimals || '');
     $('layout-flow').setAttribute('aria-pressed', String(st.layout !== 'grid'));
     $('layout-grid').setAttribute('aria-pressed', String(st.layout === 'grid'));
