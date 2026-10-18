@@ -229,6 +229,7 @@ button { cursor: pointer; }
 .menu-item.is-danger { color: var(--danger); }
 .menu-sep { height: 1px; margin: 4px 0; background: var(--border); }
 .menu-item kbd { margin-left: auto; }
+.context-menu { max-height: calc(100vh - 16px); overflow-y: auto; }
 .menu-hint { max-width: 260px; margin: 4px 0 0; padding: 6px 8px 2px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-2); }
 .info-tip { display: inline-block; margin-left: 4px; color: var(--primary); font-size: 13px; font-weight: 400; cursor: help; }
 
@@ -506,7 +507,9 @@ button { cursor: pointer; }
 .modal-md { max-width: 640px; }
 .modal-lg { max-width: 920px; }
 .modal-xl { max-width: 1120px; }
-.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--border); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--border); cursor: move; user-select: none; touch-action: none; }
+.modal-header .btn-icon { cursor: pointer; }
+.modal.is-dragging { transition: none; box-shadow: 0 24px 48px rgba(15, 23, 42, 0.28); }
 .modal-title { margin: 0; font-size: 18px; font-weight: 700; }
 .modal-body { padding: 24px; overflow-y: auto; scrollbar-width: thin; }
 .modal-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); }
@@ -747,6 +750,12 @@ kbd {
   border-bottom: 2px solid #000000; break-after: avoid; page-break-after: avoid;
 }
 .wf-answer-lines div { height: 9mm; border-bottom: 1px solid #999999; }
+.doc-content .wf-field-box { margin: 2mm 0 3mm; }
+.doc-content .wf-field-box > div { height: 9mm; border-bottom: 1px solid #999999; }
+.doc-content .wf-field-inline { display: inline-block; max-width: 100%; height: 1.2em; margin: 0 2px; vertical-align: -0.25em; border-bottom: 1px solid currentColor; }
+.editor-content .wf-field { cursor: pointer; background: var(--primary-soft); }
+.editor-content .wf-field-box { position: relative; padding: 0 4px; border-radius: 4px; }
+.editor-content .wf-field-box::before { content: '✎ Πεδίο απάντησης μαθητή'; position: absolute; right: 6px; top: 2px; font: 11px var(--font-ui); color: var(--text-2); }
 .wf-print-doc img, .wf-print-doc tr, .wf-print-doc .math-display { break-inside: avoid; page-break-inside: avoid; }
 .wf-print-doc .wf-break-before { break-before: page; page-break-before: always; }
 .wf-print-doc .wf-pagebreak { break-after: page; page-break-after: always; }
@@ -2417,6 +2426,10 @@ const Sanitizer = (() => {
       cleanFormula(el);
       return;
     }
+    if (el.classList.contains('wf-field')) {
+      cleanField(el);
+      return;
+    }
     if (el.classList.contains('wf-pagebreak')) {
       const div = el.ownerDocument.createElement('div');
       div.className = 'wf-pagebreak';
@@ -2542,6 +2555,30 @@ const Sanitizer = (() => {
     span.setAttribute('contenteditable', 'false');
     span.textContent = text;
     el.replaceWith(span);
+  }
+
+  /**
+   * Πεδίο απάντησης μαθητή: κρατά μόνο το είδος και το μέγεθος· οι γραμμές φτιάχνονται ξανά.
+   * @param {Element} el
+   */
+  function cleanField(el) {
+    const doc = el.ownerDocument;
+    let field;
+    if (el.classList.contains('wf-field-inline')) {
+      const width = Math.min(160, Math.max(10, parseInt(el.getAttribute('data-width'), 10) || 40));
+      field = doc.createElement('span');
+      field.className = 'wf-field wf-field-inline';
+      field.setAttribute('data-width', String(width));
+      field.setAttribute('style', `width: ${width}mm`);
+    } else {
+      const lines = Math.min(20, Math.max(1, parseInt(el.getAttribute('data-lines'), 10) || 4));
+      field = doc.createElement('div');
+      field.className = 'wf-field wf-field-box';
+      field.setAttribute('data-lines', String(lines));
+      for (let i = 0; i < lines; i++) field.append(doc.createElement('div'));
+    }
+    field.setAttribute('contenteditable', 'false');
+    el.replaceWith(field);
   }
 
   /**
@@ -2693,6 +2730,7 @@ const Modal = (() => {
       footer.append(btn);
     });
     closeBtn.addEventListener('click', () => close(handle, null));
+    makeDraggable(dialog, dialog.querySelector('.modal-header'));
     dialog.addEventListener('keydown', e => trapFocus(e, dialog));
     document.getElementById('modal-host').append(overlay);
     stack.push(handle);
@@ -2742,6 +2780,54 @@ const Modal = (() => {
       if (prev.closest && prev.closest('.editor-content')) EditorManager.refocus(prev.closest('.editor-content'));
       else prev.focus({ preventScroll: true });
     }
+  }
+
+  /**
+   * Το παράθυρο μετακινείται σέρνοντας την επικεφαλίδα (ποντίκι ή αφή)· διπλό κλικ το επαναφέρει στο κέντρο.
+   * Η επικεφαλίδα μένει πάντα μέσα στην οθόνη.
+   * @param {HTMLElement} dialog
+   * @param {HTMLElement} grip
+   */
+  function makeDraggable(dialog, grip) {
+    let x = 0;
+    let y = 0;
+    const place = () => { dialog.style.translate = x || y ? `${x}px ${y}px` : ''; };
+    grip.title = 'Σύρε για να μετακινήσεις το παράθυρο (διπλό κλικ: στο κέντρο)';
+    grip.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || e.target.closest('button, input, select, textarea, a')) return;
+      e.preventDefault();
+      const start = { px: e.clientX, py: e.clientY, x, y };
+      const base = dialog.getBoundingClientRect();
+      const gripH = grip.getBoundingClientRect().height;
+      grip.setPointerCapture(e.pointerId);
+      dialog.classList.add('is-dragging');
+      const move = ev => {
+        const dx = ev.clientX - start.px;
+        const dy = ev.clientY - start.py;
+        // Τουλάχιστον 200 px του παραθύρου (μαζί με κομμάτι της επικεφαλίδας) μένουν ορατά.
+        const keep = Math.min(200, base.width);
+        const left = Util.clamp(base.left + dx, keep - base.width, window.innerWidth - keep);
+        const top = Util.clamp(base.top + dy, 0, window.innerHeight - gripH);
+        x = start.x + (left - base.left);
+        y = start.y + (top - base.top);
+        place();
+      };
+      const up = () => {
+        grip.removeEventListener('pointermove', move);
+        grip.removeEventListener('pointerup', up);
+        grip.removeEventListener('pointercancel', up);
+        dialog.classList.remove('is-dragging');
+      };
+      grip.addEventListener('pointermove', move);
+      grip.addEventListener('pointerup', up);
+      grip.addEventListener('pointercancel', up);
+    });
+    grip.addEventListener('dblclick', e => {
+      if (e.target.closest('button')) return;
+      x = 0;
+      y = 0;
+      place();
+    });
   }
 
   /**
@@ -3824,12 +3910,12 @@ const EditorManager = (() => {
   };
 
   const TYPE_TOOLS = {
-    text: ['block', 'inline', 'list', 'align', 'image', 'math', 'card', 'link', 'embed', 'hr'],
-    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'math', 'card', 'embed'],
+    text: ['block', 'inline', 'list', 'align', 'image', 'math', 'card', 'link', 'embed', 'field', 'hr'],
+    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'math', 'card', 'embed', 'field'],
     image: ['inlineBasic', 'align', 'image', 'caption', 'math', 'embed'],
     math: ['inlineBasic', 'list', 'align', 'math', 'image'],
     graph: ['inline', 'align', 'graph', 'image', 'caption', 'math'],
-    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'hr', 'pagebreak']
+    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'field', 'hr', 'pagebreak']
   };
 
   const BUTTONS = {
@@ -3858,6 +3944,7 @@ const EditorManager = (() => {
     embed: { icon: 'embed', title: 'Ενσωμάτωση από σύνδεσμο: βίντεο, προσομοίωση, εφαρμογή (Ctrl+Alt+E)', run: id => Embeds.open({ sectionId: id }) },
     columns: { icon: 'columns', title: 'Διάταξη σε στήλες (π.χ. Παρατήρηση / Πείραμα / Συμπέρασμα)', run: id => InsertTools.columns(id) },
     card: { icon: 'card', title: 'Πλαίσιο περιεχομένου (Σημείωση, Tip, Προσοχή, Ορισμός…)', run: id => InsertTools.card(id) },
+    field: { icon: 'pencil', title: 'Πεδίο απάντησης μαθητή (Ctrl+Alt+A): πλαίσιο με γραμμές ή κενό στη γραμμή, όπου ο μαθητής γράφει στο HTML', run: id => InsertTools.answerField(id) },
     hr: { icon: 'hr', title: 'Οριζόντια γραμμή (Ctrl+Alt+H)', run: id => InsertTools.horizontalRule(id) },
     pagebreak: { icon: 'pagebreak', title: 'Αλλαγή σελίδας στην εκτύπωση', run: id => InsertTools.pageBreak(id) },
     undo: { icon: 'undo', title: 'Αναίρεση (Ctrl+Z)', run: id => undo(id) },
@@ -4037,6 +4124,13 @@ const EditorManager = (() => {
     content.addEventListener('click', e => onClick(e, block));
     content.addEventListener('dblclick', e => onDblClick(e, block));
     content.addEventListener('contextmenu', e => {
+      // Αντικείμενο (εικόνα, γράφημα, εξίσωση, ενσωμάτωση, γραμμή, αλλαγή σελίδας, πλαίσιο): αποκοπή/αντιγραφή/επικόλληση.
+      const obj = e.target.closest && e.target.closest(InsertTools.OBJECT_SELECTOR);
+      if (obj && content.contains(obj) && !(obj.classList.contains('wf-card') && wordAt(e.clientX, e.clientY))) {
+        e.preventDefault();
+        InsertTools.objectMenu(e, obj, block.id);
+        return;
+      }
       const cell = e.target.closest && e.target.closest('td, th');
       if (cell && content.contains(cell)) {
         // Πάνω σε λέξη αφήνουμε το μενού του browser, για τις προτάσεις ορθογραφίας.
@@ -4110,7 +4204,7 @@ const EditorManager = (() => {
     else if (tools.has('inlineBasic')) groups.push(['bold', 'italic', 'underline', 'sup', 'sub'].map(k => toolButton(block, k)));
     if (tools.has('list')) groups.push(['ul', 'ol', 'check', 'indent', 'outdent'].map(k => toolButton(block, k)));
     if (tools.has('align')) groups.push(['left', 'center', 'right', 'justify'].map(k => toolButton(block, k)));
-    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'hr', 'pagebreak'].filter(k => tools.has(k));
+    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'field', 'hr', 'pagebreak'].filter(k => tools.has(k));
     if (inserts.length) groups.push(inserts.map(k => toolButton(block, k)));
     groups.push((Dictation.supported() ? ['mic', 'undo', 'redo', 'clear'] : ['undo', 'redo', 'clear']).map(k => toolButton(block, k)));
     groups.forEach((group, i) => {
@@ -4839,6 +4933,10 @@ const EditorManager = (() => {
       run(() => InsertTools.removeSelectedImage());
       return;
     }
+    if (mod && !e.altKey && (code === 'KeyC' || code === 'KeyX') && InsertTools.selectedImage()) {
+      run(() => InsertTools.copyObject(InsertTools.selectedImage(), block.id, code === 'KeyX'));
+      return;
+    }
     if (mod && !e.altKey) {
       if (code === 'KeyZ' && !e.shiftKey) return run(() => undo(block.id));
       if (code === 'KeyY' || (code === 'KeyZ' && e.shiftKey)) return run(() => redo(block.id));
@@ -4863,6 +4961,7 @@ const EditorManager = (() => {
       if (code === 'KeyG') return run(() => GraphEngine.open({ sectionId: block.id }));
       if (code === 'KeyE') return run(() => Embeds.open({ sectionId: block.id }));
       if (code === 'KeyH') return run(() => InsertTools.horizontalRule(block.id));
+      if (code === 'KeyA') return run(() => InsertTools.answerField(block.id));
       if (code === 'KeyI') return run(() => InsertTools.image(block.id));
     }
     if ((e.key === 'Enter' || e.key === 'Tab') && !mod && !e.altKey) {
@@ -4918,6 +5017,10 @@ const EditorManager = (() => {
   async function onPaste(e, block) {
     const cd = e.clipboardData;
     if (!cd) return;
+    if (InsertTools.pasteObject(block.id, cd.getData('text/html'))) {
+      e.preventDefault();
+      return;
+    }
     const files = Array.from(cd.files || []).filter(f => f.type.startsWith('image/'));
     const html = cd.getData('text/html');
     const text = cd.getData('text/plain');
@@ -5054,6 +5157,12 @@ const EditorManager = (() => {
     if (math && block.content.contains(math)) {
       e.preventDefault();
       MathEngine.open({ sectionId: block.id, node: math });
+      return;
+    }
+    const field = e.target.closest && e.target.closest('.wf-field');
+    if (field && block.content.contains(field)) {
+      e.preventDefault();
+      InsertTools.answerField(block.id, field);
       return;
     }
     const img = e.target.closest && e.target.closest('img[data-graph-json]');
@@ -5278,7 +5387,7 @@ const EditorManager = (() => {
     init, ids, getBlockEl, getActiveId, firstId, createBlock, updateBlock, bindContent, destroyBlock, setActive,
     exec, insertInline, insertBlock, commit, undo, redo, flush, flushAll, hasContent, isComplete, stats,
     getRenderedHTML, toggleFocus, exitFocus, inFocusMode, focusSection, refocus, contentWidth, getContentEl,
-    selectedText, caretIn, serializeEl, insertionWidth, toggleChecklist, insertDictation, setLayout
+    selectedText, caretIn, applyRange, serializeEl, insertionWidth, toggleChecklist, insertDictation, setLayout
   };
 })();
 
@@ -5295,6 +5404,7 @@ const InsertTools = (() => {
   let overlayLabel = null;
   let popover = null;
   let menu = null;
+  let menuOpenedAt = 0;
   let frame = 0;
 
   /**
@@ -5310,6 +5420,7 @@ const InsertTools = (() => {
 
   /** Αρχικοποίηση καθολικών ακροατών για overlays. */
   function init() {
+    document.addEventListener('copy', e => { if (pendingCopy) pendingCopy(e); }, true);
     document.addEventListener('mousemove', onResizeHover);
     document.addEventListener('mousedown', onResizeStart, true);
     document.addEventListener('mousedown', e => {
@@ -5320,7 +5431,8 @@ const InsertTools = (() => {
     const reposition = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(positionOverlay);
-      hideMenu();
+      // Το δεξί κλικ μπορεί να κυλήσει λίγο την ενότητα όταν παίρνει την εστίαση· τότε το μενού μένει.
+      if (Date.now() - menuOpenedAt > 400) hideMenu();
       hidePopover();
     };
     window.addEventListener('scroll', reposition, true);
@@ -5891,6 +6003,178 @@ const InsertTools = (() => {
     });
   }
 
+  // ---- Αντικείμενα: αποκοπή, αντιγραφή, επικόλληση, αντίγραφο ----
+  // Τα αντικείμενα (εικόνα, γράφημα, εξίσωση, ενσωμάτωση, πλαίσιο, πίνακας…) αντιγράφονται αυτούσια:
+  // το πρόχειρο του συστήματος παίρνει HTML με ένα σημάδι, και η επικόλληση στην εφαρμογή
+  // χρησιμοποιεί το πλήρες αντίγραφο που κρατιέται εδώ, χωρίς τον καθαρισμό της κοινής επικόλλησης.
+  const OBJECT_SELECTOR = 'img, .wf-embed, .math-node, .wf-field, hr, .wf-pagebreak, .wf-card';
+  const OBJECT_NAMES = [
+    ['img.wf-graph', 'γραφήματος'], ['img', 'εικόνας'], ['.wf-embed', 'ενσωμάτωσης'], ['.math-node', 'εξίσωσης'],
+    ['.wf-field', 'πεδίου απάντησης'], ['hr', 'γραμμής'], ['.wf-pagebreak', 'αλλαγής σελίδας'], ['.wf-card', 'πλαισίου'], ['table', 'πίνακα']
+  ];
+  let clip = null;
+  let pendingCopy = null;
+
+  /** @param {Element} el @returns {string} π.χ. «εικόνας» */
+  function objectName(el) {
+    const hit = OBJECT_NAMES.find(([sel]) => el.matches(sel));
+    return hit ? hit[1] : 'αντικειμένου';
+  }
+
+  /**
+   * Οι κόμβοι που αποτελούν το αντικείμενο: η παράγραφος που το περιέχει μόνο αυτό, μαζί με τη λεζάντα του.
+   * @param {Element} el
+   * @returns {{nodes: Element[], inline: boolean}}
+   */
+  function objectUnits(el) {
+    const content = el.closest('.editor-content');
+    let unit = el;
+    const p = el.parentElement;
+    const alone = p && p !== content && /^(P|DIV)$/.test(p.tagName) && !p.classList.contains('wf-card')
+      && Array.from(p.childNodes).every(n => n === el || n.nodeName === 'BR' || (n.nodeType === Node.TEXT_NODE && !n.nodeValue.replace(/[\u00A0\u200B]/g, ' ').trim()));
+    if (alone) unit = p;
+    const inline = unit === el && (el.tagName === 'IMG' || el.classList.contains('wf-field-inline') || (el.classList.contains('math-node') && !el.classList.contains('math-display')));
+    const nodes = [unit];
+    const next = unit.nextElementSibling;
+    if (!inline && next && next.classList.contains('wf-caption')) nodes.push(next);
+    return { nodes, inline };
+  }
+
+  /**
+   * Αντιγράφει (ή αποκόπτει) αντικείμενο στο πρόχειρο.
+   * @param {Element} el
+   * @param {string} id
+   * @param {boolean} cut
+   */
+  function copyObject(el, id, cut) {
+    const { nodes, inline } = objectUnits(el);
+    const holder = document.createElement('div');
+    nodes.forEach(n => holder.append(n.cloneNode(true)));
+    holder.querySelectorAll('.is-selected').forEach(n => n.classList.remove('is-selected'));
+    holder.querySelectorAll('.math-node, .wf-embed').forEach(n => n.replaceChildren());
+    const token = Util.uuid();
+    const html = holder.innerHTML;
+    const graphs = {};
+    holder.querySelectorAll('img[data-graph-id]').forEach(img => {
+      const g = AppState.get().graphs[img.getAttribute('data-graph-id')];
+      if (g) graphs[img.getAttribute('data-graph-id')] = g;
+    });
+    clip = { token, html, inline, graphs };
+    const text = nodes.map(n => n.textContent).join('\n').trim() || `[${objectName(el)}]`;
+    pendingCopy = ev => {
+      ev.clipboardData.setData('text/html', `<div data-wf-clip="${token}">${html}</div>`);
+      ev.clipboardData.setData('text/plain', text);
+      ev.preventDefault();
+    };
+    // Το copy θέλει επιλογή για να ξεκινήσει· το περιεχόμενο το ορίζει ο pendingCopy.
+    const sel = document.getSelection();
+    const before = sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+    const range = document.createRange();
+    range.setStartBefore(nodes[0]);
+    range.setEndAfter(nodes[nodes.length - 1]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    try { document.execCommand('copy'); } catch (e) { /* μένει το εσωτερικό αντίγραφο */ }
+    pendingCopy = null;
+    sel.removeAllRanges();
+    if (before && !cut) sel.addRange(before);
+    if (cut) {
+      hideOverlays();
+      nodes.forEach(n => n.remove());
+      EditorManager.commit(id);
+    }
+    Toast.show(`${cut ? 'Αποκοπή' : 'Αντιγραφή'} ${objectName(el)}. Επικόλληση με δεξί κλικ ή Ctrl+V.`, 'success', 2500);
+  }
+
+  /**
+   * Κόμβοι έτοιμοι για επικόλληση από το εσωτερικό αντίγραφο (με νέα αναγνωριστικά γραφημάτων).
+   * @param {string} id ενότητα προορισμού
+   * @returns {Node[]}
+   */
+  function clipNodes(id) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = Sanitizer.clean(clip.html);
+    tpl.content.querySelectorAll('img[data-graph-id]').forEach(img => {
+      const data = clip.graphs[img.getAttribute('data-graph-id')];
+      const graphId = `g-${Util.uuid()}`;
+      img.setAttribute('data-graph-id', graphId);
+      if (data) AppState.setGraph(graphId, { ...data, sectionId: id });
+    });
+    MathEngine.hydrate(tpl.content);
+    Embeds.hydrate(tpl.content);
+    Formulas.recalc(tpl.content);
+    return Array.from(tpl.content.childNodes);
+  }
+
+  /**
+   * Επικολλά το αντικείμενο του προχείρου, αν το HTML είναι δικό του (ή χωρίς έλεγχο με force).
+   * @param {string} id
+   * @param {string} [html] HTML του προχείρου του συστήματος
+   * @param {boolean} [force]
+   * @returns {boolean} αν επικολλήθηκε αντικείμενο
+   */
+  function pasteObject(id, html, force) {
+    if (!clip || !(force || (html && html.includes(clip.token)))) return false;
+    const nodes = clipNodes(id);
+    if (!nodes.length) return false;
+    if (clip.inline) EditorManager.insertInline(id, nodes);
+    else EditorManager.insertBlock(id, nodes);
+    return true;
+  }
+
+  /**
+   * Αντίγραφο του αντικειμένου ακριβώς μετά από αυτό.
+   * @param {Element} el
+   * @param {string} id
+   */
+  function duplicateObject(el, id) {
+    const saved = clip;
+    const { nodes, inline } = objectUnits(el);
+    const holder = document.createElement('div');
+    nodes.forEach(n => holder.append(n.cloneNode(true)));
+    holder.querySelectorAll('.is-selected').forEach(n => n.classList.remove('is-selected'));
+    holder.querySelectorAll('.math-node, .wf-embed').forEach(n => n.replaceChildren());
+    const graphs = {};
+    holder.querySelectorAll('img[data-graph-id]').forEach(img => {
+      const g = AppState.get().graphs[img.getAttribute('data-graph-id')];
+      if (g) graphs[img.getAttribute('data-graph-id')] = g;
+    });
+    clip = { token: '', html: holder.innerHTML, inline, graphs };
+    const copies = clipNodes(id);
+    clip = saved;
+    const last = nodes[nodes.length - 1];
+    if (inline) last.after(document.createTextNode(' '), ...copies);
+    else last.after(...copies);
+    EditorManager.commit(id);
+  }
+
+  /**
+   * Μενού δεξιού κλικ σε αντικείμενο.
+   * @param {MouseEvent} e
+   * @param {Element} el
+   * @param {string} id
+   */
+  function objectMenu(e, el, id) {
+    const name = objectName(el);
+    const items = [
+      [`Αποκοπή ${name}`, () => copyObject(el, id, true), false, null, 'Ctrl+X'],
+      [`Αντιγραφή ${name}`, () => copyObject(el, id, false), false, null, 'Ctrl+C'],
+      ['Επικόλληση εδώ', () => {
+        // Η επικόλληση μπαίνει αμέσως μετά από το αντικείμενο.
+        const range = document.createRange();
+        range.setStartAfter(objectUnits(el).nodes.slice(-1)[0]);
+        range.collapse(true);
+        EditorManager.applyRange(range);
+        return pasteClipboard(id);
+      }, false, 'Επικολλά αμέσως μετά από αυτό το αντικείμενο', 'Ctrl+V'],
+      null,
+      ['Αντίγραφο ακριβώς από κάτω', () => duplicateObject(el, id)],
+      null,
+      [`Διαγραφή ${name}`, () => { hideOverlays(); objectUnits(el).nodes.forEach(n => n.remove()); }, true]
+    ];
+    openMenu(e, items, `Επιλογές ${name}`, id);
+  }
+
   /**
    * Μενού δεξιού κλικ σε κελί πίνακα.
    * @param {MouseEvent} e
@@ -5911,6 +6195,10 @@ const InsertTools = (() => {
       null,
       [formula ? 'Επεξεργασία τύπου…' : 'Τύπος υπολογισμού…', () => Formulas.open(cell, id), false, 'Υπολογισμός από κελιά αυτού του πίνακα, π.χ. =B2*C2 ή μέση τιμή στήλης'],
       ...(formula ? [['Κατάργηση τύπου (μένει η τιμή)', () => cell.replaceChildren(document.createTextNode(formula.textContent))]] : []),
+      ['Αντιγραφή πίνακα', () => copyObject(cell.closest('table'), id, false), false, 'Αντιγράφει όλο τον πίνακα, με τύπους, χρώματα και μεγέθη'],
+      ['Αποκοπή πίνακα', () => copyObject(cell.closest('table'), id, true)],
+      ['Αντίγραφο πίνακα από κάτω', () => duplicateObject(cell.closest('table'), id)],
+      null,
       ['Γραφική παράσταση από τον πίνακα…', () => GraphEngine.open({ sectionId: id, table: cell.closest('table') }), false, 'Οι τιμές αντιγράφονται στο γράφημα. Αν αλλάξεις μετά τον πίνακα, διπλό κλικ στο γράφημα και «Φόρτωση».'],
       null,
       ['Εισαγωγή γραμμής πάνω', () => addRow(cell, false)],
@@ -5928,7 +6216,21 @@ const InsertTools = (() => {
       ['Διαγραφή στήλης', () => deleteColumn(cell), true],
       ['Διαγραφή πίνακα', () => cell.closest('table').remove(), true]
     ];
-    menu = Util.h('div', { class: 'context-menu', role: 'menu', 'aria-label': 'Επιλογές πίνακα' });
+    openMenu(e, items, 'Επιλογές πίνακα', id, 'Δεξί κλικ πάνω σε λέξη: διόρθωση ορθογραφίας του browser. Shift+δεξί κλικ: πάντα αυτό το μενού.');
+  }
+
+  /**
+   * Εμφανίζει μενού δεξιού κλικ.
+   * @param {MouseEvent} e
+   * @param {Array} items [ετικέτα, ενέργεια, κίνδυνος, tooltip, συντόμευση] ή null για διαχωριστικό
+   * @param {string} label
+   * @param {string} id ενότητα (γίνεται commit μετά από κάθε ενέργεια)
+   * @param {string} [hint] σημείωση στο κάτω μέρος
+   */
+  function openMenu(e, items, label, id, hint) {
+    hideMenu();
+    menuOpenedAt = Date.now();
+    menu = Util.h('div', { class: 'context-menu', role: 'menu', 'aria-label': label });
     items.forEach(item => {
       if (!item) {
         menu.append(Util.h('div', { class: 'menu-sep' }));
@@ -5944,11 +6246,11 @@ const InsertTools = (() => {
       });
       menu.append(btn);
     });
-    menu.append(Util.h('p', { class: 'menu-hint', text: 'Δεξί κλικ πάνω σε λέξη: διόρθωση ορθογραφίας του browser. Shift+δεξί κλικ: πάντα αυτό το μενού.' }));
+    if (hint) menu.append(Util.h('p', { class: 'menu-hint', text: hint }));
     document.body.append(menu);
     const r = menu.getBoundingClientRect();
-    menu.style.left = `${Math.min(e.clientX, window.innerWidth - r.width - 8)}px`;
-    menu.style.top = `${Math.min(e.clientY, window.innerHeight - r.height - 8)}px`;
+    menu.style.left = `${Math.max(8, Math.min(e.clientX, window.innerWidth - r.width - 8))}px`;
+    menu.style.top = `${Math.max(8, Math.min(e.clientY, window.innerHeight - r.height - 8))}px`;
     menu.querySelector('button').focus();
     menu.addEventListener('keydown', ev => {
       const btns = Array.from(menu.querySelectorAll('button'));
@@ -5965,9 +6267,21 @@ const InsertTools = (() => {
    * @returns {Promise<void>}
    */
   async function pasteClipboard(id) {
+    let items = null;
     try {
-      if (navigator.clipboard && navigator.clipboard.read) {
-        for (const item of await navigator.clipboard.read()) {
+      items = navigator.clipboard && navigator.clipboard.read ? await navigator.clipboard.read() : null;
+    } catch (e) {
+      items = null;
+    }
+    // Χωρίς άδεια ανάγνωσης του προχείρου, επικολλάται το τελευταίο αντικείμενο που αντιγράφηκε εδώ.
+    if (!items && pasteObject(id, null, true)) return;
+    try {
+      if (items) {
+        for (const item of items) {
+          if (item.types.includes('text/html')) {
+            const html = await (await item.getType('text/html')).text();
+            if (pasteObject(id, html)) return;
+          }
           const image = item.types.find(t => t.startsWith('image/'));
           if (image) {
             const blob = await item.getType(image);
@@ -6714,6 +7028,75 @@ const InsertTools = (() => {
   }
 
   /**
+   * Πεδίο απάντησης μαθητή.
+   * @param {'box'|'inline'} kind πλαίσιο με γραμμές ή κενό μέσα στη γραμμή
+   * @param {number} size γραμμές (box) ή πλάτος σε mm (inline)
+   * @returns {HTMLElement}
+   */
+  function fieldNode(kind, size) {
+    if (kind === 'inline') {
+      return Util.h('span', { class: 'wf-field wf-field-inline', contenteditable: 'false', 'data-width': String(size), style: `width: ${size}mm` });
+    }
+    return Util.h('div', { class: 'wf-field wf-field-box', contenteditable: 'false', 'data-lines': String(size) },
+      Array.from({ length: size }, () => Util.h('div')));
+  }
+
+  /**
+   * Διάλογος για πεδίο απάντησης μαθητή (νέο ή επεξεργασία υπάρχοντος).
+   * @param {string} [sectionId]
+   * @param {HTMLElement} [existing]
+   */
+  function answerField(sectionId, existing) {
+    const id = existing ? existing.closest('.editor-block')?.dataset.sectionId : target(sectionId);
+    if (!id) return;
+    const isInline = existing ? existing.classList.contains('wf-field-inline') : false;
+    const kind = Util.h('select', { class: 'select', 'aria-label': 'Είδος πεδίου' },
+      Util.h('option', { value: 'box', text: 'Πλαίσιο απάντησης με γραμμές' }),
+      Util.h('option', { value: 'inline', text: 'Κενό μέσα στη γραμμή (σύντομη απάντηση)' }));
+    kind.value = isInline ? 'inline' : 'box';
+    const lines = Util.h('input', { class: 'input', type: 'number', min: '1', max: '20', value: existing && !isInline ? existing.getAttribute('data-lines') : '4' });
+    const width = Util.h('select', { class: 'select', 'aria-label': 'Πλάτος κενού' },
+      [['20', 'Πολύ μικρό (20 mm), π.χ. αριθμός'], ['40', 'Μικρό (40 mm), π.χ. μία λέξη'], ['70', 'Μεσαίο (70 mm)'], ['120', 'Μεγάλο (120 mm), π.χ. φράση']].map(([v, t]) => Util.h('option', { value: v, text: t })));
+    width.value = existing && isInline ? existing.getAttribute('data-width') : '40';
+    if (![...width.options].some(o => o.value === width.value)) width.value = '40';
+    const linesField = Util.h('label', { class: 'field' }, Util.h('span', { text: 'Γραμμές' }), lines);
+    const widthField = Util.h('label', { class: 'field' }, Util.h('span', { text: 'Πλάτος' }), width);
+    const sync = () => {
+      linesField.hidden = kind.value !== 'box';
+      widthField.hidden = kind.value !== 'inline';
+    };
+    kind.addEventListener('change', sync);
+    sync();
+    Modal.open({
+      title: existing ? 'Πεδίο απάντησης' : 'Πεδίο απάντησης μαθητή', size: 'sm',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Είδος' }), kind),
+        linesField, widthField,
+        Util.h('p', { class: 'hint', text: 'Στο διαδραστικό HTML ο μαθητής γράφει μέσα στο πεδίο και η απάντηση κρατιέται και περνά στο «PDF με απαντήσεις». Στην εκτύπωση, στο PDF και στο DOCX φαίνεται ως γραμμές για συμπλήρωση με το χέρι.' })),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        {
+          label: existing ? 'Ενημέρωση' : 'Εισαγωγή', variant: 'primary', onClick: () => {
+            const node = kind.value === 'inline'
+              ? fieldNode('inline', Number(width.value) || 40)
+              : fieldNode('box', Util.clamp(Math.round(Number(lines.value)) || 4, 1, 20));
+            if (existing && document.contains(existing)) {
+              existing.replaceWith(node);
+              EditorManager.commit(id);
+            } else if (kind.value === 'inline') {
+              EditorManager.insertInline(id, [node, document.createTextNode('\u00A0')]);
+            } else {
+              EditorManager.insertBlock(id, [node]);
+            }
+            return true;
+          }
+        }
+      ],
+      initialFocus: kind
+    });
+  }
+
+  /**
    * Εισάγει οριζόντια γραμμή (στο κελί, στο πλαίσιο ή στη λίστα όπου βρίσκεται ο κέρσορας).
    * @param {string} [sectionId]
    */
@@ -6878,7 +7261,8 @@ const InsertTools = (() => {
 
   return {
     init, table, addRow, tableMenu, image, insertImageFile, insertImageData, prepareImage, selectImage, selectedImage, editImage, setPlacement,
-    removeSelectedImage, hideOverlays, link, linkPopover, caption, horizontalRule, pageBreak, columns, card, target
+    removeSelectedImage, hideOverlays, link, linkPopover, caption, answerField, horizontalRule, pageBreak, columns, card, target,
+    objectMenu, copyObject, pasteObject, OBJECT_SELECTOR
   };
 })();
 
@@ -9912,7 +10296,7 @@ const ExportManager = (() => {
     const y = el => Math.round(el.getBoundingClientRect().top - rootTop);
     const excluded = new Set(Array.from(root.querySelectorAll('.wf-print-content > :first-child')).map(y));
     const candidates = new Set();
-    root.querySelectorAll('.wf-print-section, .wf-student, .wf-print-content > *, .wf-print-content li, .wf-print-content tr, .wf-answer-lines > div, .wf-print-content p, .wf-print-content h1, .wf-print-content h2, .wf-print-content h3, .wf-print-content h4, .wf-print-content blockquote > *')
+    root.querySelectorAll('.wf-print-section, .wf-student, .wf-print-content > *, .wf-print-content li, .wf-print-content tr, .wf-answer-lines > div, .wf-field-box > div, .wf-print-content p, .wf-print-content h1, .wf-print-content h2, .wf-print-content h3, .wf-print-content h4, .wf-print-content blockquote > *')
       .forEach(el => {
         const sec = el.closest('.wf-print-section');
         if (sec && sec !== el && Number(sec.dataset.span || 12) < 12) return;
@@ -10375,6 +10759,10 @@ const ExportManager = (() => {
       if (node.nodeType !== Node.ELEMENT_NODE) return [];
       const el = node;
       const tag = el.tagName;
+      if (el.classList.contains('wf-field-inline')) {
+        const chars = Math.max(4, Math.round((Number(el.getAttribute('data-width')) || 40) / 2.2));
+        return [new D.TextRun({ text: `${'_'.repeat(chars)}`, ...fmt })];
+      }
       if (el.classList.contains('math-node')) {
         const img = mathImages.get(el);
         const latex = el.getAttribute('data-latex') || '';
@@ -10553,6 +10941,18 @@ const ExportManager = (() => {
         if (el.classList.contains('wf-pagebreak')) {
           flush();
           out.push(new D.Paragraph({ children: [new D.PageBreak()] }));
+          return;
+        }
+        if (el.classList.contains('wf-field-box')) {
+          flush();
+          const lines = Number(el.getAttribute('data-lines')) || 4;
+          for (let i = 0; i < lines; i++) {
+            out.push(new D.Paragraph({
+              spacing: { before: 200 },
+              tabStops: [{ type: D.TabStopType.RIGHT, position: (para.widthTwips || DOCX_CONTENT_TWIPS) - 100, leader: D.LeaderType.UNDERSCORE }],
+              children: [new D.TextRun({ children: [new D.Tab()], color: '999999' })]
+            }));
+          }
           return;
         }
         if (el.classList.contains('wf-card')) {
@@ -10792,6 +11192,8 @@ body.wf-export #print-root { display: block; }
 .wf-export-page .wf-print-doc { width: auto !important; }
 .wf-answer { min-height: 36mm; margin: 2mm 0; padding: 2mm 3mm; border: 1px dashed #94A3B8; border-radius: 2mm; white-space: pre-wrap; outline: none; }
 .wf-answer:empty::before { content: attr(data-placeholder); color: #94A3B8; }
+.wf-field-inline[contenteditable="true"] { height: auto; min-height: 1.3em; padding: 0 3px; background: #FAFDFF; border-bottom: 1px solid #2563EB; white-space: pre-wrap; outline: none; cursor: text; }
+.wf-pdf .wf-field-inline { background: transparent; border-bottom-color: #000000; }
 td.wf-fill { background: #FAFDFF; cursor: text; white-space: pre-wrap; }
 [contenteditable="true"]:focus { outline: 2px solid #2563EB; outline-offset: -2px; }
 .wf-student .line[contenteditable="true"] { padding: 0 2pt; white-space: nowrap; overflow: hidden; }
@@ -11081,6 +11483,17 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         li.setAttribute('role', 'checkbox');
         li.setAttribute('tabindex', '0');
         li.setAttribute('aria-checked', li.getAttribute('data-checked') === 'true' ? 'true' : 'false');
+      });
+      root.querySelectorAll('.wf-field-box').forEach(box => box.replaceWith(Util.h('div', {
+        class: 'wf-answer', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Απάντηση',
+        'data-placeholder': 'Γράψε εδώ την απάντησή σου…', style: `min-height: ${(Number(box.getAttribute('data-lines')) || 4) * 9}mm`
+      })));
+      root.querySelectorAll('.wf-field-inline').forEach(f => {
+        f.style.minWidth = f.style.width;
+        f.style.width = '';
+        f.setAttribute('contenteditable', 'true');
+        f.setAttribute('role', 'textbox');
+        f.setAttribute('aria-label', 'Σύντομη απάντηση');
       });
       root.querySelectorAll('.wf-answer-lines').forEach(box => box.replaceWith(Util.h('div', { class: 'wf-answer', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Απάντηση', 'data-placeholder': 'Γράψε εδώ την απάντησή σου…' })));
       root.querySelectorAll('td').forEach(td => {
