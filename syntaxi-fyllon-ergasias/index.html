@@ -1164,6 +1164,7 @@ kbd {
             <label class="field"><span>Προσανατολισμός</span><select id="style-orientation" class="select"><option value="portrait">Κατακόρυφος</option><option value="landscape">Οριζόντιος</option></select></label>
             <label class="field"><span>Περιθώρια</span><select id="style-margins" class="select"><option value="normal">Κανονικά</option><option value="narrow">Στενά</option></select></label>
           </div>
+          <label class="check" title="Κάθε αλλαγή σελίδας που έβαλες γίνεται νέα σελίδα στο PDF, και ό,τι υπάρχει ανάμεσα μικραίνει (έως 70%) για να χωρέσει σε μία σελίδα. Αν χρειάζεται περισσότερη σμίκρυνση, χωρίζεται κανονικά. Ισχύει στο «PDF (προηγμένο)», στην προεπισκόπηση και στο PDF του διαδραστικού HTML."><input id="style-fit-pages" type="checkbox">Μία σελίδα PDF ανά αλλαγή σελίδας (με σμίκρυνση αν χρειάζεται)</label>
           <button id="btn-style-preview" class="btn btn-primary btn-block" type="button"><span data-icon="eye"></span>Προεπισκόπηση</button>
         </section>
       </div>
@@ -2852,7 +2853,7 @@ const AppState = (() => {
   const STYLE_DEFAULTS = {
     preset: 'classic', fontFamily: 'Georgia', fontSize: 12, accent: '#000000', tableHeaderFill: '#F1F5F9',
     titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow', layout: 'flow',
-    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal'
+    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal', fitPages: false
   };
   const SPANS = [3, 4, 6, 8, 9, 12];
   const LOGO_SRC = /^data:image\/(png|jpe?g|gif);base64,[a-z0-9+/=]+$/i;
@@ -2899,7 +2900,8 @@ const AppState = (() => {
       logoPosition: pick('logoPosition', ['right', 'left', 'header']),
       logoWidth: Number.isFinite(logoWidth) ? Util.clamp(Math.round(logoWidth), 10, 80) : STYLE_DEFAULTS.logoWidth,
       orientation: pick('orientation', ['portrait', 'landscape']),
-      margins: pick('margins', ['normal', 'narrow'])
+      margins: pick('margins', ['normal', 'narrow']),
+      fitPages: src.fitPages === true
     };
   }
 
@@ -9268,6 +9270,11 @@ const ExportManager = (() => {
     return { pageW, pageH, ...m, contentW: pageW - m.left - m.right, contentH: pageH - m.top - m.bottom, landscape };
   }
 
+  /** @returns {number} ελάχιστη σμίκρυνση όταν κάθε αλλαγή σελίδας γίνεται μία σελίδα PDF, αλλιώς 0 */
+  function fitScale() {
+    return AppState.get().style.fitPages ? 0.7 : 0;
+  }
+
   /** @returns {Object} επιλογές εκτύπωσης */
   function options() {
     return { ...Prefs.get('print') };
@@ -9428,11 +9435,15 @@ const ExportManager = (() => {
 
   /**
    * Υπολογίζει τα όρια σελίδων: σπάει σε όρια στοιχείων, ποτέ αμέσως μετά από τίτλο ενότητας.
+   * Με `minScale` (π.χ. 0.7), κάθε κομμάτι ανάμεσα σε αλλαγές σελίδας γίνεται μία σελίδα, σμικρυμένο ώστε να χωρά·
+   * μόνο αν χρειάζεται σμίκρυνση κάτω από αυτό το όριο χωρίζεται σε περισσότερες σελίδες.
+   * Αυτόνομη συνάρτηση: περνά και στο διαδραστικό HTML μέσω toString.
    * @param {HTMLElement} root
    * @param {number} pageH ύψος περιοχής κειμένου σε px
-   * @returns {Array<{start: number, end: number}>}
+   * @param {number} [minScale] 0 για κανονική σελιδοποίηση
+   * @returns {Array<{start: number, end: number, scale: number}>}
    */
-  function paginate(root, pageH) {
+  function paginate(root, pageH, minScale = 0) {
     const rootTop = root.getBoundingClientRect().top;
     const total = Math.ceil(root.getBoundingClientRect().height);
     const y = el => Math.round(el.getBoundingClientRect().top - rootTop);
@@ -9453,21 +9464,35 @@ const ExportManager = (() => {
     const forced = Array.from(root.querySelectorAll('.wf-pagebreak, .wf-break-before')).map(el => (el.classList.contains('wf-pagebreak') ? Math.round(el.getBoundingClientRect().bottom - rootTop) : y(el))).sort((a, b) => a - b);
     const sorted = [...candidates].sort((a, b) => a - b);
     const pages = [];
-    let start = 0;
-    while (start < total - 1 && pages.length < 500) {
-      const limit = start + pageH;
-      const f = forced.find(v => v > start + 1 && v <= limit);
-      let end;
-      if (f !== undefined) end = f;
-      else if (limit >= total) end = total;
-      else {
-        const c = sorted.filter(v => v > start + pageH * 0.25 && v <= limit).pop();
-        end = c !== undefined ? c : limit;
+    const split = (from, to) => {
+      let start = from;
+      while (start < to - 1 && pages.length < 500) {
+        const limit = start + pageH;
+        const f = forced.find(v => v > start + 1 && v <= limit && v <= to);
+        let end;
+        if (f !== undefined) end = f;
+        else if (limit >= to) end = to;
+        else {
+          const c = sorted.filter(v => v > start + pageH * 0.25 && v <= limit).pop();
+          end = c !== undefined ? c : limit;
+        }
+        pages.push({ start, end, scale: 1 });
+        start = end;
       }
-      pages.push({ start, end });
-      start = end;
+    };
+    if (minScale > 0) {
+      const bounds = [0, ...forced.filter(v => v > 1 && v < total - 1), total];
+      for (let i = 0; i + 1 < bounds.length; i++) {
+        const [a, b] = [bounds[i], bounds[i + 1]];
+        if (b - a <= 1) continue;
+        if (b - a <= pageH) pages.push({ start: a, end: b, scale: 1 });
+        else if (pageH / (b - a) >= minScale) pages.push({ start: a, end: b, scale: pageH / (b - a) });
+        else split(a, b);
+      }
+    } else {
+      split(0, total);
     }
-    return pages.length ? pages : [{ start: 0, end: Math.max(total, 1) }];
+    return pages.length ? pages : [{ start: 0, end: Math.max(total, 1), scale: 1 }];
   }
 
   /**
@@ -9643,7 +9668,7 @@ const ExportManager = (() => {
       const rect = root.getBoundingClientRect();
       const g = geometry();
       const pxPerMm = rect.width / g.contentW;
-      const pages = paginate(root, g.contentH * pxPerMm);
+      const pages = paginate(root, g.contentH * pxPerMm, fitScale());
       const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
       const canvas = await window.html2canvas(root, {
         scale, backgroundColor: '#ffffff', logging: false, useCORS: false, onclone: revealStage,
@@ -9661,7 +9686,8 @@ const ExportManager = (() => {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, slice.width, slice.height);
         ctx.drawImage(canvas, 0, Math.round(p.start * scale), canvas.width, slice.height, 0, 0, canvas.width, slice.height);
-        pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left, g.top, g.contentW, (p.end - p.start) / pxPerMm, undefined, 'FAST');
+        const s = p.scale || 1;
+        pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left + (g.contentW * (1 - s)) / 2, g.top, g.contentW * s, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
         const titleX = logo ? logo.w + 3 : 0;
         if (logoPng) pdf.addImage(logoPng.data, logoPng.format, g.left, logo.top, logo.w, logo.h, 'wf-logo', 'FAST');
         if (opts.headerTitle) {
@@ -10291,6 +10317,33 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
 .wf-embed-live iframe { display: block; width: 100%; border: 1px solid #CBD5E1; border-radius: 4px; background: #FFFFFF; }
 .wf-embed-live .wf-embed-link { margin: 1mm 0 0; }
 @media (max-width: 860px) { .wf-export-page { margin: 0; padding: 12px !important; width: auto !important; } .wf-page-logo { position: static; display: block; margin-bottom: 8px; } }
+/* Tablet και κινητό: μεγαλύτερα σημεία αφής. */
+@media (max-width: 1024px) {
+  .wf-export-bar button { height: 40px; padding: 0 16px; }
+  #print-root td.wf-fill { height: 10mm; }
+  #print-root ul.wf-checklist > li { padding-top: 2px; padding-bottom: 2px; }
+}
+/* Κινητό: όλα σε μία στήλη, οι πίνακες κυλούν οριζόντια, κανένα στοιχείο πιο φαρδύ από την οθόνη. */
+@media (max-width: 600px) {
+  .wf-export-bar { gap: 6px; padding: 6px 8px; }
+  .wf-export-bar span { display: none; }
+  .wf-export-bar button { flex: 1 1 0; min-width: 0; padding: 0 6px; font-size: 13px; }
+  #print-root { padding: 10px !important; overflow-x: hidden; }
+  #print-root .wf-student { flex-direction: column; gap: 10px; }
+  #print-root .wf-student > span { display: flex; width: 100%; }
+  #print-root .wf-student .line { flex: 1; width: auto !important; min-width: 0; }
+  #print-root .wf-print-doc.wf-layout-grid > .wf-print-section { grid-column: 1 / -1; }
+  #print-root table.wf-grid, #print-root table.wf-grid > tbody, #print-root table.wf-grid > thead,
+  #print-root table.wf-grid > * > tr, #print-root table.wf-grid > * > tr > td, #print-root table.wf-grid > * > tr > th { display: block; width: auto !important; }
+  #print-root table.wf-grid > colgroup { display: none; }
+  #print-root .wf-xscroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #print-root .wf-xscroll > table { table-layout: auto; width: 100%; }
+  #print-root .wf-xscroll td.wf-fill { min-width: 72px; }
+  #print-root .wf-float-left, #print-root .wf-float-right { float: none !important; display: block; margin: 0 auto 8px !important; }
+  #print-root img { max-width: 100% !important; height: auto; }
+  #print-root .wf-embed-live { width: auto !important; float: none !important; }
+  #print-root .wf-answer { min-height: 28mm; }
+}
 .wf-page-logo { position: absolute; object-fit: contain; object-position: left center; }
 .wf-pdf .wf-answer { border-color: #CBD5E1; }
 .wf-pdf td.wf-fill { background: transparent; }
@@ -10445,7 +10498,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         const g = CFG.g;
         const rect = root.getBoundingClientRect();
         const pxPerMm = rect.width / g.contentW;
-        const pages = paginate(root, g.contentH * pxPerMm);
+        const pages = paginate(root, g.contentH * pxPerMm, CFG.fit || 0);
         const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
         const canvas = await window.html2canvas(root, {
           scale, backgroundColor: '#ffffff', logging: false, useCORS: false,
@@ -10464,7 +10517,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, slice.width, slice.height);
           ctx.drawImage(canvas, 0, Math.round(p.start * scale), canvas.width, slice.height, 0, 0, canvas.width, slice.height);
-          pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left, g.top, g.contentW, (p.end - p.start) / pxPerMm, undefined, 'FAST');
+          const s = p.scale || 1;
+          pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left + (g.contentW * (1 - s)) / 2, g.top, g.contentW * s, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
           const L = CFG.logo;
           const titleX = L ? L.w + 3 : 0;
           if (logo) pdf.addImage(logo.data, logo.format, g.left, L.top, L.w, L.h, 'wf-logo', 'FAST');
@@ -10554,6 +10608,12 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         line.setAttribute('contenteditable', 'true');
         line.setAttribute('role', 'textbox');
       });
+      // Σε κινητό οι πίνακες κυλούν οριζόντια μέσα στο πλαίσιό τους, αντί να φαρδαίνουν τη σελίδα.
+      root.querySelectorAll('table:not(.wf-grid)').forEach(table => {
+        const wrap = Util.h('div', { class: 'wf-xscroll' });
+        table.before(wrap);
+        wrap.append(table);
+      });
       let css = Array.from(document.querySelectorAll('style')).filter(s => s.id !== 'page-style').map(s => s.textContent).join('\n');
       if (!root.querySelector('.katex')) css = css.replace(/\/\* === LIBRARY: KaTeX CSS[^*]*\*\/[\s\S]*?(?=\/\* === APPLICATION STYLES === \*\/)/, '');
       const pdfLibs = ['jsPDF', 'html2canvas'].map(librarySource);
@@ -10561,7 +10621,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const m = AppState.get().metadata;
       const cfg = {
         title: docTitle(), g, headerTitle: !!opts.headerTitle, date: opts.headerDate && m.date ? Util.formatDate(m.date) : '', pageNumbers: !!opts.pageNumbers,
-        logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null
+        logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null, fit: fitScale()
       };
       const logoHtml = logo ? `<img class="wf-page-logo" src="${logo.src}" alt="Λογότυπο" style="top:${logo.top.toFixed(2)}mm;left:${g.left}mm;width:${logo.w.toFixed(2)}mm;height:${logo.h.toFixed(2)}mm"><img class="wf-head-preload" src="${logo.svg}" alt="">` : '';
       const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${logoHtml}${root.outerHTML}</main>`;
@@ -10607,25 +10667,29 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       }
       const g = geometry();
       const pxPerMm = root.getBoundingClientRect().width / g.contentW;
-      const pages = paginate(root, g.contentH * pxPerMm);
+      const pages = paginate(root, g.contentH * pxPerMm, fitScale());
       stage.remove();
       const m = AppState.get().metadata;
       const zoom = Math.min(1, (pagesEl.clientWidth - 48) / (g.pageW * pxPerMm));
       pagesEl.replaceChildren(...pages.map((p, i) => {
         const clone = root.cloneNode(true);
         clone.style.marginTop = `${-p.start}px`;
+        const s = p.scale || 1;
+        const content = s < 1 ? Util.h('div', { style: { transform: `scale(${s})`, transformOrigin: '50% 0' } }, clone) : clone;
         const page = Util.h('div', { class: 'preview-page', 'aria-label': `Σελίδα ${i + 1}`, style: { width: `${g.pageW}mm`, height: `${g.pageH}mm`, padding: `${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm` } },
           Util.h('div', { class: 'preview-head', style: { left: `${g.left}mm`, right: `${g.right}mm`, top: logo ? `${logo.top}mm` : `${Math.max(3, g.top / 2 - 3)}mm`, height: logo ? `${logo.h}mm` : null } },
             Util.h('span', { class: 'preview-head-left' },
               logo ? Util.h('img', { src: logo.src, alt: 'Λογότυπο', style: { width: `${logo.w}mm`, height: `${logo.h}mm` } }) : null,
               Util.h('span', { text: opts.headerTitle ? docTitle() : '' })),
             Util.h('span', { text: opts.headerDate ? Util.formatDate(m.date) : '' })),
-          Util.h('div', { class: 'preview-viewport', style: { height: `${p.end - p.start}px` } }, clone),
+          Util.h('div', { class: 'preview-viewport', style: { height: `${(p.end - p.start) * s}px` } }, content),
           Util.h('div', { class: 'preview-foot', style: { left: `${g.left}mm`, right: `${g.right}mm`, bottom: `${Math.max(3, g.bottom / 2 - 3)}mm` }, text: opts.pageNumbers ? `Σελίδα ${i + 1} από ${pages.length}` : '' }));
         if (zoom > 0 && zoom < 1) page.style.zoom = String(zoom);
         return page;
       }));
-      info.textContent = `${pages.length} ${pages.length === 1 ? 'σελίδα' : 'σελίδες'} A4 ${g.landscape ? 'οριζόντια' : 'κατακόρυφα'} · περιθώρια ${AppState.get().style.margins === 'narrow' ? 'στενά' : 'κανονικά'}`;
+      const shrunk = pages.filter(p => p.scale < 1).map(p => Math.round(p.scale * 100));
+      info.textContent = `${pages.length} ${pages.length === 1 ? 'σελίδα' : 'σελίδες'} A4 ${g.landscape ? 'οριζόντια' : 'κατακόρυφα'} · περιθώρια ${AppState.get().style.margins === 'narrow' ? 'στενά' : 'κανονικά'}`
+        + (shrunk.length ? ` · σμίκρυνση για να χωρέσουν: ${shrunk.map(v => `${v}%`).join(', ')}` : '');
     };
     const checks = [
       ['headerTitle', 'Τίτλος στην κεφαλίδα'],
@@ -12126,6 +12190,7 @@ const UIController = (() => {
       if (data) AppState.setStyle({ logo: data });
     });
     $('btn-logo-remove').addEventListener('click', () => AppState.setStyle({ logo: '' }));
+    $('style-fit-pages').addEventListener('change', e => AppState.setStyle({ fitPages: e.target.checked }));
     $('btn-style-preview').addEventListener('click', () => ExportManager.preview());
     renderStyle();
   }
@@ -12148,6 +12213,7 @@ const UIController = (() => {
     set('style-logo-width', st.logoWidth);
     set('style-orientation', st.orientation);
     set('style-margins', st.margins);
+    $('style-fit-pages').checked = !!st.fitPages;
     $('layout-flow').setAttribute('aria-pressed', String(st.layout !== 'grid'));
     $('layout-grid').setAttribute('aria-pressed', String(st.layout === 'grid'));
     EditorManager.setLayout(st.layout);
