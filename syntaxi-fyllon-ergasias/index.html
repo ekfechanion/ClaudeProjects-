@@ -753,6 +753,13 @@ kbd {
 .doc-content .wf-field-box { margin: 2mm 0 3mm; }
 .doc-content .wf-field-box > div { height: 9mm; border-bottom: 1px solid #999999; }
 .doc-content .wf-field-inline { display: inline-block; max-width: 100%; height: 1.2em; margin: 0 2px; vertical-align: -0.25em; border-bottom: 1px solid currentColor; }
+.editor-content td[data-locked="true"], .editor-content th[data-locked="true"] {
+  position: relative; cursor: default;
+  background-image: repeating-linear-gradient(135deg, transparent 0 7px, rgba(100, 116, 139, 0.1) 7px 9px);
+}
+.editor-content td[data-locked="true"]::after, .editor-content th[data-locked="true"]::after {
+  content: '🔒'; position: absolute; top: 1px; right: 3px; font-size: 10px; opacity: 0.55; pointer-events: none;
+}
 .editor-content .wf-field { cursor: pointer; background: var(--primary-soft); }
 .editor-content .wf-field-box { position: relative; padding: 0 4px; border-radius: 4px; }
 .editor-content .wf-field-box::before { content: '✎ Πεδίο απάντησης μαθητή'; position: absolute; right: 6px; top: 2px; font: 11px var(--font-ui); color: var(--text-2); }
@@ -2373,7 +2380,7 @@ const Sanitizer = (() => {
   const TAGS = {
     p: [], div: [], br: [], span: [], b: [], strong: [], i: [], em: [], u: [], s: [], strike: [], del: [],
     sub: [], sup: [], ul: [], ol: ['start'], li: ['data-checked'], a: ['href', 'target', 'rel', 'title'],
-    table: [], thead: [], tbody: [], tfoot: [], tr: [], td: ['colspan', 'rowspan'], th: ['colspan', 'rowspan'],
+    table: [], thead: [], tbody: [], tfoot: [], tr: [], td: ['colspan', 'rowspan', 'data-locked'], th: ['colspan', 'rowspan', 'data-locked'],
     img: ['src', 'alt', 'data-graph-id', 'data-graph-json'], h1: [], h2: [], h3: [], h4: [],
     blockquote: [], hr: [], pre: [], code: [], figure: [], figcaption: [], caption: [], colgroup: [], col: ['span']
   };
@@ -2497,6 +2504,7 @@ const Sanitizer = (() => {
         const v = el.getAttribute(name);
         if (v !== null && !(/^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 20)) el.removeAttribute(name);
       });
+      if (el.hasAttribute('data-locked') && el.getAttribute('data-locked') !== 'true') el.removeAttribute('data-locked');
     }
     if (tag === 'li' && el.hasAttribute('data-checked')) el.setAttribute('data-checked', el.getAttribute('data-checked') === 'true' ? 'true' : 'false');
     if (tag === 'ol') {
@@ -4291,6 +4299,7 @@ const EditorManager = (() => {
     MathEngine.hydrate(block.content);
     Embeds.hydrate(block.content);
     Formulas.recalc(block.content);
+    applyLocks(block.content);
     block.undo = { stack: [block.content.innerHTML], index: 0 };
     refreshStatus(block);
   }
@@ -4614,6 +4623,7 @@ const EditorManager = (() => {
   function restoreSnapshot(block, html) {
     InsertTools.hideOverlays();
     block.content.innerHTML = html;
+    applyLocks(block.content);
     block.content.focus({ preventScroll: true });
     caretIn(block.content, true);
     sync(block);
@@ -4644,10 +4654,22 @@ const EditorManager = (() => {
    */
   function serializeEl(el) {
     const clone = el.cloneNode(true);
+    clone.querySelectorAll('td[contenteditable], th[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
     clone.querySelectorAll('.math-node, .wf-embed').forEach(n => n.replaceChildren());
     clone.querySelectorAll('.is-selected').forEach(n => n.classList.remove('is-selected'));
     clone.querySelectorAll('[class=""]').forEach(n => n.removeAttribute('class'));
     return clone.innerHTML;
+  }
+
+  /**
+   * Κλειδωμένα κελιά (data-locked) δεν δέχονται πληκτρολόγηση στον επεξεργαστή.
+   * @param {HTMLElement} root
+   */
+  function applyLocks(root) {
+    root.querySelectorAll('td, th').forEach(cell => {
+      if (cell.getAttribute('data-locked') === 'true') cell.setAttribute('contenteditable', 'false');
+      else if (cell.hasAttribute('contenteditable')) cell.removeAttribute('contenteditable');
+    });
   }
 
   /**
@@ -5015,6 +5037,7 @@ const EditorManager = (() => {
     const table = cell.closest('table');
     let cells = Array.from(table.rows).flatMap(r => Array.from(r.cells));
     let idx = cells.indexOf(cell) + (back ? -1 : 1);
+    while (idx >= 0 && idx < cells.length && cells[idx].getAttribute('data-locked') === 'true') idx += back ? -1 : 1;
     if (idx >= cells.length) {
       InsertTools.addRow(cells[cells.length - 1], true);
       cells = Array.from(table.rows).flatMap(r => Array.from(r.cells));
@@ -5402,7 +5425,7 @@ const EditorManager = (() => {
     init, ids, getBlockEl, getActiveId, firstId, createBlock, updateBlock, bindContent, destroyBlock, setActive,
     exec, insertInline, insertBlock, commit, undo, redo, flush, flushAll, hasContent, isComplete, stats,
     getRenderedHTML, toggleFocus, exitFocus, inFocusMode, focusSection, refocus, contentWidth, getContentEl,
-    selectedText, caretIn, applyRange, serializeEl, insertionWidth, toggleChecklist, insertDictation, setLayout
+    selectedText, caretIn, applyRange, applyLocks, serializeEl, insertionWidth, toggleChecklist, insertDictation, setLayout
   };
 })();
 
@@ -5963,6 +5986,60 @@ const InsertTools = (() => {
   }
 
   /**
+   * Κλειδώνει ή ξεκλειδώνει κελιά.
+   * @param {HTMLTableCellElement[]} cells
+   * @param {boolean} locked
+   */
+  function setLock(cells, locked) {
+    cells.forEach(c => {
+      if (locked) c.setAttribute('data-locked', 'true');
+      else c.removeAttribute('data-locked');
+    });
+    if (cells[0]) EditorManager.applyLocks(cells[0].closest('table'));
+  }
+
+  /**
+   * Διάλογος κλειδώματος για γραμμή, στήλη ή όλο τον πίνακα.
+   * @param {HTMLTableCellElement} cell
+   * @param {string} id
+   */
+  function lockDialog(cell, id) {
+    const table = cell.closest('table');
+    const g = Formulas.grid(table);
+    const [r, c] = g.pos.get(cell);
+    const scope = Util.h('select', { class: 'select', 'aria-label': 'Ποια κελιά' },
+      [['row', 'Όλη η γραμμή'], ['col', 'Όλη η στήλη'], ['body', 'Όλος ο πίνακας εκτός από την κεφαλίδα'], ['table', 'Όλος ο πίνακας'], ['filled', 'Όσα κελιά έχουν ήδη περιεχόμενο']].map(([v, t]) => Util.h('option', { value: v, text: t })));
+    const pick = () => {
+      const set = new Set();
+      g.cells.forEach((row, rr) => row.forEach((x, cc) => {
+        if (!x) return;
+        const v = scope.value;
+        if ((v === 'row' && rr === r) || (v === 'col' && cc === c) || v === 'table'
+          || (v === 'body' && x.parentElement.parentElement.tagName !== 'THEAD' && x.tagName === 'TD')
+          || (v === 'filled' && (x.textContent.trim() || x.querySelector('img, .math-node, .wf-formula')))) set.add(x);
+      }));
+      return [...set];
+    };
+    const done = locked => () => {
+      setLock(pick(), locked);
+      EditorManager.commit(id);
+      return true;
+    };
+    Modal.open({
+      title: 'Κλείδωμα κελιών', size: 'sm',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Κελιά' }), scope),
+        Util.h('p', { class: 'hint', text: 'Τα κλειδωμένα κελιά δεν αλλάζουν κατά λάθος στον επεξεργαστή (ξεκλείδωμα με δεξί κλικ). Στο διαδραστικό HTML ο μαθητής γράφει μόνο στα κενά ξεκλείδωτα κελιά.' })),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        { label: 'Ξεκλείδωμα', variant: 'secondary', onClick: done(false) },
+        { label: 'Κλείδωμα', variant: 'primary', onClick: done(true) }
+      ],
+      initialFocus: scope
+    });
+  }
+
+  /**
    * Χρώματα πίνακα: φόντο σε κελί/γραμμή/στήλη/πίνακα και διχρωμία (εναλλασσόμενες γραμμές ή στήλες).
    * @param {HTMLTableCellElement} cell
    * @param {string} id
@@ -6222,6 +6299,9 @@ const InsertTools = (() => {
       ['Εισαγωγή στήλης αριστερά', () => addColumn(cell, false)],
       ['Εισαγωγή στήλης δεξιά', () => addColumn(cell, true)],
       null,
+      [cell.getAttribute('data-locked') === 'true' ? 'Ξεκλείδωμα κελιού' : 'Κλείδωμα κελιού', () => setLock([cell], cell.getAttribute('data-locked') !== 'true'), false,
+        'Κλειδωμένο κελί: δεν αλλάζει κατά λάθος στον επεξεργαστή και ο μαθητής δεν γράφει σε αυτό στο διαδραστικό HTML'],
+      ['Κλείδωμα γραμμής, στήλης ή πίνακα…', () => lockDialog(cell, id)],
       ['Χρώματα πίνακα…', () => colorDialog(cell, id), false, 'Χρώμα φόντου σε κελί, γραμμή, στήλη ή πίνακα, και διχρωμία (εναλλάξ γραμμές ή στήλες)'],
       ['Διαίρεση κελιού…', () => splitDialog(cell, id), false, 'Χωρίζει το κελί σε στήλες ή γραμμές'],
       ['Συγχώνευση με το δεξί κελί', () => mergeCell(cell, 'right')],
@@ -11538,7 +11618,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       });
       root.querySelectorAll('.wf-answer-lines').forEach(box => box.replaceWith(Util.h('div', { class: 'wf-answer', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Απάντηση', 'data-placeholder': 'Γράψε εδώ την απάντησή σου…' })));
       root.querySelectorAll('td').forEach(td => {
-        if (td.textContent.trim() || td.querySelector('img, .math-node, table')) return;
+        if (td.getAttribute('data-locked') === 'true' || td.textContent.trim() || td.querySelector('img, .math-node, table')) return;
         td.replaceChildren();
         td.classList.add('wf-fill');
         td.setAttribute('contenteditable', 'true');
