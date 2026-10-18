@@ -566,6 +566,29 @@ button { cursor: pointer; }
 }
 .fit-result.is-error { color: var(--danger); font-family: var(--font-ui); font-size: 13px; }
 
+.graph-source { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-2); }
+.graph-source-cols { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
+.graph-source-cols .btn { height: 36px; }
+
+.editor-content .wf-formula { cursor: pointer; border-radius: 3px; padding: 0 2px; background: var(--primary-soft); font-variant-numeric: tabular-nums; }
+.editor-content .wf-formula[data-error] { color: var(--danger); }
+.editor-content .wf-formula:empty::before { content: 'ƒx'; color: var(--text-3); font-style: italic; }
+.formula-ops { display: flex; flex-wrap: wrap; gap: 6px; }
+.formula-sym { display: inline-block; min-width: 16px; margin-right: 4px; font-weight: 700; color: var(--primary); }
+.formula-grid-wrap { max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-card); scrollbar-width: thin; }
+.formula-grid { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.formula-grid th { position: sticky; top: 0; padding: 2px 8px; background: var(--surface-2); color: var(--text-2); font-size: 12px; font-weight: 600; }
+.formula-grid tbody th { position: static; text-align: right; }
+.formula-grid td {
+  max-width: 120px; padding: 4px 8px; border: 1px solid var(--border); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-3);
+}
+.formula-grid td.is-num { color: var(--text); font-variant-numeric: tabular-nums; }
+.formula-grid td:hover { background: var(--primary-soft); }
+.formula-grid td.is-target { background: var(--primary); color: #FFFFFF; text-align: center; }
+.formula-row { display: flex; gap: 12px; align-items: end; }
+.formula-input { font-family: var(--font-mono); }
+
 .table-picker { display: grid; grid-template-columns: repeat(10, 22px); gap: 3px; }
 .table-picker span { width: 22px; height: 22px; border: 1px solid var(--border-strong); border-radius: 3px; background: var(--surface); cursor: pointer; }
 .table-picker span.is-on { background: var(--primary-soft); border-color: var(--primary); }
@@ -2337,6 +2360,10 @@ const Sanitizer = (() => {
       cleanEmbed(el);
       return;
     }
+    if (el.classList.contains('wf-formula')) {
+      cleanFormula(el);
+      return;
+    }
     if (el.classList.contains('wf-pagebreak')) {
       const div = el.ownerDocument.createElement('div');
       div.className = 'wf-pagebreak';
@@ -2440,6 +2467,27 @@ const Sanitizer = (() => {
     span.setAttribute('data-latex', latex);
     span.setAttribute('data-display', display ? '1' : '0');
     span.setAttribute('contenteditable', 'false');
+    el.replaceWith(span);
+  }
+
+  /**
+   * Κρατά τον τύπο κελιού και το τελευταίο αποτέλεσμα ως κείμενο· ο υπολογισμός γίνεται ξανά από το Formulas.
+   * @param {Element} el
+   */
+  function cleanFormula(el) {
+    const formula = (el.getAttribute('data-formula') || '').trim();
+    const text = el.textContent.slice(0, 60);
+    if (!formula.startsWith('=') || formula.length > 301) {
+      el.replaceWith(el.ownerDocument.createTextNode(text));
+      return;
+    }
+    const span = el.ownerDocument.createElement('span');
+    span.className = 'wf-formula';
+    span.setAttribute('data-formula', formula);
+    const decimals = el.getAttribute('data-decimals');
+    if (decimals && /^[0-6]$/.test(decimals)) span.setAttribute('data-decimals', decimals);
+    span.setAttribute('contenteditable', 'false');
+    span.textContent = text;
     el.replaceWith(span);
   }
 
@@ -3896,6 +3944,7 @@ const EditorManager = (() => {
     content.addEventListener('dragleave', () => content.classList.remove('is-drop-target'));
     content.addEventListener('drop', e => onDrop(e, block));
     content.addEventListener('blur', () => {
+      if (Formulas.convertPending(content)) commit(block.id);
       flush(block.id);
       Bus.emit('editor-blur', { id: block.id });
     });
@@ -4044,6 +4093,7 @@ const EditorManager = (() => {
     if (!block.content.firstChild) block.content.innerHTML = '<p><br></p>';
     MathEngine.hydrate(block.content);
     Embeds.hydrate(block.content);
+    Formulas.recalc(block.content);
     block.undo = { stack: [block.content.innerHTML], index: 0 };
     refreshStatus(block);
   }
@@ -4311,6 +4361,7 @@ const EditorManager = (() => {
   function sync(block) {
     clearTimeout(block.syncTimer);
     block.syncTimer = null;
+    Formulas.recalc(block.content);
     AppState.setContent(block.id, serializeEl(block.content));
   }
 
@@ -4725,6 +4776,21 @@ const EditorManager = (() => {
       if (code === 'KeyE') return run(() => Embeds.open({ sectionId: block.id }));
       if (code === 'KeyI') return run(() => InsertTools.image(block.id));
     }
+    if ((e.key === 'Enter' || e.key === 'Tab') && !mod && !e.altKey) {
+      const n = document.getSelection()?.anchorNode;
+      const cell = n && (n.nodeType === 1 ? n : n.parentElement)?.closest('td, th');
+      if (cell && block.content.contains(cell) && Formulas.convert(cell, true)) {
+        commit(block.id);
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const g = Formulas.grid(cell.closest('table'));
+          const [r, c] = g.pos.get(cell);
+          const next = g.cells[r + cell.rowSpan] && g.cells[r + cell.rowSpan][c];
+          caretIn(next || cell, true);
+          return;
+        }
+      }
+    }
     if (e.key === 'Tab' && !mod && !e.altKey) {
       const sel = document.getSelection();
       const node = sel && sel.anchorNode;
@@ -4832,6 +4898,7 @@ const EditorManager = (() => {
    */
   function onClick(e, block) {
     const target = e.target;
+    if (Formulas.convertPending(block.content, target.closest && target.closest('td, th'))) commit(block.id);
     const obj = target.closest && target.closest('img, .wf-embed');
     if (obj && block.content.contains(obj)) {
       InsertTools.selectImage(obj, block.id);
@@ -4860,6 +4927,12 @@ const EditorManager = (() => {
    * @param {Object} block
    */
   function onDblClick(e, block) {
+    const formula = e.target.closest && e.target.closest('.wf-formula');
+    if (formula && block.content.contains(formula)) {
+      e.preventDefault();
+      Formulas.open(formula.closest('td, th'), block.id);
+      return;
+    }
     const math = e.target.closest && e.target.closest('.math-node');
     if (math && block.content.contains(math)) {
       e.preventDefault();
@@ -5226,6 +5299,8 @@ const InsertTools = (() => {
   function addRow(cell, after) {
     const tr = cell.parentElement;
     const inHead = tr.parentElement.tagName === 'THEAD';
+    const at = Array.from(tr.closest('table').rows).indexOf(tr);
+    Formulas.shift(tr.closest('table'), 'row', after ? at + 1 : at, 1);
     const newTr = Util.h('tr');
     Array.from(tr.cells).forEach(c => {
       const tag = inHead && after ? 'td' : c.tagName.toLowerCase();
@@ -5252,6 +5327,8 @@ const InsertTools = (() => {
    */
   function addColumn(cell, after) {
     const index = cell.cellIndex;
+    const col = Formulas.grid(cell.closest('table')).pos.get(cell)[1];
+    Formulas.shift(cell.closest('table'), 'col', after ? col + cell.colSpan : col, 1);
     Array.from(cell.closest('table').rows).forEach(row => {
       const ref = row.cells[Math.min(index, row.cells.length - 1)];
       const tag = row.parentElement.tagName === 'THEAD' ? 'th' : 'td';
@@ -5267,6 +5344,7 @@ const InsertTools = (() => {
    */
   function deleteRow(cell) {
     const table = cell.closest('table');
+    Formulas.shift(table, 'row', Array.from(table.rows).indexOf(cell.parentElement), -1);
     const section = cell.parentElement.parentElement;
     cell.parentElement.remove();
     if (section !== table && !section.rows.length) section.remove();
@@ -5279,6 +5357,7 @@ const InsertTools = (() => {
   function deleteColumn(cell) {
     const table = cell.closest('table');
     const index = cell.cellIndex;
+    Formulas.shift(table, 'col', Formulas.grid(table).pos.get(cell)[1], -1);
     Array.from(table.rows).forEach(row => { if (row.cells[index]) row.cells[index].remove(); });
     Array.from(table.rows).forEach(row => { if (!row.cells.length) row.remove(); });
     if (!table.rows.length) table.remove();
@@ -5292,7 +5371,12 @@ const InsertTools = (() => {
    */
   function tableMenu(e, cell, id) {
     hideMenu();
+    const formula = cell.querySelector('.wf-formula');
     const items = [
+      [formula ? 'Επεξεργασία τύπου…' : 'Τύπος υπολογισμού…', () => Formulas.open(cell, id)],
+      ...(formula ? [['Κατάργηση τύπου (μένει η τιμή)', () => cell.replaceChildren(document.createTextNode(formula.textContent))]] : []),
+      ['Γραφική παράσταση από τον πίνακα…', () => GraphEngine.open({ sectionId: id, table: cell.closest('table') })],
+      null,
       ['Εισαγωγή γραμμής πάνω', () => addRow(cell, false)],
       ['Εισαγωγή γραμμής κάτω', () => addRow(cell, true)],
       null,
@@ -6210,6 +6294,808 @@ const InsertTools = (() => {
     init, table, addRow, tableMenu, image, insertImageFile, insertImageData, prepareImage, selectImage, selectedImage, editImage, setPlacement,
     removeSelectedImage, hideOverlays, link, linkPopover, caption, pageBreak, columns, card, target
   };
+})();
+
+/**
+ * Τύποι σε κελιά πίνακα (=B2*C2, =AVERAGE(B2:B6) …) με αναφορές τύπου Excel μέσα στον ίδιο πίνακα.
+ * Το κελί κρατά <span class="wf-formula" data-formula="…"> με το αποτέλεσμα ως κείμενο,
+ * οπότε οι εξαγωγές βλέπουν απλό κείμενο.
+ * @namespace Formulas
+ */
+const Formulas = (() => {
+  const MAX_LEN = 300;
+  const LIST = {
+    SUM: v => v.reduce((s, x) => s + x, 0),
+    AVERAGE: v => {
+      if (!v.length) throw fail('#ΔΙΑΙΡ/0!', 'Η μέση τιμή δεν έχει αριθμούς');
+      return v.reduce((s, x) => s + x, 0) / v.length;
+    },
+    PRODUCT: v => v.reduce((s, x) => s * x, 1),
+    MIN: v => (v.length ? Math.min(...v) : 0),
+    MAX: v => (v.length ? Math.max(...v) : 0),
+    COUNT: v => v.length
+  };
+  const SCALAR = {
+    SQRT: [1, 1, x => {
+      if (x < 0) throw fail('#ΑΡΙΘ!', 'Ρίζα αρνητικού αριθμού');
+      return Math.sqrt(x);
+    }],
+    ABS: [1, 1, Math.abs],
+    POWER: [2, 2, (x, y) => x ** y],
+    ROUND: [1, 2, (x, n = 0) => {
+      const f = 10 ** Math.round(n);
+      return Math.round(x * f) / f;
+    }]
+  };
+  const ALIASES = {
+    ΑΘΡΟΙΣΜΑ: 'SUM', ΜΕΣΗ: 'AVERAGE', ΜΕΣΗΤΙΜΗ: 'AVERAGE', ΜΕΣΗ_ΤΙΜΗ: 'AVERAGE', ΜΟ: 'AVERAGE', AVG: 'AVERAGE', MEAN: 'AVERAGE',
+    ΓΙΝΟΜΕΝΟ: 'PRODUCT', ΕΛΑΧΙΣΤΟ: 'MIN', ΜΕΓΙΣΤΟ: 'MAX', ΠΛΗΘΟΣ: 'COUNT', ΡΙΖΑ: 'SQRT', ΑΠΟΛΥΤΟ: 'ABS',
+    ΔΥΝΑΜΗ: 'POWER', ΣΤΡΟΓΓΥΛΟΠΟΙΗΣΗ: 'ROUND', ΣΤΡΟΓΓ: 'ROUND'
+  };
+  // Ελληνικό πληκτρολόγιο: το γράμμα που βγάζει κάθε πλήκτρο της στήλης (C → Ψ, G → Γ, …).
+  const GREEK_KEYS = {
+    Α: 'A', Β: 'B', Ψ: 'C', Δ: 'D', Ε: 'E', Φ: 'F', Γ: 'G', Η: 'H', Ι: 'I', Ξ: 'J', Κ: 'K', Λ: 'L', Μ: 'M',
+    Ν: 'N', Ο: 'O', Π: 'P', Ρ: 'R', Σ: 'S', Τ: 'T', Θ: 'U', Ω: 'V', ς: 'W', Χ: 'X', Υ: 'Y', Ζ: 'Z'
+  };
+  const OPS = { '+': '+', '-': '-', '−': '-', '–': '-', '*': '*', '×': '*', '·': '*', '/': '/', '÷': '/', '^': '^', '²': '²', '³': '³', '√': '√' };
+  const QUICK = [
+    ['sum', 'Σ', 'Άθροισμα'], ['avg', 'x̄', 'Μέση τιμή'], ['add', '+', 'Πρόσθεση'], ['sub', '−', 'Αφαίρεση'],
+    ['mul', '×', 'Γινόμενο'], ['div', '÷', 'Διαίρεση'], ['sq', 'x²', 'Τετράγωνο'], ['sqrt', '√', 'Ρίζα']
+  ];
+  const failed = new WeakMap();
+
+  /**
+   * @param {string} code ένδειξη στο κελί, π.χ. #ΤΙΜΗ!
+   * @param {string} message
+   * @returns {Error}
+   */
+  function fail(code, message) {
+    const e = new Error(message);
+    e.code = code;
+    return e;
+  }
+
+  /** @param {string} s @returns {string} κεφαλαία χωρίς τόνους */
+  function plain(s) {
+    return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  }
+
+  /** @param {number} c 0-based @returns {string} A, B, …, Z, AA … */
+  function colName(c) {
+    let s = '';
+    for (let n = c + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
+    return s;
+  }
+
+  /** @param {{col: number, row: number, absCol?: boolean, absRow?: boolean}} r @returns {string} */
+  function refName(r) {
+    return `${r.absCol ? '$' : ''}${colName(r.col)}${r.absRow ? '$' : ''}${r.row + 1}`;
+  }
+
+  /**
+   * Αναγνωρίζει αναφορά κελιού (και με ελληνικά γράμματα από το ίδιο πλήκτρο).
+   * @param {string} word
+   * @returns {{col: number, row: number, absCol: boolean, absRow: boolean}|null}
+   */
+  function parseRef(word) {
+    const latin = word.replace(/[^$\d]/g, ch => GREEK_KEYS[ch] || GREEK_KEYS[ch.toUpperCase()] || ch.toUpperCase());
+    const m = /^(\$?)([A-Z]{1,2})(\$?)(\d{1,4})$/.exec(latin);
+    if (!m || Number(m[4]) < 1) return null;
+    const col = m[2].split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+    return { col, row: Number(m[4]) - 1, absCol: !!m[1], absRow: !!m[3] };
+  }
+
+  /**
+   * Λεκτική ανάλυση. Κάθε token κρατά τη θέση του, ώστε οι αναφορές να ξαναγράφονται χωρίς να αλλάζει το υπόλοιπο κείμενο.
+   * Δεκαδικά με κόμμα ή τελεία· ορίσματα με «;» (ή «,» όταν δεν ακολουθεί ψηφίο).
+   * @param {string} src χωρίς το αρχικό =
+   * @returns {Array<{t: string, v?: *, s: number, e: number}>}
+   */
+  function lex(src) {
+    const out = [];
+    let i = 0;
+    while (i < src.length) {
+      const ch = src[i];
+      if (/\s/.test(ch)) { i++; continue; }
+      const rest = src.slice(i);
+      let m = /^\d+(?:[.,]\d+)?(?:[eE][-+]?\d+)?/.exec(rest) || /^\.\d+/.exec(rest);
+      if (m) {
+        out.push({ t: 'num', v: Util.parseNumber(m[0]), s: i, e: i + m[0].length });
+        i += m[0].length;
+        continue;
+      }
+      m = /^#[^\s()+\-*/^;,:]*!?/.exec(rest);
+      if (m) {
+        out.push({ t: 'bad', s: i, e: i + m[0].length });
+        i += m[0].length;
+        continue;
+      }
+      m = /^[$\p{L}_][$\p{L}\d_]*/u.exec(rest);
+      if (m) {
+        const after = src.slice(i + m[0].length).trimStart();
+        const ref = after[0] === '(' ? null : parseRef(m[0]);
+        if (ref) out.push({ t: 'ref', v: ref, s: i, e: i + m[0].length });
+        else out.push({ t: after[0] === '(' ? 'fn' : 'name', v: plain(m[0]), s: i, e: i + m[0].length });
+        i += m[0].length;
+        continue;
+      }
+      if (OPS[ch]) out.push({ t: 'op', v: OPS[ch], s: i, e: i + 1 });
+      else if (ch === '(' || ch === ')' || ch === ':') out.push({ t: ch, s: i, e: i + 1 });
+      else if (ch === ';' || ch === ',') out.push({ t: 'sep', s: i, e: i + 1 });
+      else throw fail('#ΣΦΑΛΜΑ!', `Μη αναμενόμενος χαρακτήρας «${ch}»`);
+      i++;
+    }
+    return out;
+  }
+
+  /**
+   * Συντακτική ανάλυση σε δέντρο. Προτεραιότητα: ^ ² ³ πριν από πρόσημο, μετά * /, μετά + −.
+   * @param {string} formula με ή χωρίς το αρχικό =
+   * @returns {Object} δέντρο
+   */
+  function parse(formula) {
+    const src = String(formula || '').trim().replace(/^=/, '');
+    if (!src.trim()) throw fail('#ΣΦΑΛΜΑ!', 'Ο τύπος είναι κενός');
+    if (src.length > MAX_LEN) throw fail('#ΣΦΑΛΜΑ!', 'Ο τύπος είναι πολύ μεγάλος');
+    const toks = lex(src);
+    let p = 0;
+    const peek = () => toks[p];
+    const isOp = (...ops) => peek() && peek().t === 'op' && ops.includes(peek().v);
+    const expect = t => {
+      if (!peek() || peek().t !== t) throw fail('#ΣΦΑΛΜΑ!', t === ')' ? 'Λείπει μια παρένθεση «)»' : 'Ο τύπος δεν είναι πλήρης');
+      return toks[p++];
+    };
+    const expr = () => {
+      let node = term();
+      while (isOp('+', '-')) node = { k: 'bin', op: toks[p++].v, a: node, b: term() };
+      return node;
+    };
+    const term = () => {
+      let node = unary();
+      while (isOp('*', '/')) node = { k: 'bin', op: toks[p++].v, a: node, b: unary() };
+      return node;
+    };
+    const unary = () => {
+      if (isOp('-', '+')) {
+        const op = toks[p++].v;
+        const a = unary();
+        return op === '-' ? { k: 'neg', a } : a;
+      }
+      if (isOp('√')) {
+        p++;
+        return { k: 'call', fn: 'SQRT', args: [unary()] };
+      }
+      return power();
+    };
+    const power = () => {
+      let node = primary();
+      for (;;) {
+        if (isOp('²', '³')) node = { k: 'bin', op: '^', a: node, b: { k: 'num', v: toks[p++].v === '²' ? 2 : 3 } };
+        else if (isOp('^')) {
+          p++;
+          return { k: 'bin', op: '^', a: node, b: unary() };
+        } else return node;
+      }
+    };
+    const primary = () => {
+      const tok = toks[p++];
+      if (!tok) throw fail('#ΣΦΑΛΜΑ!', 'Ο τύπος δεν είναι πλήρης');
+      if (tok.t === 'num') return { k: 'num', v: tok.v };
+      if (tok.t === 'bad') return { k: 'bad' };
+      if (tok.t === 'ref') {
+        if (peek() && peek().t === ':') {
+          p++;
+          const end = expect('ref');
+          return { k: 'range', a: tok.v, b: end.v };
+        }
+        return { k: 'ref', v: tok.v };
+      }
+      if (tok.t === 'name') {
+        if (tok.v === 'PI' || tok.v === 'Π') return { k: 'num', v: Math.PI };
+        throw fail('#ΟΝΟΜΑ?', `Άγνωστο κελί ή όνομα «${src.slice(tok.s, tok.e)}»`);
+      }
+      if (tok.t === 'fn') {
+        const fn = ALIASES[tok.v] || tok.v;
+        if (!LIST[fn] && !SCALAR[fn]) throw fail('#ΟΝΟΜΑ?', `Άγνωστη συνάρτηση «${src.slice(tok.s, tok.e)}»`);
+        expect('(');
+        const args = [];
+        if (!(peek() && peek().t === ')')) {
+          args.push(expr());
+          while (peek() && peek().t === 'sep') {
+            p++;
+            args.push(expr());
+          }
+        }
+        expect(')');
+        if (SCALAR[fn]) {
+          const [min, max] = SCALAR[fn];
+          if (args.length < min || args.length > max) throw fail('#ΣΦΑΛΜΑ!', `Η ${fn} θέλει ${min === max ? min : `${min} ή ${max}`} όρισμα${max > 1 ? 'τα' : ''}`);
+          if (args.some(a => a.k === 'range')) throw fail('#ΣΦΑΛΜΑ!', `Η ${fn} δεν δέχεται περιοχή κελιών`);
+        }
+        return { k: 'call', fn, args };
+      }
+      if (tok.t === '(') {
+        const node = expr();
+        expect(')');
+        return node;
+      }
+      throw fail('#ΣΦΑΛΜΑ!', 'Ο τύπος δεν είναι σωστός');
+    };
+    const tree = expr();
+    if (p < toks.length) throw fail('#ΣΦΑΛΜΑ!', toks[p].t === ')' ? 'Περισσεύει μια παρένθεση «)»' : 'Λείπει πράξη ανάμεσα σε δύο όρους');
+    const checkRange = n => {
+      if (!n || typeof n !== 'object') return;
+      if (n.k === 'range' && n !== tree && !n.inCall) throw fail('#ΣΦΑΛΜΑ!', 'Η περιοχή κελιών (π.χ. B2:B6) μπαίνει μόνο μέσα σε συνάρτηση');
+      if (n.k === 'call' && LIST[n.fn]) n.args.forEach(a => { if (a.k === 'range') a.inCall = true; });
+      ['a', 'b'].forEach(key => checkRange(n[key]));
+      (n.args || []).forEach(checkRange);
+    };
+    if (tree.k === 'range') throw fail('#ΣΦΑΛΜΑ!', 'Η περιοχή κελιών (π.χ. B2:B6) μπαίνει μόνο μέσα σε συνάρτηση');
+    checkRange(tree);
+    return tree;
+  }
+
+  /**
+   * Χάρτης θέσεων πίνακα με τις συγχωνεύσεις (colspan/rowspan).
+   * @param {HTMLTableElement} table
+   * @returns {{cells: HTMLTableCellElement[][], pos: Map<HTMLTableCellElement, number[]>, cols: number}}
+   */
+  function grid(table) {
+    const cells = [];
+    const pos = new Map();
+    let cols = 0;
+    Array.from(table.rows).forEach((tr, r) => {
+      cells[r] = cells[r] || [];
+      let c = 0;
+      Array.from(tr.cells).forEach(cell => {
+        while (cells[r][c]) c++;
+        pos.set(cell, [r, c]);
+        for (let i = 0; i < cell.rowSpan; i++) {
+          for (let j = 0; j < cell.colSpan; j++) (cells[r + i] = cells[r + i] || [])[c + j] = cell;
+        }
+        c += cell.colSpan;
+        cols = Math.max(cols, c);
+      });
+    });
+    return { cells, pos, cols };
+  }
+
+  /** @param {Object} n δέντρο @returns {boolean} αν ο τύπος αναφέρεται σε κελιά */
+  function hasRefs(n) {
+    if (!n || typeof n !== 'object') return false;
+    if (n.k === 'ref' || n.k === 'range') return true;
+    return hasRefs(n.a) || hasRefs(n.b) || (n.args || []).some(hasRefs);
+  }
+
+  /**
+   * Πλαίσιο υπολογισμού ενός πίνακα: κρατά τα αποτελέσματα και εντοπίζει κυκλικές αναφορές.
+   * Τύπος που όλα τα κελιά του είναι κενά δίνει κενό (null), ώστε ένα φύλλο με άδειες γραμμές
+   * μετρήσεων να μη γεμίζει με 0 και #ΔΙΑΙΡ/0!.
+   * @param {HTMLTableElement} table
+   */
+  function context(table) {
+    const g = grid(table);
+    const done = new Map();
+    const visiting = new Set();
+    const ctx = { table, g, filled: 0 };
+
+    /** @returns {{n?: number, empty?: boolean, text?: boolean}} */
+    ctx.cell = (r, c) => {
+      const cell = g.cells[r] && g.cells[r][c];
+      if (!cell) throw fail('#ΑΝΑΦ!', `Το κελί ${colName(c)}${r + 1} δεν υπάρχει στον πίνακα`);
+      const span = own(cell);
+      if (span) {
+        const n = ctx.formula(span);
+        if (n === null) return { empty: true };
+        ctx.filled++;
+        return { n };
+      }
+      const text = cell.textContent.replace(/\u00A0/g, ' ').trim();
+      if (!text) return { empty: true };
+      ctx.filled++;
+      const n = Util.parseNumber(text);
+      return Number.isFinite(n) ? { n } : { text: true };
+    };
+    /** @returns {number|null} */
+    ctx.evaluate = tree => {
+      const before = ctx.filled;
+      const blank = () => hasRefs(tree) && ctx.filled === before;
+      try {
+        const value = run(tree, ctx);
+        return blank() ? null : value;
+      } catch (e) {
+        if (blank() && ['#ΔΙΑΙΡ/0!', '#ΤΙΜΗ!', '#ΑΡΙΘ!'].includes(e.code)) return null;
+        throw e;
+      }
+    };
+    ctx.formula = span => {
+      if (done.has(span)) {
+        const d = done.get(span);
+        if (d.error) throw d.error;
+        return d.value;
+      }
+      if (visiting.has(span)) throw fail('#ΚΥΚΛΟΣ!', 'Κυκλική αναφορά: ο τύπος καταλήγει στο ίδιο του το κελί');
+      visiting.add(span);
+      try {
+        const value = ctx.evaluate(parse(span.getAttribute('data-formula')));
+        done.set(span, { value });
+        return value;
+      } catch (error) {
+        done.set(span, { error });
+        throw error;
+      } finally {
+        visiting.delete(span);
+      }
+    };
+    ctx.hold = span => visiting.add(span);
+    return ctx;
+  }
+
+  /** @param {HTMLTableCellElement} cell @returns {HTMLElement|null} ο τύπος του κελιού (όχι εμφωλευμένου πίνακα) */
+  function own(cell) {
+    const span = cell.querySelector('.wf-formula');
+    return span && span.closest('td, th') === cell ? span : null;
+  }
+
+  /**
+   * Υπολογίζει δέντρο τύπου.
+   * @param {Object} n
+   * @param {Object} ctx
+   * @returns {number}
+   */
+  function run(n, ctx) {
+    const num = v => {
+      if (!Number.isFinite(v)) throw fail('#ΑΡΙΘ!', 'Το αποτέλεσμα δεν είναι πεπερασμένος αριθμός');
+      return v;
+    };
+    switch (n.k) {
+      case 'num': return n.v;
+      case 'bad': throw fail('#ΑΝΑΦ!', 'Ο τύπος δείχνει σε κελί που διαγράφηκε');
+      case 'neg': return -run(n.a, ctx);
+      case 'ref': {
+        const v = ctx.cell(n.v.row, n.v.col);
+        if (v.text) throw fail('#ΤΙΜΗ!', `Το κελί ${refName({ ...n.v, absCol: false, absRow: false })} δεν περιέχει αριθμό`);
+        return v.empty ? 0 : v.n;
+      }
+      case 'bin': {
+        const a = run(n.a, ctx);
+        const b = run(n.b, ctx);
+        if (n.op === '+') return a + b;
+        if (n.op === '-') return a - b;
+        if (n.op === '*') return a * b;
+        if (n.op === '/') {
+          if (b === 0) throw fail('#ΔΙΑΙΡ/0!', 'Διαίρεση με το μηδέν');
+          return a / b;
+        }
+        return num(a ** b);
+      }
+      case 'call': {
+        if (LIST[n.fn]) {
+          const values = [];
+          n.args.forEach(arg => {
+            if (arg.k === 'range' || arg.k === 'ref') {
+              const a = arg.k === 'range' ? arg.a : arg.v;
+              const b = arg.k === 'range' ? arg.b : arg.v;
+              for (let r = Math.min(a.row, b.row); r <= Math.max(a.row, b.row); r++) {
+                for (let c = Math.min(a.col, b.col); c <= Math.max(a.col, b.col); c++) {
+                  const cell = ctx.g.cells[r] && ctx.g.cells[r][c];
+                  if (!cell) {
+                    if (arg.k === 'ref') throw fail('#ΑΝΑΦ!', `Το κελί ${colName(c)}${r + 1} δεν υπάρχει στον πίνακα`);
+                    continue;
+                  }
+                  if (ctx.g.pos.get(cell)[0] !== r || ctx.g.pos.get(cell)[1] !== c) continue;
+                  const v = ctx.cell(r, c);
+                  if (Number.isFinite(v.n)) values.push(v.n);
+                }
+              }
+            } else values.push(run(arg, ctx));
+          });
+          return num(LIST[n.fn](values));
+        }
+        return num(SCALAR[n.fn][2](...n.args.map(a => run(a, ctx))));
+      }
+      default: throw fail('#ΣΦΑΛΜΑ!', 'Ο τύπος δεν είναι σωστός');
+    }
+  }
+
+  /**
+   * Μορφοποιεί αποτέλεσμα με δεκαδικό κόμμα.
+   * @param {number} v
+   * @param {string|null} decimals '0'–'6' ή κενό για αυτόματα (έως 6 σημαντικά ψηφία)
+   * @returns {string}
+   */
+  function format(v, decimals) {
+    if (Object.is(v, -0)) v = 0;
+    if (decimals !== null && decimals !== undefined && decimals !== '') {
+      const d = Number(decimals);
+      return new Intl.NumberFormat('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: false }).format(v);
+    }
+    if (v !== 0 && (Math.abs(v) < 1e-6 || Math.abs(v) >= 1e12)) return Util.fmt(v);
+    return new Intl.NumberFormat('el-GR', { maximumSignificantDigits: 6, useGrouping: false }).format(v);
+  }
+
+  /**
+   * Ξαναϋπολογίζει όλους τους τύπους κάτω από ένα στοιχείο (ενότητα ή πίνακα).
+   * @param {HTMLElement} root
+   */
+  function recalc(root) {
+    const tables = new Set();
+    root.querySelectorAll('.wf-formula').forEach(span => {
+      const t = span.closest('table');
+      if (t) tables.add(t);
+    });
+    if (root.tagName === 'TABLE') tables.add(root);
+    tables.forEach(table => {
+      const ctx = context(table);
+      table.querySelectorAll('.wf-formula').forEach(span => {
+        if (span.closest('table') !== table) return;
+        let text;
+        let error = null;
+        try {
+          const v = ctx.formula(span);
+          text = v === null ? '' : format(v, span.getAttribute('data-decimals'));
+        } catch (e) {
+          error = e;
+          text = e.code || '#ΣΦΑΛΜΑ!';
+        }
+        if (span.textContent !== text) span.textContent = text;
+        const title = `${span.getAttribute('data-formula')}${error ? ` · ${error.message}` : ''}`;
+        if (span.title !== title) span.title = title;
+        if (error) span.setAttribute('data-error', '1');
+        else span.removeAttribute('data-error');
+      });
+    });
+  }
+
+  /**
+   * Ξαναγράφει τις αναφορές ενός τύπου.
+   * @param {string} formula
+   * @param {Function} mapRef (ref) => ref | null (null: το κελί χάθηκε)
+   * @param {Function} [mapRange] (a, b) => [a, b] | null
+   * @returns {string}
+   */
+  function rewrite(formula, mapRef, mapRange) {
+    const src = formula.trim().replace(/^=/, '');
+    let toks;
+    try { toks = lex(src); } catch (e) { return formula; }
+    let out = '';
+    let last = 0;
+    for (let i = 0; i < toks.length; i++) {
+      const tok = toks[i];
+      if (tok.t !== 'ref') continue;
+      const isRange = toks[i + 1] && toks[i + 1].t === ':' && toks[i + 2] && toks[i + 2].t === 'ref';
+      let text;
+      let end = tok.e;
+      if (isRange) {
+        const res = mapRange ? mapRange(tok.v, toks[i + 2].v) : [mapRef(tok.v), mapRef(toks[i + 2].v)];
+        text = res && res[0] && res[1] ? `${refName(res[0])}:${refName(res[1])}` : '#ΑΝΑΦ!';
+        end = toks[i + 2].e;
+        i += 2;
+      } else {
+        const r = mapRef(tok.v);
+        text = r ? refName(r) : '#ΑΝΑΦ!';
+      }
+      out += src.slice(last, tok.s) + text;
+      last = end;
+    }
+    return `=${out}${src.slice(last)}`;
+  }
+
+  /**
+   * Μετατοπίζει τις αναφορές όταν μπαίνει ή φεύγει γραμμή/στήλη, όπως στο Excel.
+   * @param {HTMLTableElement} table
+   * @param {'row'|'col'} axis
+   * @param {number} at 0-based θέση της νέας ή της διαγραμμένης γραμμής/στήλης
+   * @param {1|-1} delta
+   */
+  function shift(table, axis, at, delta) {
+    const key = axis === 'row' ? 'row' : 'col';
+    const move = r => {
+      if (delta > 0) return r[key] >= at ? { ...r, [key]: r[key] + 1 } : r;
+      if (r[key] === at) return null;
+      return r[key] > at ? { ...r, [key]: r[key] - 1 } : r;
+    };
+    const range = (a, b) => {
+      if (delta > 0) return [move(a), move(b)];
+      const lo = a[key] <= b[key] ? a : b;
+      const hi = lo === a ? b : a;
+      if (lo[key] === at && hi[key] === at) return null;
+      return [lo[key] > at ? { ...lo, [key]: lo[key] - 1 } : lo, hi[key] >= at ? { ...hi, [key]: hi[key] - 1 } : hi];
+    };
+    table.querySelectorAll('.wf-formula').forEach(span => {
+      if (span.closest('table') !== table) return;
+      const f = span.getAttribute('data-formula') || '';
+      const next = rewrite(f, move, range);
+      if (next !== f) span.setAttribute('data-formula', next);
+    });
+  }
+
+  /**
+   * Βάζει τύπο σε κελί (αντικαθιστά το περιεχόμενό του).
+   * @param {HTMLTableCellElement} cell
+   * @param {string} formula
+   * @param {string} [decimals]
+   * @returns {HTMLElement}
+   */
+  function setFormula(cell, formula, decimals) {
+    const span = Util.h('span', { class: 'wf-formula', contenteditable: 'false', 'data-formula': formula });
+    if (decimals) span.setAttribute('data-decimals', decimals);
+    cell.replaceChildren(span);
+    return span;
+  }
+
+  /** @param {HTMLTableCellElement} cell @returns {boolean} */
+  function isEmpty(cell) {
+    return !cell.textContent.replace(/\u00A0/g, ' ').trim() && !cell.querySelector('img, table, .math-node, .wf-embed');
+  }
+
+  /**
+   * Κείμενο που γράφτηκε σε κελί και ξεκινά με = γίνεται τύπος.
+   * @param {HTMLTableCellElement} cell
+   * @param {boolean} [loud] μήνυμα αν ο τύπος έχει λάθος
+   * @returns {boolean} αν έγινε τύπος
+   */
+  function convert(cell, loud) {
+    if (own(cell) || cell.querySelector('img, table, .math-node, .wf-embed')) return false;
+    const text = cell.textContent.replace(/\u00A0/g, ' ').trim();
+    if (text.length < 2 || text[0] !== '=') return false;
+    try {
+      parse(text);
+    } catch (e) {
+      if (loud || failed.get(cell) !== text) Toast.show(`Ο τύπος «${text.slice(0, 40)}» δεν μπήκε: ${e.message}`, 'warning', 6000);
+      failed.set(cell, text);
+      return false;
+    }
+    setFormula(cell, normalize(text));
+    recalc(cell.closest('table'));
+    return true;
+  }
+
+  /**
+   * Μετατρέπει όλα τα κελιά με =… κάτω από ένα στοιχείο, εκτός από ένα.
+   * @param {HTMLElement} root
+   * @param {HTMLElement} [except]
+   * @returns {boolean} αν άλλαξε κάτι
+   */
+  function convertPending(root, except) {
+    let changed = false;
+    root.querySelectorAll('td, th').forEach(cell => {
+      if (cell !== except && convert(cell)) changed = true;
+    });
+    return changed;
+  }
+
+  /** @param {string} formula @returns {string} αναφορές με λατινικά κεφαλαία */
+  function normalize(formula) {
+    return rewrite(formula, r => r);
+  }
+
+  /**
+   * Αριθμητικές τιμές του πίνακα (με τους τύπους υπολογισμένους) για γραφήματα.
+   * @param {HTMLTableElement} table
+   * @returns {{rows: number, cols: number, text: string[][], num: (number|null)[][]}}
+   */
+  function values(table) {
+    const ctx = context(table);
+    const text = [];
+    const num = [];
+    ctx.g.cells.forEach((row, r) => {
+      text[r] = [];
+      num[r] = [];
+      for (let c = 0; c < ctx.g.cols; c++) {
+        const cell = row[c];
+        const top = cell && ctx.g.pos.get(cell)[0] === r && ctx.g.pos.get(cell)[1] === c;
+        text[r][c] = top ? cell.textContent.replace(/\u00A0/g, ' ').trim() : '';
+        let n = null;
+        if (top) {
+          try {
+            const v = ctx.cell(r, c);
+            if (Number.isFinite(v.n)) n = v.n;
+          } catch (e) {
+            n = null;
+          }
+        }
+        num[r][c] = n;
+      }
+    });
+    return { rows: ctx.g.cells.length, cols: ctx.g.cols, text, num };
+  }
+
+  /**
+   * Διάλογος τύπου για ένα κελί: γρήγορες πράξεις, κλικ σε κελιά για αναφορές, ζωντανό αποτέλεσμα.
+   * @param {HTMLTableCellElement} cell
+   * @param {string} id ενότητα
+   */
+  function open(cell, id) {
+    const table = cell.closest('table');
+    if (!table) return;
+    InsertTools.hideOverlays();
+    const g = grid(table);
+    const [tr, tc] = g.pos.get(cell);
+    const existing = own(cell);
+    const data = values(table);
+    const isNum = (r, c) => data.num[r] && data.num[r][c] !== null && g.cells[r][c] !== cell;
+    const isBlank = (r, c) => !data.text[r] || data.text[r][c] === '';
+    const ref = (r, c) => `${colName(c)}${r + 1}`;
+
+    const input = Util.h('input', { class: 'input formula-input', type: 'text', maxlength: String(MAX_LEN), spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Τύπος' });
+    input.value = existing ? existing.getAttribute('data-formula') : '=';
+    const decimals = Util.h('select', { class: 'select', 'aria-label': 'Δεκαδικά ψηφία' },
+      Util.h('option', { value: '', text: 'Αυτόματα' }), ['0', '1', '2', '3', '4'].map(d => Util.h('option', { value: d, text: d })));
+    decimals.value = existing ? existing.getAttribute('data-decimals') || '' : '';
+    const result = Util.h('div', { class: 'fit-result', 'aria-live': 'polite' });
+    const below = [];
+    for (let r = tr + 1; r < g.cells.length; r++) {
+      const c2 = g.cells[r][tc];
+      if (c2 && g.pos.get(c2)[0] === r && g.pos.get(c2)[1] === tc && c2.tagName === 'TD') below.push([r, c2]);
+    }
+    const fillCheck = Util.h('input', { type: 'checkbox' });
+
+    // Μαντεύει τα κελιά όπως το AutoSum του Excel: πρώτα τη συνεχή στήλη από πάνω, αλλιώς τα κελιά αριστερά.
+    const leftRefs = n => {
+      const out = [];
+      for (let c = tc - 1; c >= 0 && out.length < n; c--) if (isNum(tr, c)) out.unshift(ref(tr, c));
+      return out;
+    };
+    // Αριθμοί προς μία κατεύθυνση, περνώντας τα κενά κελιά και σταματώντας σε κείμενο (π.χ. επικεφαλίδα).
+    const scan = steps => {
+      const found = [];
+      for (const [r, c] of steps) {
+        if (isNum(r, c)) found.push([r, c]);
+        else if (!isBlank(r, c)) break;
+      }
+      return found.length ? `${ref(...found[found.length - 1])}:${ref(...found[0])}` : null;
+    };
+    const columnRange = () => scan(Array.from({ length: tr }, (_, i) => [tr - 1 - i, tc]))
+      || scan(Array.from({ length: tc }, (_, i) => [tr, tc - 1 - i]))
+      || (tr > 0 ? `${ref(0, tc)}:${ref(tr - 1, tc)}` : 'A1:A2');
+    const pair = () => {
+      const l = leftRefs(2);
+      while (l.length < 2) l.unshift(tc > 0 ? ref(tr, tc - 1) : 'A1');
+      return l;
+    };
+    const one = () => leftRefs(1)[0] || (tr > 0 && isNum(tr - 1, tc) ? ref(tr - 1, tc) : (tc > 0 ? ref(tr, tc - 1) : 'A1'));
+    const templates = {
+      sum: () => `=SUM(${columnRange()})`,
+      avg: () => `=AVERAGE(${columnRange()})`,
+      add: () => `=${pair().join('+')}`,
+      sub: () => `=${pair().join('-')}`,
+      mul: () => `=${pair().join('*')}`,
+      div: () => `=${pair().join('/')}`,
+      sq: () => `=${one()}^2`,
+      sqrt: () => `=SQRT(${one()})`
+    };
+
+    const evaluate = () => {
+      const ctx = context(table);
+      if (existing) ctx.hold(existing);
+      return ctx.evaluate(parse(input.value));
+    };
+    const update = () => {
+      try {
+        const v = evaluate();
+        result.className = 'fit-result';
+        result.textContent = v === null ? 'Αποτέλεσμα: κενό, μέχρι να συμπληρωθούν τα κελιά του τύπου' : `Αποτέλεσμα: ${format(v, decimals.value)}`;
+        return true;
+      } catch (e) {
+        const empty = /^=?$/.test(input.value.trim());
+        result.className = empty ? 'fit-result' : 'fit-result is-error';
+        result.textContent = empty ? 'Διάλεξε πράξη ή γράψε τύπο, π.χ. =B2*C2' : `${e.code || '#ΣΦΑΛΜΑ!'} ${e.message}`;
+        return false;
+      }
+    };
+
+    const quick = Util.h('div', { class: 'formula-ops' }, QUICK.map(([key, sym, label]) => {
+      const b = Util.h('button', { class: 'btn btn-secondary btn-sm', type: 'button', title: label },
+        Util.h('span', { class: 'formula-sym', text: sym }), label);
+      b.addEventListener('click', () => {
+        input.value = templates[key]();
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+        last = null;
+        update();
+      });
+      return b;
+    }));
+
+    let last = null;
+    const pick = (r, c, extend) => {
+      const name = ref(r, c);
+      const v = input.value;
+      if (extend && last && v.slice(last.s, last.e) === last.text) {
+        const text = `${last.text}:${name}`;
+        input.value = v.slice(0, last.s) + text + v.slice(last.e);
+        input.setSelectionRange(last.s + text.length, last.s + text.length);
+        last = null;
+      } else {
+        let s = input.selectionStart ?? v.length;
+        const e = input.selectionEnd ?? v.length;
+        if (s === 0 && v[0] === '=') s = 1;
+        input.value = v.slice(0, s) + name + v.slice(Math.max(e, s));
+        input.setSelectionRange(s + name.length, s + name.length);
+        last = { s, e: s + name.length, text: name };
+      }
+      input.focus();
+      update();
+    };
+    const mini = Util.h('table', { class: 'formula-grid' },
+      Util.h('thead', null, Util.h('tr', null, Util.h('th'), Array.from({ length: g.cols }, (_, c) => Util.h('th', { text: colName(c) })))),
+      Util.h('tbody', null, g.cells.map((row, r) => Util.h('tr', null, Util.h('th', { text: String(r + 1) }),
+        Array.from({ length: g.cols }, (_, c) => {
+          const src = row[c];
+          if (!src || g.pos.get(src)[0] !== r || g.pos.get(src)[1] !== c) return null;
+          const td = Util.h('td', { title: ref(r, c), text: (src === cell ? '◆' : data.text[r][c]).slice(0, 14) });
+          if (src.colSpan > 1) td.colSpan = src.colSpan;
+          if (src.rowSpan > 1) td.rowSpan = src.rowSpan;
+          if (src === cell) td.classList.add('is-target');
+          else if (data.num[r][c] !== null) td.classList.add('is-num');
+          td.addEventListener('mousedown', e => e.preventDefault());
+          td.addEventListener('click', e => pick(r, c, e.shiftKey));
+          return td;
+        })))));
+
+    input.addEventListener('input', () => { last = null; update(); });
+    decimals.addEventListener('change', update);
+
+    const apply = () => {
+      let tree;
+      try {
+        tree = parse(input.value);
+      } catch (e) {
+        Toast.show(`Ο τύπος δεν είναι σωστός: ${e.message}`, 'warning', 6000);
+        return false;
+      }
+      if (!tree) return false;
+      const formula = normalize(input.value.trim().startsWith('=') ? input.value.trim() : `=${input.value.trim()}`);
+      setFormula(cell, formula, decimals.value);
+      let filled = 0;
+      if (fillCheck.checked) {
+        below.forEach(([r, c2]) => {
+          if (!own(c2) && !isEmpty(c2)) return;
+          const k = r - tr;
+          setFormula(c2, rewrite(formula, x => (x.absRow ? x : { ...x, row: x.row + k })), decimals.value);
+          filled++;
+        });
+      }
+      recalc(table);
+      EditorManager.commit(id);
+      if (filled) Toast.show(`Ο τύπος μπήκε και σε ${filled} κελιά από κάτω`, 'success');
+      return true;
+    };
+
+    Modal.open({
+      title: existing ? 'Επεξεργασία τύπου' : `Τύπος στο κελί ${ref(tr, tc)}`, size: 'md', className: 'formula-modal',
+      body: Util.h('div', { class: 'stack' },
+        quick,
+        Util.h('div', { class: 'formula-grid-wrap' }, mini),
+        Util.h('p', { class: 'hint', text: 'Κλικ σε κελί για να μπει στον τύπο· Shift+κλικ σε δεύτερο κελί για περιοχή (π.χ. B2:B6).' }),
+        Util.h('div', { class: 'formula-row' },
+          Util.h('label', { class: 'field', style: { flex: '1' } }, Util.h('span', { text: 'Τύπος' }), input),
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Δεκαδικά' }), decimals)),
+        result,
+        below.length ? Util.h('label', { class: 'check' }, fillCheck, `Ίδιος τύπος και στα ${below.length} κελιά από κάτω (κάθε γραμμή με τα δικά της κελιά)`) : null,
+        Util.h('details', { class: 'hint' },
+          Util.h('summary', { text: 'Συναρτήσεις και σύνταξη' }),
+          Util.h('p', { text: 'Πράξεις: + − * / ^ (δύναμη), π.χ. =B2*C2, =(C2-B2)/B2, =B2^2. Μπορείς να γράψεις τύπο και απευθείας σε κελί, ξεκινώντας με =.' }),
+          Util.h('p', { text: 'Συναρτήσεις: SUM (ΑΘΡΟΙΣΜΑ), AVERAGE (ΜΕΣΗ), PRODUCT (ΓΙΝΟΜΕΝΟ), MIN, MAX, COUNT, SQRT (ΡΙΖΑ), ABS, POWER (ΔΥΝΑΜΗ), ROUND. Ανάμεσα στα ορίσματα βάλε ;, π.χ. =ROUND(B2;2).' }),
+          Util.h('p', { text: 'Με $ η αναφορά μένει σταθερή όταν ο τύπος αντιγράφεται προς τα κάτω, π.χ. =B2/$B$8.' }))),
+      actions: [
+        existing ? {
+          label: 'Κατάργηση τύπου', variant: 'ghost', onClick: () => {
+            cell.replaceChildren(document.createTextNode(existing.textContent));
+            EditorManager.commit(id);
+            return true;
+          }
+        } : null,
+        { label: 'Ακύρωση', variant: 'secondary' },
+        { label: existing ? 'Ενημέρωση' : 'Εισαγωγή', variant: 'primary', onClick: apply }
+      ],
+      initialFocus: input
+    });
+    update();
+  }
+
+  return { parse, recalc, shift, convert, convertPending, open, grid, values, colName, format, rewrite };
 })();
 
 /**
@@ -7356,10 +8242,40 @@ const GraphEngine = (() => {
   }
 
   /**
-   * Ανοίγει το εργαλείο γραφικής παράστασης (νέο γράφημα ή επεξεργασία υπάρχοντος).
-   * @param {{sectionId?: string, image?: HTMLImageElement}} [options]
+   * Επικεφαλίδα στήλης πίνακα: το κείμενο της πρώτης γραμμής, αν δεν είναι αριθμός.
+   * @param {{text: string[][], num: Array}} vals
+   * @param {number} c
+   * @returns {string}
    */
-  function open({ sectionId, image } = {}) {
+  function columnHeader(vals, c) {
+    return vals.num[0] && vals.num[0][c] === null ? vals.text[0][c] : '';
+  }
+
+  /**
+   * Προτεινόμενες στήλες X και Y: οι δύο πρώτες αριθμητικές, παραλείποντας τη στήλη α/α.
+   * @param {{rows: number, cols: number, text: string[][], num: Array}} vals
+   * @returns {number[]}
+   */
+  function defaultColumns(vals) {
+    const numeric = [];
+    for (let c = 0; c < vals.cols; c++) if (vals.num.some(row => row[c] !== null)) numeric.push(c);
+    const isIndex = c => {
+      const head = columnHeader(vals, c).trim();
+      if (/^(α\s*\/\s*α|α\.\s*α\.?|a\s*\/\s*a|#|αρ\.?|n|i|ν)$/i.test(head)) return true;
+      const seq = vals.num.map(row => row[c]).filter(v => v !== null);
+      return c === 0 && !head && seq.length > 1 && seq.every((v, i) => v === i + 1);
+    };
+    const pool = numeric.filter(c => !isIndex(c));
+    const use = pool.length >= 2 ? pool : numeric;
+    return [use[0] ?? 0, use[1] ?? Math.min(1, vals.cols - 1)];
+  }
+
+  /**
+   * Ανοίγει το εργαλείο γραφικής παράστασης (νέο γράφημα ή επεξεργασία υπάρχοντος).
+   * Με `table` προτείνει δεδομένα από αυτόν τον πίνακα και βάζει το γράφημα κάτω από αυτόν.
+   * @param {{sectionId?: string, image?: HTMLImageElement, table?: HTMLTableElement}} [options]
+   */
+  function open({ sectionId, image, table } = {}) {
     if (typeof window.Chart !== 'function') {
       Toast.show('Η βιβλιοθήκη γραφημάτων δεν φορτώθηκε', 'error');
       return;
@@ -7521,6 +8437,61 @@ const GraphEngine = (() => {
       refresh();
     };
 
+    const sources = Array.from(document.querySelectorAll('.editor-block .editor-content table'))
+      .filter(t => !t.classList.contains('wf-grid') && Formulas.grid(t).cols >= 2);
+    const perSection = new Map();
+    const sourceSelect = Util.h('select', { class: 'select', 'aria-label': 'Πίνακας του φύλλου' }, sources.map((t, i) => {
+      const blockEl = t.closest('.editor-block');
+      const key = blockEl ? blockEl.dataset.sectionId : '';
+      perSection.set(key, (perSection.get(key) || 0) + 1);
+      const title = (blockEl && blockEl.querySelector('.block-title')?.value.trim()) || 'Ενότητα';
+      const head = Array.from(t.rows[0]?.cells || []).map(c => c.textContent.trim()).filter(Boolean).join(', ');
+      return Util.h('option', { value: String(i), text: `${title} · Πίνακας ${perSection.get(key)}${head ? ` (${head.slice(0, 40)})` : ''}` });
+    }));
+    const xCol = Util.h('select', { class: 'select', 'aria-label': 'Στήλη για τον άξονα X' });
+    const yCol = Util.h('select', { class: 'select', 'aria-label': 'Στήλη για τον άξονα Y' });
+    let source = null;
+    const pickSource = () => {
+      const t = sources[Number(sourceSelect.value)];
+      if (!t) return;
+      const vals = Formulas.values(t);
+      source = { table: t, vals };
+      const options = () => Array.from({ length: vals.cols }, (_, c) => {
+        const head = columnHeader(vals, c);
+        return Util.h('option', { value: String(c), text: `${Formulas.colName(c)}${head ? `: ${head.slice(0, 30)}` : ''}` });
+      });
+      xCol.replaceChildren(...options());
+      yCol.replaceChildren(...options());
+      const [x, y] = defaultColumns(vals);
+      xCol.value = String(x);
+      yCol.value = String(y);
+    };
+    const loadSource = () => {
+      if (!source) return;
+      const cx = Number(xCol.value);
+      const cy = Number(yCol.value);
+      const pts = source.vals.num.filter(row => row[cx] !== null && row[cy] !== null)
+        .map(row => ({ x: numToStr(Number(row[cx].toPrecision(12))), y: numToStr(Number(row[cy].toPrecision(12))) }));
+      if (!pts.length) {
+        Toast.show('Οι στήλες αυτές δεν έχουν γραμμές με αριθμούς και στις δύο', 'warning');
+        return;
+      }
+      if (pts.length > MAX_POINTS) Toast.show(`Επιτρέπονται έως ${MAX_POINTS} σημεία· οι επιπλέον γραμμές αγνοήθηκαν`, 'warning');
+      rows.splice(0, rows.length, ...pts.slice(0, MAX_POINTS));
+      const hx = columnHeader(source.vals, cx);
+      const hy = columnHeader(source.vals, cy);
+      if (hx) xLabel.value = hx.slice(0, 100);
+      if (hy) yLabel.value = hy.slice(0, 100);
+      renderRows();
+      refresh();
+    };
+    const loadBtn = Util.h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Φόρτωση' });
+    loadBtn.addEventListener('click', loadSource);
+    sourceSelect.addEventListener('change', pickSource);
+    const fromTable = table && sources.includes(table) ? table : null;
+    if (fromTable) sourceSelect.value = String(sources.indexOf(fromTable));
+    if (sources.length) pickSource();
+
     const addRow = Util.h('button', { class: 'btn btn-secondary btn-sm', type: 'button' }, Util.icon('plus', 14), 'Γραμμή');
     addRow.addEventListener('click', () => {
       if (rows.length >= MAX_POINTS) {
@@ -7542,6 +8513,7 @@ const GraphEngine = (() => {
     [titleInput, xLabel, yLabel].forEach(el => el.addEventListener('input', schedule));
     [regression, gridCheck, originCheck].forEach(el => el.addEventListener('change', refresh));
     renderRows();
+    if (fromTable && !image) loadSource();
 
     const submit = async () => {
       const d = currentData();
@@ -7565,6 +8537,14 @@ const GraphEngine = (() => {
           EditorManager.commit(id);
         } else {
           graphId = `g-${Util.uuid()}`;
+          if (fromTable && document.contains(fromTable)) {
+            let after = fromTable.nextElementSibling;
+            if (!after || after.tagName !== 'P' || after.textContent.trim() || after.querySelector('img, .math-node')) {
+              after = Util.h('p', null, Util.h('br'));
+              fromTable.after(after);
+            }
+            EditorManager.caretIn(after);
+          }
           await InsertTools.insertImageData(id, dataURL, { alt, widthPct: 80, className: 'wf-graph', attrs: { 'data-graph-id': graphId, 'data-graph-json': json } });
           const result = fit(d.xValues, d.yValues, d.regressionType);
           if (eqCheck.checked && result.latex) MathEngine.insert(`${result.latex},\\quad R^2 = ${texNum(result.r2)}`, true, id);
@@ -7583,6 +8563,12 @@ const GraphEngine = (() => {
       size: 'xl',
       body: Util.h('div', { class: 'graph-layout' },
         Util.h('div', { class: 'stack' },
+          sources.length ? Util.h('div', { class: 'graph-source' },
+            Util.h('label', { class: 'field' }, Util.h('span', { text: 'Δεδομένα από πίνακα του φύλλου' }), sourceSelect),
+            Util.h('div', { class: 'graph-source-cols' },
+              Util.h('label', { class: 'field' }, Util.h('span', { text: 'Στήλη X' }), xCol),
+              Util.h('label', { class: 'field' }, Util.h('span', { text: 'Στήλη Y' }), yCol),
+              loadBtn)) : null,
           Util.h('label', { class: 'field' }, Util.h('span', { text: 'Τίτλος γραφήματος' }), titleInput),
           Util.h('div', { class: 'grid-2' },
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Άξονας X' }), xLabel),
