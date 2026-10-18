@@ -1063,7 +1063,7 @@ kbd {
         <button class="menu-item" type="button" role="menuitem" data-export="print"><span data-icon="printer"></span>Εκτύπωση/PDF<kbd>Ctrl+P</kbd></button>
         <button class="menu-item" type="button" role="menuitem" data-export="pdf"><span data-icon="document"></span>PDF (προηγμένο)</button>
         <button class="menu-item" type="button" role="menuitem" data-export="docx"><span data-icon="word"></span>Έγγραφο Word (DOCX)</button>
-        <button class="menu-item" type="button" role="menuitem" data-export="html" title="Οι μαθητές συμπληρώνουν στην οθόνη. Οι τύποι των πινάκων δείχνουν τις τιμές τους αλλά δεν ξαναϋπολογίζονται όταν οι μαθητές γράφουν τιμές."><span data-icon="checklist"></span>Διαδραστικό HTML (για μαθητές)</button>
+        <button class="menu-item" type="button" role="menuitem" data-export="html" title="Οι μαθητές συμπληρώνουν στην οθόνη. Οι τύποι των πινάκων υπολογίζονται αμέσως μόλις οι μαθητές γράψουν τιμές στα κελιά."><span data-icon="checklist"></span>Διαδραστικό HTML (για μαθητές)</button>
       </div>
     </div>
     <span class="header-sep" aria-hidden="true"></span>
@@ -7372,12 +7372,34 @@ const InsertTools = (() => {
 })();
 
 /**
- * Τύποι σε κελιά πίνακα (=B2*C2, =AVERAGE(B2:B6) …) με αναφορές τύπου Excel μέσα στον ίδιο πίνακα.
- * Το κελί κρατά <span class="wf-formula" data-formula="…"> με το αποτέλεσμα ως κείμενο,
- * οπότε οι εξαγωγές βλέπουν απλό κείμενο.
- * @namespace Formulas
+ * Πυρήνας υπολογισμού τύπων κελιών: ανάλυση, υπολογισμός, μορφοποίηση. Αυτόνομη συνάρτηση χωρίς εξαρτήσεις,
+ * ώστε να μπαίνει αυτούσια (μέσω toString) και στο διαδραστικό HTML, όπου οι τύποι ξαναϋπολογίζονται
+ * όσο ο μαθητής συμπληρώνει τον πίνακα.
+ * @param {Function} getDecimals () => '' | '0'–'3' δεκαδικά του φύλλου
+ * @returns {Object}
  */
-const Formulas = (() => {
+function formulaCore(getDecimals) {
+  /**
+   * Αριθμός σε ελληνική ή διεθνή μορφή (κόμμα ή τελεία δεκαδικών).
+   * @param {string|number} value
+   * @returns {number}
+   */
+  function parseNumber(value) {
+    if (typeof value === 'number') return value;
+    let t = String(value ?? '').trim().replace(/\s/g, '').replace(/[−–]/g, '-');
+    if (!t) return NaN;
+    if (t.includes(',') && t.includes('.')) t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+    else t = t.replace(',', '.');
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(t)) return NaN;
+    return parseFloat(t);
+  }
+
+  /** @param {number} n @returns {string} επιστημονική μορφή για πολύ μικρούς/μεγάλους αριθμούς */
+  function sciFmt(n) {
+    const [mant, exp] = n.toExponential(3).split('e');
+    return `${new Intl.NumberFormat('el-GR', { maximumSignificantDigits: 4 }).format(Number(mant))}·10^${Number(exp)}`;
+  }
+
   const MAX_LEN = 300;
   const LIST = {
     SUM: v => v.reduce((s, x) => s + x, 0),
@@ -7413,12 +7435,6 @@ const Formulas = (() => {
     Ν: 'N', Ο: 'O', Π: 'P', Ρ: 'R', Σ: 'S', Τ: 'T', Θ: 'U', Ω: 'V', ς: 'W', Χ: 'X', Υ: 'Y', Ζ: 'Z'
   };
   const OPS = { '+': '+', '-': '-', '−': '-', '–': '-', '*': '*', '×': '*', '·': '*', '/': '/', '÷': '/', '^': '^', '²': '²', '³': '³', '√': '√' };
-  const QUICK = [
-    ['sum', 'Σ', 'Άθροισμα'], ['avg', 'x̄', 'Μέση τιμή'], ['add', '+', 'Πρόσθεση'], ['sub', '−', 'Αφαίρεση'],
-    ['mul', '×', 'Γινόμενο'], ['div', '÷', 'Διαίρεση'], ['sq', 'x²', 'Τετράγωνο'], ['sqrt', '√', 'Ρίζα']
-  ];
-  const failed = new WeakMap();
-
   /**
    * @param {string} code ένδειξη στο κελί, π.χ. #ΤΙΜΗ!
    * @param {string} message
@@ -7475,7 +7491,7 @@ const Formulas = (() => {
       const rest = src.slice(i);
       let m = /^\d+(?:[.,]\d+)?(?:[eE][-+]?\d+)?/.exec(rest) || /^\.\d+/.exec(rest);
       if (m) {
-        out.push({ t: 'num', v: Util.parseNumber(m[0]), s: i, e: i + m[0].length });
+        out.push({ t: 'num', v: parseNumber(m[0]), s: i, e: i + m[0].length });
         i += m[0].length;
         continue;
       }
@@ -7668,7 +7684,7 @@ const Formulas = (() => {
       const text = cell.textContent.replace(/\u00A0/g, ' ').trim();
       if (!text) return { empty: true };
       ctx.filled++;
-      const n = Util.parseNumber(text);
+      const n = parseNumber(text);
       return Number.isFinite(n) ? { n } : { text: true };
     };
     /** @returns {number|null} */
@@ -7773,11 +7789,6 @@ const Formulas = (() => {
     }
   }
 
-  /** @returns {string} δεκαδικά για όλους τους τύπους του φύλλου (πάνελ Εργαλεία → Πίνακες), '' = αυτόματα */
-  function sheetDecimals() {
-    return AppState.get().style.formulaDecimals || '';
-  }
-
   /**
    * Μορφοποιεί αποτέλεσμα με δεκαδικό κόμμα.
    * @param {number} v
@@ -7786,12 +7797,12 @@ const Formulas = (() => {
    */
   function format(v, decimals) {
     if (Object.is(v, -0)) v = 0;
-    if (decimals === null || decimals === undefined || decimals === '') decimals = sheetDecimals();
+    if (decimals === null || decimals === undefined || decimals === '') decimals = getDecimals();
     if (decimals !== '') {
       const d = Number(decimals);
       return new Intl.NumberFormat('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: false }).format(v);
     }
-    if (v !== 0 && (Math.abs(v) < 1e-6 || Math.abs(v) >= 1e12)) return Util.fmt(v);
+    if (v !== 0 && (Math.abs(v) < 1e-6 || Math.abs(v) >= 1e12)) return sciFmt(v);
     return new Intl.NumberFormat('el-GR', { maximumSignificantDigits: 6, useGrouping: false }).format(v);
   }
 
@@ -7826,6 +7837,29 @@ const Formulas = (() => {
         else span.removeAttribute('data-error');
       });
     });
+  }
+
+  return { MAX_LEN, LIST, SCALAR, ALIASES, parseNumber, fail, plain, colName, refName, parseRef, lex, parse, grid, hasRefs, context, own, run, format, recalc };
+}
+
+/**
+ * Τύποι σε κελιά πίνακα (=B2*C2, =AVERAGE(B2:B6) …) με αναφορές τύπου Excel μέσα στον ίδιο πίνακα.
+ * Το κελί κρατά <span class="wf-formula" data-formula="…"> με το αποτέλεσμα ως κείμενο,
+ * οπότε οι εξαγωγές βλέπουν απλό κείμενο.
+ * @namespace Formulas
+ */
+const Formulas = (() => {
+  const core = formulaCore(() => AppState.get().style.formulaDecimals || '');
+  const { MAX_LEN, LIST, SCALAR, ALIASES, fail, plain, colName, refName, parseRef, lex, parse, grid, hasRefs, context, own, run, format, recalc } = core;
+  const QUICK = [
+    ['sum', 'Σ', 'Άθροισμα'], ['avg', 'x̄', 'Μέση τιμή'], ['add', '+', 'Πρόσθεση'], ['sub', '−', 'Αφαίρεση'],
+    ['mul', '×', 'Γινόμενο'], ['div', '÷', 'Διαίρεση'], ['sq', 'x²', 'Τετράγωνο'], ['sqrt', '√', 'Ρίζα']
+  ];
+  const failed = new WeakMap();
+
+  /** @returns {string} δεκαδικά για όλους τους τύπους του φύλλου (πάνελ Εργαλεία → Πίνακες), '' = αυτόματα */
+  function sheetDecimals() {
+    return AppState.get().style.formulaDecimals || '';
   }
 
   /**
@@ -8158,7 +8192,7 @@ const Formulas = (() => {
         result,
         below.length ? Util.h('label', { class: 'check' }, fillCheck, `Ίδιος τύπος και στα ${below.length} κελιά από κάτω (κάθε γραμμή με τα δικά της κελιά)`,
           Util.tip('Τα κελιά με κείμενο δεν αλλάζουν. Με $ η αναφορά μένει σταθερή, π.χ. =B2/$B$8.')) : null,
-        Util.h('p', { class: 'hint' }, 'Στο διαδραστικό HTML οι τιμές φαίνονται, αλλά δεν ξαναϋπολογίζονται όταν οι μαθητές γράφουν στον πίνακα.'),
+        Util.h('p', { class: 'hint' }, 'Στο διαδραστικό HTML ο τύπος υπολογίζεται αμέσως μόλις ο μαθητής γράψει τιμές στα κελιά του.'),
         Util.h('details', { class: 'hint' },
           Util.h('summary', { text: 'Συναρτήσεις και σύνταξη' }),
           Util.h('p', { text: 'Πράξεις: + − * / ^ (δύναμη), π.χ. =B2*C2, =(C2-B2)/B2, =B2^2. Μπορείς να γράψεις τύπο και απευθείας σε κελί, ξεκινώντας με =.' }),
@@ -11416,6 +11450,12 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       li.setAttribute('data-checked', v);
       li.setAttribute('aria-checked', v);
     };
+    // Οι τύποι των πινάκων ξαναϋπολογίζονται όσο ο μαθητής συμπληρώνει τιμές.
+    const fx = typeof formulaCore === 'function' ? formulaCore(() => (CFG && CFG.decimals) || '') : null;
+    const recalc = () => {
+      if (!fx) return;
+      try { fx.recalc(document.getElementById('print-root')); } catch (e) { /* ο πίνακας μένει όπως ήταν */ }
+    };
     const toggle = li => {
       setItem(li, li.getAttribute('data-checked') === 'true' ? 'false' : 'true');
       save();
@@ -11450,11 +11490,16 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         toggle(li);
       }
     });
-    document.addEventListener('input', save);
+    recalc();
+    document.addEventListener('input', () => {
+      recalc();
+      save();
+    });
     document.getElementById('wf-clear').addEventListener('click', () => {
       if (!window.confirm('Να διαγραφούν όλες οι απαντήσεις;')) return;
       fields().forEach(f => { f.textContent = ''; });
       items().forEach(li => setItem(li, 'false'));
+      recalc();
       save();
     });
     document.getElementById('wf-save').addEventListener('click', () => {
@@ -11654,7 +11699,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       });
       root.querySelectorAll('.wf-answer-lines').forEach(box => box.replaceWith(Util.h('div', { class: 'wf-answer', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Απάντηση', 'data-placeholder': 'Γράψε εδώ την απάντησή σου…' })));
       root.querySelectorAll('td').forEach(td => {
-        if (td.getAttribute('data-locked') === 'true' || td.textContent.trim() || td.querySelector('img, .math-node, table')) return;
+        if (td.getAttribute('data-locked') === 'true' || td.textContent.trim() || td.querySelector('img, .math-node, table, .wf-formula, .wf-field')) return;
         td.replaceChildren();
         td.classList.add('wf-fill');
         td.setAttribute('contenteditable', 'true');
@@ -11677,7 +11722,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const m = AppState.get().metadata;
       const cfg = {
         title: docTitle(), g, headerTitle: !!opts.headerTitle, date: opts.headerDate && m.date ? Util.formatDate(m.date) : '', pageNumbers: !!opts.pageNumbers,
-        logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null, fit: fitScale(), bySection: bySection()
+        logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null, fit: fitScale(), bySection: bySection(),
+        decimals: AppState.get().style.formulaDecimals || ''
       };
       const logoHtml = logo ? `<img class="wf-page-logo" src="${logo.src}" alt="Λογότυπο" style="top:${logo.top.toFixed(2)}mm;left:${g.left}mm;width:${logo.w.toFixed(2)}mm;height:${logo.h.toFixed(2)}mm"><img class="wf-head-preload" src="${logo.svg}" alt="">` : '';
       const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${logoHtml}${root.outerHTML}</main>`;
@@ -11686,6 +11732,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         + (canPdf ? '<button type="button" class="primary" id="wf-pdf">PDF με απαντήσεις</button>' : '<button type="button" class="primary" id="wf-print">Εκτύπωση</button>') + '</div>';
       const scripts = (canPdf ? pdfLibs : []).map(src => `<script>\n${src}\n<\/script>\n`).join('')
         + `<script type="application/json" id="wf-pdf-config">${JSON.stringify(cfg).replace(/</g, '\\u003c')}<\/script>\n`
+        + (root.querySelector('.wf-formula') ? `<script>\n${formulaCore.toString()}\n<\/script>\n` : '')
         + `<script>\n(${exportRuntime.toString()})(${paginate.toString()});\n<\/script>`;
       const pageCss = `@page { size: A4 ${g.landscape ? 'landscape' : 'portrait'}; margin: ${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm;${logo ? ` @top-left { content: url("${logo.svg}"); vertical-align: middle; }` : ''} }`;
       const html = `<!DOCTYPE html>\n<html lang="el">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(docTitle())}</title>\n<style>\n${css}\n${INTERACTIVE_CSS}\n${pageCss}\n</style>\n</head>\n<body class="wf-export">\n${bar}\n${page}\n${scripts}\n</body>\n</html>\n`;
