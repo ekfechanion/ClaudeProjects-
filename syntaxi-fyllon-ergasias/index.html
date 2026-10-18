@@ -598,6 +598,8 @@ button { cursor: pointer; }
 .formula-help-result { font-size: 14px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .formula-help-result.is-error { color: var(--danger); font-weight: 400; font-size: 13px; }
 .formula-help-fn { margin-top: 4px; padding: 2px 6px; border-radius: 4px; background: var(--primary-soft); color: var(--text); font-family: var(--font-mono); }
+body.is-col-resize, body.is-col-resize * { cursor: col-resize !important; }
+body.is-row-resize, body.is-row-resize * { cursor: row-resize !important; }
 .formula-ops { display: flex; flex-wrap: wrap; gap: 6px; }
 .formula-sym { display: inline-block; min-width: 16px; margin-right: 4px; font-weight: 700; color: var(--primary); }
 .formula-grid-wrap { max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-card); scrollbar-width: thin; }
@@ -2339,7 +2341,7 @@ const Sanitizer = (() => {
   };
   const RENAME = { h5: 'h4', h6: 'h4', ins: 'u' };
   const STYLE_PROPS = ['text-align', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'text-decoration-line',
-    'vertical-align', 'width', 'margin-left', 'margin-right', 'margin', 'padding-left', 'padding', 'border', 'display'];
+    'vertical-align', 'width', 'height', 'margin-left', 'margin-right', 'margin', 'padding-left', 'padding', 'border', 'display'];
   const PASTE_STYLE_PROPS = ['text-align', 'font-weight', 'font-style', 'text-decoration-line', 'vertical-align'];
   const CLASSES = new Set(['wf-table', 'wf-caption', 'wf-graph', 'wf-img', 'wf-grid', 'wf-grid-plain', 'wf-tip', 'wf-card', 'wf-card-title',
     'wf-card-note', 'wf-card-tip', 'wf-card-warn', 'wf-card-def', 'wf-card-remember', 'wf-checklist', 'wf-float-left', 'wf-float-right',
@@ -5263,6 +5265,8 @@ const InsertTools = (() => {
 
   /** Αρχικοποίηση καθολικών ακροατών για overlays. */
   function init() {
+    document.addEventListener('mousemove', onResizeHover);
+    document.addEventListener('mousedown', onResizeStart, true);
     document.addEventListener('mousedown', e => {
       if (menu && !menu.contains(e.target)) hideMenu();
       if (popover && !popover.contains(e.target) && !(e.target.closest && e.target.closest('a'))) hidePopover();
@@ -5399,6 +5403,7 @@ const InsertTools = (() => {
     const index = cell.cellIndex;
     const col = Formulas.grid(cell.closest('table')).pos.get(cell)[1];
     Formulas.shift(cell.closest('table'), 'col', after ? col + cell.colSpan : col, 1);
+    adjustCols(cell.closest('table'), after ? col + cell.colSpan : col, 1);
     Array.from(cell.closest('table').rows).forEach(row => {
       const ref = row.cells[Math.min(index, row.cells.length - 1)];
       const tag = row.parentElement.tagName === 'THEAD' ? 'th' : 'td';
@@ -5428,9 +5433,326 @@ const InsertTools = (() => {
     const table = cell.closest('table');
     const index = cell.cellIndex;
     Formulas.shift(table, 'col', Formulas.grid(table).pos.get(cell)[1], -1);
+    adjustCols(table, Formulas.grid(table).pos.get(cell)[1], -1);
     Array.from(table.rows).forEach(row => { if (row.cells[index]) row.cells[index].remove(); });
     Array.from(table.rows).forEach(row => { if (!row.cells.length) row.remove(); });
     if (!table.rows.length) table.remove();
+  }
+
+  /**
+   * Τα <col> του πίνακα, αν υπάρχουν ακριβώς ένα ανά στήλη με πλάτος σε %.
+   * @param {HTMLTableElement} table
+   * @returns {HTMLTableColElement[]|null}
+   */
+  function colEls(table) {
+    const cg = table.querySelector(':scope > colgroup');
+    if (!cg) return null;
+    const cols = Array.from(cg.children);
+    const ok = cols.length === Formulas.grid(table).cols && cols.every(c => !(c.span > 1) && /%$/.test(c.style.width));
+    if (!ok) cg.remove();
+    return ok ? cols : null;
+  }
+
+  /**
+   * Ορίζει τα πλάτη των στηλών (κανονικοποιημένα σε 100%).
+   * @param {HTMLTableElement} table
+   * @param {number[]} widths σε οποιαδήποτε μονάδα
+   */
+  function setColWidths(table, widths) {
+    let cg = table.querySelector(':scope > colgroup');
+    if (cg) cg.remove();
+    const sum = widths.reduce((s, w) => s + w, 0) || 1;
+    cg = Util.h('colgroup', null, widths.map(w => Util.h('col', { style: `width: ${((w / sum) * 100).toFixed(2)}%` })));
+    const caption = table.querySelector(':scope > caption');
+    if (caption) caption.after(cg);
+    else table.prepend(cg);
+  }
+
+  /**
+   * Πλάτη στηλών όπως φαίνονται τώρα (px).
+   * @param {HTMLTableElement} table
+   * @returns {number[]}
+   */
+  function measureCols(table) {
+    const cols = colEls(table);
+    const total = table.getBoundingClientRect().width;
+    if (cols) return cols.map(c => (parseFloat(c.style.width) / 100) * total);
+    const g = Formulas.grid(table);
+    const widths = new Array(g.cols).fill(0);
+    for (let c = 0; c < g.cols; c++) {
+      for (let r = 0; r < g.cells.length; r++) {
+        const cell = g.cells[r][c];
+        if (cell && cell.colSpan === 1) {
+          widths[c] = cell.getBoundingClientRect().width;
+          break;
+        }
+      }
+    }
+    const known = widths.filter(Boolean);
+    const rest = (total - known.reduce((s, w) => s + w, 0)) / Math.max(1, widths.length - known.length);
+    return widths.map(w => w || Math.max(rest, 20));
+  }
+
+  /**
+   * Προσαρμόζει τα πλάτη όταν μπαίνει (count > 0) ή φεύγει (count < 0) στήλη στη θέση at.
+   * @param {HTMLTableElement} table
+   * @param {number} at
+   * @param {number} count
+   */
+  function adjustCols(table, at, count) {
+    const cg = table.querySelector(':scope > colgroup');
+    if (!cg) return;
+    const cols = Array.from(cg.children);
+    const widths = cols.map(c => parseFloat(c.style.width) || 0);
+    if (!widths.every(Boolean)) {
+      cg.remove();
+      return;
+    }
+    if (count < 0) widths.splice(at, -count);
+    else {
+      const from = Math.min(Math.max(at - 1, 0), widths.length - 1);
+      const share = widths[from] / (count + 1);
+      widths[from] = share;
+      widths.splice(at, 0, ...new Array(count).fill(share));
+    }
+    if (widths.length) setColWidths(table, widths);
+    else cg.remove();
+  }
+
+  /** @param {number} total @param {number} parts @returns {number[]} π.χ. (5, 2) → [3, 2] */
+  function distribute(total, parts) {
+    return Array.from({ length: parts }, (_, i) => Math.floor(total / parts) + (i < total % parts ? 1 : 0));
+  }
+
+  /** @param {HTMLTableCellElement} cell @param {string} name @param {number} value */
+  function setSpan(cell, name, value) {
+    if (value > 1) cell[name] = value;
+    else cell.removeAttribute(name === 'colSpan' ? 'colspan' : 'rowspan');
+  }
+
+  /**
+   * Βάζει κελί στη γραμμή, στη σωστή θέση για τη στήλη col του χάρτη.
+   * @param {HTMLTableElement} table
+   * @param {HTMLTableRowElement} tr
+   * @param {HTMLTableCellElement} cell
+   * @param {number} col
+   */
+  function placeCell(table, tr, cell, col) {
+    const g = Formulas.grid(table);
+    const after = Array.from(tr.cells).find(c => g.pos.get(c)[1] > col);
+    if (after) after.before(cell);
+    else tr.append(cell);
+  }
+
+  /**
+   * Διαιρεί κελί σε cols × rows κελιά. Αν το κελί είναι συγχωνευμένο, μοιράζει πρώτα τις στήλες/γραμμές του·
+   * αν χρειάζονται περισσότερες, προσθέτει στήλες/γραμμές και φαρδαίνει τα διπλανά κελιά ώστε ο πίνακας να μένει ίσιος.
+   * @param {HTMLTableCellElement} cell
+   * @param {number} cols
+   * @param {number} rows
+   */
+  function splitCell(cell, cols, rows) {
+    const table = cell.closest('table');
+    const tag = cell.tagName.toLowerCase();
+    let g = Formulas.grid(table);
+    const [r, c] = g.pos.get(cell);
+    const cs = cell.colSpan;
+    const rs = cell.rowSpan;
+    if (cols > cs) {
+      const extra = cols - cs;
+      const at = c + cs;
+      for (let i = 0; i < extra; i++) Formulas.shift(table, 'col', at, 1);
+      const cgCols = colEls(table);
+      if (cgCols) {
+        const widths = cgCols.map(x => parseFloat(x.style.width));
+        const area = widths.slice(c, at).reduce((s, w) => s + w, 0);
+        widths.splice(c, cs, ...new Array(cols).fill(area / cols));
+        setColWidths(table, widths);
+      }
+      const seen = new Set([cell]);
+      g.cells.forEach(row => {
+        const x = row[at - 1];
+        if (x && !seen.has(x)) {
+          seen.add(x);
+          x.colSpan += extra;
+        }
+      });
+    }
+    const colSizes = distribute(Math.max(cs, cols), cols);
+    const pieces = [cell];
+    setSpan(cell, 'colSpan', colSizes[0]);
+    let prev = cell;
+    for (let i = 1; i < cols; i++) {
+      const p = createCell(tag);
+      setSpan(p, 'colSpan', colSizes[i]);
+      setSpan(p, 'rowSpan', rs);
+      prev.after(p);
+      prev = p;
+      pieces.push(p);
+    }
+    if (rows <= 1) return;
+    g = Formulas.grid(table);
+    if (rows > rs) {
+      const extra = rows - rs;
+      const at = r + rs;
+      for (let i = 0; i < extra; i++) Formulas.shift(table, 'row', at, 1);
+      const seen = new Set(pieces);
+      (g.cells[at - 1] || []).forEach(x => {
+        if (x && !seen.has(x)) {
+          seen.add(x);
+          x.rowSpan += extra;
+        }
+      });
+      const ref = table.rows[at - 1];
+      for (let i = 0; i < extra; i++) ref.after(Util.h('tr'));
+    }
+    const rowSizes = distribute(Math.max(rs, rows), rows);
+    pieces.forEach(p => {
+      const col = Formulas.grid(table).pos.get(p)[1];
+      setSpan(p, 'rowSpan', rowSizes[0]);
+      let offset = rowSizes[0];
+      for (let j = 1; j < rows; j++) {
+        const np = createCell(tag);
+        setSpan(np, 'colSpan', p.colSpan);
+        setSpan(np, 'rowSpan', rowSizes[j]);
+        placeCell(table, table.rows[r + offset], np, col);
+        offset += rowSizes[j];
+      }
+    });
+  }
+
+  /**
+   * Διάλογος διαίρεσης κελιού.
+   * @param {HTMLTableCellElement} cell
+   * @param {string} id
+   */
+  function splitDialog(cell, id) {
+    const colsInput = Util.h('input', { class: 'input', type: 'number', min: '1', max: '10', value: String(Math.max(2, cell.colSpan)) });
+    const rowsInput = Util.h('input', { class: 'input', type: 'number', min: '1', max: '10', value: String(cell.rowSpan) });
+    Modal.open({
+      title: 'Διαίρεση κελιού', size: 'sm',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('div', { class: 'grid-2' },
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Στήλες' }), colsInput),
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Γραμμές' }), rowsInput)),
+        Util.h('p', { class: 'hint', text: 'Το περιεχόμενο μένει στο πρώτο κελί. Αν χρειάζονται, προστίθενται στήλες ή γραμμές και τα διπλανά κελιά απλώνονται για να μείνει ο πίνακας ίσιος. Συγχωνευμένο κελί χωρίζεται πρώτα στα κελιά που κάλυπτε.' })),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        {
+          label: 'Διαίρεση', variant: 'primary', onClick: () => {
+            const cols = Util.clamp(Math.round(Number(colsInput.value)) || 1, 1, 10);
+            const rows = Util.clamp(Math.round(Number(rowsInput.value)) || 1, 1, 10);
+            if (cols === 1 && rows === 1) return true;
+            splitCell(cell, cols, rows);
+            EditorManager.commit(id);
+            return true;
+          }
+        }
+      ],
+      initialFocus: colsInput
+    });
+  }
+
+  /**
+   * Συγχωνεύει το κελί με το δεξί ή το κάτω, αν έχουν το ίδιο ύψος/πλάτος.
+   * @param {HTMLTableCellElement} cell
+   * @param {'right'|'down'} dir
+   * @returns {boolean}
+   */
+  function mergeCell(cell, dir) {
+    const table = cell.closest('table');
+    const g = Formulas.grid(table);
+    const [r, c] = g.pos.get(cell);
+    const other = dir === 'right' ? g.cells[r]?.[c + cell.colSpan] : g.cells[r + cell.rowSpan]?.[c];
+    const [or, oc] = other ? g.pos.get(other) : [];
+    const fits = other && (dir === 'right' ? or === r && other.rowSpan === cell.rowSpan : oc === c && other.colSpan === cell.colSpan);
+    if (!fits) {
+      Toast.show(dir === 'right' ? 'Το δεξί κελί πρέπει να έχει το ίδιο ύψος' : 'Το κάτω κελί πρέπει να έχει το ίδιο πλάτος', 'warning');
+      return false;
+    }
+    const blank = el => !el.textContent.trim() && !el.querySelector('img, table, .math-node, .wf-embed, .wf-formula');
+    if (!blank(other)) {
+      if (blank(cell)) cell.replaceChildren();
+      cell.append(...Array.from(other.childNodes));
+    }
+    if (dir === 'right') setSpan(cell, 'colSpan', cell.colSpan + other.colSpan);
+    else setSpan(cell, 'rowSpan', cell.rowSpan + other.rowSpan);
+    other.remove();
+    return true;
+  }
+
+  // ---- Αλλαγή πλάτους στηλών και ύψους γραμμών με σύρσιμο των ορίων ----
+  const EDGE = 4;
+  let resizing = null;
+
+  /**
+   * Όριο στήλης ή γραμμής κάτω από το ποντίκι.
+   * @param {MouseEvent} e
+   * @returns {{kind: 'col'|'row', table: HTMLTableElement, index: number}|null}
+   */
+  function edgeAt(e) {
+    const cell = e.target.closest && e.target.closest('td, th');
+    if (!cell || !cell.closest('.editor-content')) return null;
+    const table = cell.closest('table');
+    const g = Formulas.grid(table);
+    const [r, c] = g.pos.get(cell);
+    const b = cell.getBoundingClientRect();
+    if (Math.abs(e.clientX - b.right) <= EDGE && c + cell.colSpan < g.cols) return { kind: 'col', table, index: c + cell.colSpan - 1 };
+    if (Math.abs(e.clientX - b.left) <= EDGE && c > 0) return { kind: 'col', table, index: c - 1 };
+    if (Math.abs(e.clientY - b.bottom) <= EDGE) return { kind: 'row', table, index: r + cell.rowSpan - 1 };
+    if (Math.abs(e.clientY - b.top) <= EDGE && r > 0) return { kind: 'row', table, index: r - 1 };
+    return null;
+  }
+
+  /** @param {MouseEvent} e */
+  function onResizeHover(e) {
+    if (resizing) return;
+    const edge = e.buttons ? null : edgeAt(e);
+    document.body.classList.toggle('is-col-resize', !!edge && edge.kind === 'col');
+    document.body.classList.toggle('is-row-resize', !!edge && edge.kind === 'row');
+  }
+
+  /** @param {MouseEvent} e */
+  function onResizeStart(e) {
+    if (e.button !== 0) return;
+    const edge = edgeAt(e);
+    if (!edge) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const { table, kind, index } = edge;
+    if (kind === 'col') {
+      const widths = measureCols(table);
+      setColWidths(table, widths);
+      resizing = { kind, table, index, x: e.clientX, widths };
+    } else {
+      const tr = table.rows[index];
+      resizing = { kind, table, tr, y: e.clientY, height: tr.getBoundingClientRect().height };
+    }
+    const move = ev => {
+      if (resizing.kind === 'col') {
+        const w = resizing.widths.slice();
+        const i = resizing.index;
+        const min = 24;
+        const dx = Util.clamp(ev.clientX - resizing.x, min - w[i], w[i + 1] - min);
+        w[i] += dx;
+        w[i + 1] -= dx;
+        const cols = Array.from(resizing.table.querySelector(':scope > colgroup').children);
+        const sum = w.reduce((s, v) => s + v, 0);
+        cols.forEach((col, k) => { col.style.width = `${((w[k] / sum) * 100).toFixed(2)}%`; });
+      } else {
+        resizing.tr.style.height = `${Math.round(Math.max(20, resizing.height + ev.clientY - resizing.y))}px`;
+      }
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      const id = resizing.table.closest('.editor-block')?.dataset.sectionId;
+      resizing = null;
+      document.body.classList.remove('is-col-resize', 'is-row-resize');
+      if (id) EditorManager.commit(id);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
   }
 
   /**
@@ -5460,6 +5782,10 @@ const InsertTools = (() => {
       null,
       ['Εισαγωγή στήλης αριστερά', () => addColumn(cell, false)],
       ['Εισαγωγή στήλης δεξιά', () => addColumn(cell, true)],
+      null,
+      ['Διαίρεση κελιού…', () => splitDialog(cell, id), false, 'Χωρίζει το κελί σε στήλες ή γραμμές'],
+      ['Συγχώνευση με το δεξί κελί', () => mergeCell(cell, 'right')],
+      ['Συγχώνευση με το κάτω κελί', () => mergeCell(cell, 'down')],
       null,
       ['Διαγραφή γραμμής', () => deleteRow(cell), true],
       ['Διαγραφή στήλης', () => deleteColumn(cell), true],
@@ -9981,23 +10307,32 @@ const ExportManager = (() => {
       const plain = tableEl.classList.contains('wf-grid-plain');
       const rows = Array.from(tableEl.rows);
       const cols = Math.max(1, ...rows.map(r => Array.from(r.cells).reduce((s, c) => s + (c.colSpan || 1), 0)));
-      const colW = Math.floor((para.widthTwips || DOCX_CONTENT_TWIPS) / cols);
+      const totalW = para.widthTwips || DOCX_CONTENT_TWIPS;
+      const colW = Math.floor(totalW / cols);
+      // Πλάτη στηλών από το <colgroup> (σύρσιμο στον επεξεργαστή), αλλιώς ίσες στήλες.
+      const pcts = Array.from(tableEl.querySelectorAll(':scope > colgroup > col')).map(c => parseFloat(c.style.width));
+      const widths = pcts.length === cols && pcts.every(v => v > 0) ? pcts.map(v => Math.floor((totalW * v) / 100)) : Array(cols).fill(colW);
+      const map = Formulas.grid(tableEl);
+      const spanW = cell => {
+        const c = map.pos.get(cell)?.[1] ?? 0;
+        return widths.slice(c, c + (cell.colSpan || 1)).reduce((s, w) => s + w, 0) || colW;
+      };
       return new D.Table({
-        width: { size: colW * cols, type: D.WidthType.DXA },
-        columnWidths: Array(cols).fill(colW),
+        width: { size: widths.reduce((s, w) => s + w, 0), type: D.WidthType.DXA },
+        columnWidths: widths,
         rows: rows.map(tr => new D.TableRow({
           tableHeader: tr.parentElement.tagName === 'THEAD',
           cantSplit: true,
-          height: D.HeightRule ? { value: 454, rule: D.HeightRule.ATLEAST } : undefined,
+          height: D.HeightRule ? { value: Math.max(454, Math.round((parseFloat(tr.style.height) || 0) * 15)), rule: D.HeightRule.ATLEAST } : undefined,
           children: Array.from(tr.cells).map(cell => {
             const isTh = cell.tagName === 'TH';
-            let kids = blocks(cell, { cell: true, align: alignOf(cell) || (isTh ? 'center' : null), bold: isTh, widthTwips: colW * (cell.colSpan || 1) - 200 });
+            let kids = blocks(cell, { cell: true, align: alignOf(cell) || (isTh ? 'center' : null), bold: isTh, widthTwips: spanW(cell) - 200 });
             if (!kids.length) kids = [new D.Paragraph({ children: [] })];
             return new D.TableCell({
               children: kids,
               columnSpan: cell.colSpan > 1 ? cell.colSpan : undefined,
               rowSpan: cell.rowSpan > 1 ? cell.rowSpan : undefined,
-              width: { size: colW * (cell.colSpan || 1), type: D.WidthType.DXA },
+              width: { size: spanW(cell), type: D.WidthType.DXA },
               shading: isTh ? { fill: thFill, type: D.ShadingType.CLEAR, color: 'auto' } : undefined,
               borders: plain ? noBorders : undefined,
               margins: { top: 60, bottom: 60, left: 100, right: 100 },
