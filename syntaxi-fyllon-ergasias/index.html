@@ -509,7 +509,7 @@ button { cursor: pointer; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--border); }
 .modal-title { margin: 0; font-size: 18px; font-weight: 700; }
 .modal-body { padding: 24px; overflow-y: auto; scrollbar-width: thin; }
-.modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); }
+.modal-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); }
 .modal-footer .footer-left { margin-right: auto; }
 .confirm-body p { margin: 0 0 12px; }
 .confirm-list { margin: 0; padding-left: 24px; }
@@ -575,6 +575,7 @@ button { cursor: pointer; }
 
 .graph-source { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-2); }
 .graph-eq-options { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.graph-error-row { display: grid; grid-template-columns: 90px 90px minmax(0, 1fr); gap: 8px; align-items: end; }
 .graph-eq-title { font-size: 13px; font-weight: 600; color: var(--text-2); }
 .graph-source-cols { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
 .graph-source-cols .btn { height: 36px; }
@@ -587,6 +588,16 @@ button { cursor: pointer; }
   position: fixed; z-index: 156; width: 9px; height: 9px; border: 1px solid #FFFFFF; border-radius: 1px;
   background: var(--primary); cursor: crosshair;
 }
+.formula-help {
+  position: fixed; z-index: 157; max-width: 380px; pointer-events: none; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-card); background: var(--surface); box-shadow: var(--shadow-lg); font-size: 12px; color: var(--text-2);
+}
+.formula-help ul { margin: 6px 0 0; padding-left: 16px; }
+.formula-help li { margin: 2px 0; }
+.formula-help b { color: var(--text); }
+.formula-help-result { font-size: 14px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.formula-help-result.is-error { color: var(--danger); font-weight: 400; font-size: 13px; }
+.formula-help-fn { margin-top: 4px; padding: 2px 6px; border-radius: 4px; background: var(--primary-soft); color: var(--text); font-family: var(--font-mono); }
 .formula-ops { display: flex; flex-wrap: wrap; gap: 6px; }
 .formula-sym { display: inline-block; min-width: 16px; margin-right: 4px; font-weight: 700; color: var(--primary); }
 .formula-grid-wrap { max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-card); scrollbar-width: thin; }
@@ -5429,7 +5440,15 @@ const InsertTools = (() => {
   function tableMenu(e, cell, id) {
     hideMenu();
     const formula = cell.querySelector('.wf-formula');
+    const sel = document.getSelection();
+    const selected = sel && sel.rangeCount && !sel.isCollapsed && cell.closest('.editor-content').contains(sel.anchorNode);
     const items = [
+      ...(selected ? [
+        ['Αποκοπή', () => EditorManager.exec('cut', null, id), false, null, 'Ctrl+X'],
+        ['Αντιγραφή', () => EditorManager.exec('copy', null, id), false, null, 'Ctrl+C']
+      ] : []),
+      ['Επικόλληση', () => pasteClipboard(id), false, 'Αν ο browser δεν το επιτρέψει, πάτησε Ctrl+V', 'Ctrl+V'],
+      null,
       [formula ? 'Επεξεργασία τύπου…' : 'Τύπος υπολογισμού…', () => Formulas.open(cell, id), false, 'Υπολογισμός από κελιά αυτού του πίνακα, π.χ. =B2*C2 ή μέση τιμή στήλης'],
       ...(formula ? [['Κατάργηση τύπου (μένει η τιμή)', () => cell.replaceChildren(document.createTextNode(formula.textContent))]] : []),
       ['Γραφική παράσταση από τον πίνακα…', () => GraphEngine.open({ sectionId: id, table: cell.closest('table') }), false, 'Οι τιμές αντιγράφονται στο γράφημα. Αν αλλάξεις μετά τον πίνακα, διπλό κλικ στο γράφημα και «Φόρτωση».'],
@@ -5450,8 +5469,9 @@ const InsertTools = (() => {
         menu.append(Util.h('div', { class: 'menu-sep' }));
         return;
       }
-      const [label, fn, danger, title] = item;
-      const btn = Util.h('button', { class: `menu-item${danger ? ' is-danger' : ''}`, type: 'button', role: 'menuitem', text: label, title });
+      const [label, fn, danger, title, kbd] = item;
+      const btn = Util.h('button', { class: `menu-item${danger ? ' is-danger' : ''}`, type: 'button', role: 'menuitem', text: label, title },
+        kbd ? Util.h('kbd', { text: kbd }) : null);
       btn.addEventListener('click', () => {
         hideMenu();
         fn();
@@ -5472,6 +5492,39 @@ const InsertTools = (() => {
       if (ev.key === 'ArrowUp') { ev.preventDefault(); btns[(i - 1 + btns.length) % btns.length].focus(); }
       if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); hideMenu(); }
     });
+  }
+
+  /**
+   * Επικόλληση από το μενού: διαβάζει το πρόχειρο (εικόνα, HTML ή κείμενο) με την άδεια του browser.
+   * @param {string} id
+   * @returns {Promise<void>}
+   */
+  async function pasteClipboard(id) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        for (const item of await navigator.clipboard.read()) {
+          const image = item.types.find(t => t.startsWith('image/'));
+          if (image) {
+            const blob = await item.getType(image);
+            await insertImageFile(id, new File([blob], 'εικόνα.png', { type: image }));
+            return;
+          }
+          if (item.types.includes('text/html')) {
+            const html = await (await item.getType('text/html')).text();
+            EditorManager.exec('insertHTML', Sanitizer.clean(html, { paste: true }), id);
+            EditorManager.commit(id);
+            return;
+          }
+        }
+      }
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        EditorManager.exec('insertText', text, id);
+        EditorManager.commit(id);
+      }
+    } catch (e) {
+      Toast.show('Ο browser δεν επιτρέπει επικόλληση από το μενού. Πάτησε Ctrl+V.', 'info', 5000);
+    }
   }
 
   /** Κλείνει το μενού πίνακα. */
@@ -7266,6 +7319,7 @@ const Formulas = (() => {
         borderColor: color, borderStyle: dashed ? 'dashed' : 'solid', background: `${color}1A`
       }
     })));
+    showHelp(filling ? null : cell);
     handleCell = picking || filling || cell ? null : formulaCell();
     if (handleCell) {
       const r = handleCell.getBoundingClientRect();
@@ -7397,11 +7451,93 @@ const Formulas = (() => {
     document.addEventListener('mouseup', up);
   }
 
+  const FN_HELP = {
+    SUM: 'SUM(B2:B6): άθροισμα',
+    AVERAGE: 'AVERAGE(B2:B6): μέση τιμή',
+    PRODUCT: 'PRODUCT(B2:B6): γινόμενο',
+    MIN: 'MIN(B2:B6): ελάχιστη τιμή',
+    MAX: 'MAX(B2:B6): μέγιστη τιμή',
+    COUNT: 'COUNT(B2:B6): πλήθος αριθμών',
+    SQRT: 'SQRT(B2): τετραγωνική ρίζα',
+    ABS: 'ABS(B2): απόλυτη τιμή',
+    POWER: 'POWER(B2;3): δύναμη, ίδιο με B2^3',
+    ROUND: 'ROUND(B2;2): στρογγυλοποίηση σε 2 δεκαδικά'
+  };
+  let help = null;
+  let helpDismissed = null;
+
+  /**
+   * Η συνάρτηση της οποίας την παρένθεση γράφουμε τώρα (π.χ. «=SUM(B2:» → SUM).
+   * @param {string} text
+   * @returns {string|null}
+   */
+  function openFunction(text) {
+    const stack = [];
+    const re = /([$\p{L}_][$\p{L}\d_]*)?\s*([()])/gu;
+    let m;
+    while ((m = re.exec(text))) {
+      if (m[2] === '(') stack.push(m[1] ? ALIASES[plain(m[1])] || plain(m[1]) : null);
+      else stack.pop();
+    }
+    for (let i = stack.length - 1; i >= 0; i--) if (stack[i]) return stack[i];
+    return null;
+  }
+
+  /**
+   * Βοήθεια κάτω από το κελί όπου γράφεται τύπος: αποτέλεσμα, τρόπος επιλογής κελιών, συναρτήσεις.
+   * @param {HTMLTableCellElement|null} cell
+   */
+  function showHelp(cell) {
+    if (helpDismissed && helpDismissed !== cell) helpDismissed = null;
+    if (!cell || helpDismissed === cell) {
+      help.hidden = true;
+      return;
+    }
+    const text = cell.textContent.replace(/\u00A0/g, ' ').trim();
+    let result = 'Γράψε τον τύπο ή κάνε κλικ σε κελιά του πίνακα';
+    let error = false;
+    if (text.replace(/^=/, '').trim()) {
+      try {
+        const v = context(cell.closest('table')).evaluate(parse(text));
+        result = v === null ? 'Αποτέλεσμα: κενό, μέχρι να συμπληρωθούν τα κελιά' : `Αποτέλεσμα: ${format(v, '')}`;
+      } catch (e) {
+        result = e.message;
+        error = true;
+      }
+    }
+    const fn = openFunction(text);
+    const b = t => Util.h('b', { text: t });
+    help.replaceChildren(...[
+      Util.h('div', { class: `formula-help-result${error ? ' is-error' : ''}`, text: result }),
+      fn && FN_HELP[fn] ? Util.h('div', { class: 'formula-help-fn', text: FN_HELP[fn] }) : null,
+      Util.h('ul', null,
+        Util.h('li', null, b('Κλικ σε κελί'), ': μπαίνει η αναφορά του (π.χ. B2). ', b('Σύρσιμο'), ': περιοχή (π.χ. B2:B6).'),
+        Util.h('li', null, 'Πράξεις: + − * / ^ (δύναμη), π.χ. =B2*C2, =(C2-B2)/B2, =B2^2'),
+        Util.h('li', null, 'Συναρτήσεις: SUM, AVERAGE, PRODUCT, MIN, MAX, COUNT, SQRT, ABS, POWER, ROUND. Ορίσματα με ; π.χ. =ROUND(B2;2)'),
+        Util.h('li', null, b('Enter'), ' ή ', b('Tab'), ': ολοκλήρωση. ', b('Esc'), ': κλείνει αυτή τη βοήθεια.'))
+    ].filter(Boolean));
+    help.hidden = false;
+    const r = cell.getBoundingClientRect();
+    const h = help.offsetHeight;
+    const w = help.offsetWidth;
+    help.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - w - 8))}px`;
+    help.style.top = `${r.bottom + 6 + h > window.innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
+  }
+
   /** Καθολικοί ακροατές για την επεξεργασία τύπων με το ποντίκι. */
   function init() {
     layer = Util.h('div', { class: 'formula-layer', 'aria-hidden': 'true' });
     handle = Util.h('div', { class: 'fill-handle', hidden: true, title: 'Σύρε προς τα κάτω ή δεξιά για να αντιγραφεί ο τύπος στα διπλανά κελιά' });
-    document.body.append(layer, handle);
+    help = Util.h('div', { class: 'formula-help', role: 'tooltip', hidden: true });
+    document.body.append(layer, handle, help);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !help.hidden) {
+        helpDismissed = editingCell();
+        help.hidden = true;
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
     handle.addEventListener('mousedown', startFill);
     document.addEventListener('mousedown', e => {
       if (e.button !== 0 || e.target === handle) return;
@@ -8476,6 +8612,61 @@ const GraphEngine = (() => {
     return pts;
   }
 
+  /**
+   * Μέγεθος της μπάρας σφάλματος για μια τιμή.
+   * @param {number} v
+   * @param {number} err ποσοστό ή απόλυτη τιμή
+   * @param {string} mode 'percent' | 'absolute'
+   * @returns {number}
+   */
+  function errorOf(v, err, mode) {
+    if (!(err > 0)) return 0;
+    return mode === 'absolute' ? err : Math.abs(v) * err / 100;
+  }
+
+  // Μπάρες σφάλματος γύρω από τα πειραματικά σημεία, με «καπάκια» στις άκρες.
+  const errorBars = {
+    id: 'wfErrorBars',
+    afterDatasetsDraw(chart, args, opts) {
+      const { ex = 0, ey = 0, mode = 'percent', width = 1.5, cap = 5 } = opts || {};
+      if (!(ex > 0) && !(ey > 0)) return;
+      const ds = chart.data.datasets[0];
+      const meta = chart.getDatasetMeta(0);
+      const { x: xs, y: ys } = chart.scales;
+      const { ctx } = chart;
+      ctx.save();
+      ctx.strokeStyle = '#1D4ED8';
+      ctx.lineWidth = width;
+      const line = (x1, y1, x2, y2) => {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      };
+      meta.data.forEach((el, i) => {
+        const p = ds.data[i];
+        if (!p || !Number.isFinite(el.x) || !Number.isFinite(el.y)) return;
+        const dy = errorOf(p.y, ey, mode);
+        if (dy) {
+          const top = ys.getPixelForValue(p.y + dy);
+          const bottom = ys.getPixelForValue(p.y - dy);
+          line(el.x, top, el.x, bottom);
+          line(el.x - cap, top, el.x + cap, top);
+          line(el.x - cap, bottom, el.x + cap, bottom);
+        }
+        const dx = errorOf(p.x, ex, mode);
+        if (dx) {
+          const left = xs.getPixelForValue(p.x - dx);
+          const right = xs.getPixelForValue(p.x + dx);
+          line(left, el.y, right, el.y);
+          line(left, el.y - cap, left, el.y + cap);
+          line(right, el.y - cap, right, el.y + cap);
+        }
+      });
+      ctx.restore();
+    }
+  };
+
   const background = {
     id: 'wfBackground',
     beforeDraw(chart) {
@@ -8562,8 +8753,18 @@ const GraphEngine = (() => {
         borderColor: '#DC2626', borderWidth: 2, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0, order: 2
       });
     }
+    const mode = data.errorMode || 'percent';
+    // Οι άξονες μεγαλώνουν ώστε να χωρούν και οι μπάρες σφάλματος.
+    const spread = (values, err) => {
+      if (!(err > 0) || !values.length) return {};
+      return {
+        suggestedMin: Math.min(...values.map(v => v - errorOf(v, err, mode))),
+        suggestedMax: Math.max(...values.map(v => v + errorOf(v, err, mode)))
+      };
+    };
     const scale = (label, axis) => ({
       type: 'linear',
+      ...(axis === 'x' ? spread(data.xValues, data.errorX) : spread(data.yValues, data.errorY)),
       beginAtZero: !!data.includeOrigin,
       title: { display: !!label, text: label, color: text, font: { size: forExport ? 16 : 13, weight: '600' } },
       grid: { display: data.showGrid !== false, color: grid },
@@ -8586,11 +8787,20 @@ const GraphEngine = (() => {
           legend: { display: true, labels: { color: text, usePointStyle: true, filter: item => item.datasetIndex === 0, font: { size: forExport ? 14 : 12 } } },
           title: { display: !!data.chartTitle, text: data.chartTitle, color: text, font: { size: forExport ? 20 : 15, weight: '700' } },
           subtitle: { display: !!equation, text: equation, position: 'bottom', color: '#B91C1C', font: { size: forExport ? 16 : 13, family: 'Georgia, serif' }, padding: { top: 8 } },
-          tooltip: { callbacks: { label: ctx => `(${Util.fmt(ctx.parsed.x)}, ${Util.fmt(ctx.parsed.y)})` } }
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const ex = ctx.datasetIndex === 0 ? errorOf(ctx.parsed.x, data.errorX, mode) : 0;
+                const ey = ctx.datasetIndex === 0 ? errorOf(ctx.parsed.y, data.errorY, mode) : 0;
+                return `(${Util.fmt(ctx.parsed.x)}${ex ? ` ± ${Util.fmt(ex)}` : ''}, ${Util.fmt(ctx.parsed.y)}${ey ? ` ± ${Util.fmt(ey)}` : ''})`;
+              }
+            }
+          },
+          wfErrorBars: { ex: data.errorX || 0, ey: data.errorY || 0, mode, width: forExport ? 2 : 1.5, cap: forExport ? 7 : 5 }
         },
         scales: { x: scale(data.xLabel, 'x'), y: scale(data.yLabel, 'y') }
       },
-      plugins: [background]
+      plugins: [background, errorBars]
     };
   }
 
@@ -8681,7 +8891,10 @@ const GraphEngine = (() => {
       showEquation: initial ? initial.showEquation !== false : true,
       showR2: initial ? initial.showR2 !== false : true,
       // Παλιά γραφήματα χωρίς την επιλογή: «κάτω» αν έχουν ήδη εξίσωση από κάτω.
-      eqPlacement: initial && initial.eqPlacement ? initial.eqPlacement : (image && equationBelow(image) ? 'below' : 'image')
+      eqPlacement: initial && initial.eqPlacement ? initial.eqPlacement : (image && equationBelow(image) ? 'below' : 'image'),
+      errorX: initial ? Number(initial.errorX) || 0 : 0,
+      errorY: initial ? Number(initial.errorY) || 0 : 0,
+      errorMode: initial && initial.errorMode === 'absolute' ? 'absolute' : 'percent'
     };
     const rows = initial && Array.isArray(initial.xValues)
       ? initial.xValues.map((x, i) => ({ x: numToStr(x), y: numToStr(initial.yValues[i]) }))
@@ -8701,6 +8914,17 @@ const GraphEngine = (() => {
       Util.h('option', { value: 'image', text: 'Μέσα στην εικόνα, κάτω από τον άξονα x' }),
       Util.h('option', { value: 'below', text: 'Ως εξίσωση στο φύλλο, κάτω από την εικόνα (επεξεργάσιμη)' }));
     placement.value = data.eqPlacement;
+    const errorInput = (value, axis) => Util.h('input', {
+      class: 'input', type: 'number', min: '0', max: '1000', step: 'any', inputmode: 'decimal',
+      value: value ? String(value) : '', placeholder: '0', 'aria-label': `Σφάλμα στον άξονα ${axis}`
+    });
+    const errYInput = errorInput(data.errorY, 'Y');
+    const errXInput = errorInput(data.errorX, 'X');
+    const errMode = Util.h('select', { class: 'select', 'aria-label': 'Είδος σφάλματος' },
+      Util.h('option', { value: 'percent', text: '% της τιμής κάθε σημείου' }),
+      Util.h('option', { value: 'absolute', text: 'σταθερό (στις μονάδες του άξονα)' }));
+    errMode.value = data.errorMode;
+    const errValue = input => Math.max(0, Util.parseNumber(input.value) || 0);
     const tbody = Util.h('tbody');
     const count = Util.h('span', { class: 'hint' });
     const resultBox = Util.h('div', { class: 'fit-result', 'aria-live': 'polite' });
@@ -8733,6 +8957,9 @@ const GraphEngine = (() => {
         showEquation: eqCheck.checked,
         showR2: r2Check.checked,
         eqPlacement: placement.value,
+        errorX: errValue(errXInput),
+        errorY: errValue(errYInput),
+        errorMode: errMode.value,
         xValues: xs,
         yValues: ys
       };
@@ -8905,7 +9132,8 @@ const GraphEngine = (() => {
       refresh();
     });
     [titleInput, xLabel, yLabel].forEach(el => el.addEventListener('input', schedule));
-    [regression, gridCheck, originCheck, eqCheck, r2Check, placement].forEach(el => el.addEventListener('change', refresh));
+    [regression, gridCheck, originCheck, eqCheck, r2Check, placement, errMode].forEach(el => el.addEventListener('change', refresh));
+    [errXInput, errYInput].forEach(el => el.addEventListener('input', schedule));
     renderRows();
     if (fromTable && !image) loadSource();
 
@@ -8987,7 +9215,14 @@ const GraphEngine = (() => {
             Util.h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '16px' } },
               Util.h('label', { class: 'check' }, eqCheck, 'Η εξίσωση της καμπύλης'),
               Util.h('label', { class: 'check' }, r2Check, 'Το R²')),
-            placement))),
+            placement),
+          Util.h('div', { class: 'graph-eq-options' },
+            Util.h('span', { class: 'graph-eq-title' }, 'Μπάρες σφάλματος:',
+              Util.tip('Κενό ή 0 = χωρίς μπάρα. Π.χ. 5 με «%» δίνει ±5% γύρω από κάθε σημείο. Με «σταθερό», π.χ. 0,1 για ±0,1 s σε κάθε μέτρηση.')),
+            Util.h('div', { class: 'graph-error-row' },
+              Util.h('label', { class: 'field' }, Util.h('span', { text: 'Y ±' }), errYInput),
+              Util.h('label', { class: 'field' }, Util.h('span', { text: 'X ±' }), errXInput),
+              Util.h('label', { class: 'field' }, Util.h('span', { text: 'Σε' }), errMode))))),
       actions: [
         { label: 'Ακύρωση', variant: 'secondary' },
         { label: image ? 'Ενημέρωση γραφήματος' : 'Εισαγωγή στο Φύλλο', variant: 'primary', onClick: submit }
@@ -11735,7 +11970,7 @@ const UIController = (() => {
     EditorManager.flushAll();
     if (AppState.sections().some(s => EditorManager.hasContent(s.id))) {
       const answer = await Modal.choice({
-        title: 'Νέο φύλλο εργασίας',
+        title: 'Νέο φύλλο εργασίας', size: 'md',
         message: 'Θέλεις να αποθηκεύσεις το τρέχον φύλλο σε αρχείο πριν ξεκινήσεις νέο; Χωρίς αποθήκευση, η δομή και το περιεχόμενό του θα διαγραφούν.',
         buttons: [
           { label: 'Ακύρωση', variant: 'secondary', value: null },
