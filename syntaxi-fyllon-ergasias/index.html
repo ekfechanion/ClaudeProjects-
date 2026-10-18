@@ -6228,6 +6228,9 @@ const Dictation = (() => {
   let wanted = false;
   let pill = null;
   let pillText = null;
+  /** Αναγνώριση στη συσκευή (χωρίς δίκτυο), αφού αποτύχει η υπηρεσία του browser. */
+  let local = false;
+  const LOCAL_OPTS = { langs: ['el-GR'], processLocally: true };
 
   /** @returns {boolean} αν ο browser υποστηρίζει υπαγόρευση σε αυτό το περιβάλλον */
   function supported() {
@@ -6274,10 +6277,12 @@ const Dictation = (() => {
     }
     targetId = id;
     wanted = true;
-    rec = new Recognition();
+    const self = new Recognition();
+    rec = self;
     rec.lang = 'el-GR';
     rec.continuous = true;
     rec.interimResults = true;
+    if (local) rec.processLocally = true;
     rec.onresult = e => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -6290,16 +6295,23 @@ const Dictation = (() => {
     rec.onerror = e => {
       if (e.error === 'no-speech' || e.error === 'aborted') return;
       wanted = false;
+      if (e.error === 'network' || (local && e.error === 'language-not-supported')) {
+        const wasLocal = local;
+        local = false;
+        render();
+        serviceFailed(id, wasLocal);
+        return;
+      }
       const msg = {
         'not-allowed': 'Δεν δόθηκε άδεια χρήσης μικροφώνου.',
         'service-not-allowed': 'Ο browser δεν επιτρέπει φωνητική αναγνώριση σε αυτή τη σελίδα.',
-        'audio-capture': 'Δεν βρέθηκε μικρόφωνο.',
-        network: 'Η φωνητική πληκτρολόγηση χρειάζεται σύνδεση στο internet.'
+        'audio-capture': 'Δεν βρέθηκε μικρόφωνο.'
       }[e.error] || `Σφάλμα φωνητικής αναγνώρισης (${e.error}).`;
       Toast.show(msg, 'error', 6000);
       render();
     };
     rec.onend = () => {
+      if (rec !== self) return;
       if (wanted) {
         try { rec.start(); } catch (err) { wanted = false; render(); }
       } else {
@@ -6312,6 +6324,72 @@ const Dictation = (() => {
       wanted = false;
     }
     render();
+  }
+
+  /**
+   * Κατάσταση της αναγνώρισης ελληνικών στη συσκευή (Chrome 139+).
+   * @returns {Promise<string>} 'available' | 'downloadable' | 'downloading' | 'unavailable'
+   */
+  async function localStatus() {
+    if (typeof Recognition.available !== 'function') return 'unavailable';
+    try {
+      return await Recognition.available(LOCAL_OPTS);
+    } catch (err) {
+      return 'unavailable';
+    }
+  }
+
+  /**
+   * Ο browser δεν έφτασε στην υπηρεσία αναγνώρισης (σφάλμα 'network'). Συνήθως δεν φταίει η σύνδεση:
+   * Brave, Opera, Vivaldi και Chromium δεν έχουν πρόσβαση στην υπηρεσία της Google, ενώ σχολικά δίκτυα,
+   * VPN και firewall συχνά την μπλοκάρουν. Δοκιμάζει την αναγνώριση στη συσκευή, αλλιώς εξηγεί τι να γίνει.
+   * @param {string} id
+   * @param {boolean} wasLocal αν απέτυχε ήδη η αναγνώριση στη συσκευή
+   */
+  async function serviceFailed(id, wasLocal) {
+    if (!navigator.onLine) {
+      Toast.show('Δεν υπάρχει σύνδεση στο internet. Η φωνητική πληκτρολόγηση χρειάζεται δίκτυο.', 'error', 6000);
+      return;
+    }
+    const status = wasLocal ? 'unavailable' : await localStatus();
+    if (status === 'available') {
+      local = true;
+      Toast.show('Η υπηρεσία του browser δεν απαντά. Συνεχίζω με αναγνώριση στη συσκευή.', 'info', 5000);
+      start(id);
+      return;
+    }
+    const brands = (navigator.userAgentData?.brands || []).map(b => b.brand);
+    const other = navigator.brave ? 'Brave'
+      : brands.find(b => /Opera|Vivaldi|Yandex/i.test(b))
+      || (brands.includes('Chromium') && !brands.some(b => /Google Chrome|Microsoft Edge/.test(b)) ? 'Chromium' : null);
+    const causes = Util.h('ul', { style: 'margin: 0; padding-left: 20px' },
+      Util.h('li', { text: other
+        ? `Ο ${other} δεν έχει πρόσβαση στην υπηρεσία φωνητικής αναγνώρισης, παρόλο που εμφανίζει το κουμπί. Άνοιξε το αρχείο σε Google Chrome ή Microsoft Edge.`
+        : 'Αν χρησιμοποιείς Brave, Opera, Vivaldi ή Chromium: δεν έχουν πρόσβαση στην υπηρεσία, παρόλο που εμφανίζουν το κουμπί. Άνοιξε το αρχείο σε Google Chrome ή Microsoft Edge.' }),
+      Util.h('li', { text: 'Το δίκτυο (π.χ. σχολικό), ένα VPN, firewall ή antivirus μπλοκάρει την υπηρεσία. Δοκίμασε άλλο δίκτυο, π.χ. hotspot από το κινητό.' }),
+      Util.h('li', { text: 'Εναλλακτικά, χρησιμοποίησε την υπαγόρευση του λειτουργικού, που δουλεύει σε κάθε πεδίο κειμένου: Win+H στα Windows, δύο φορές το Fn ή το 🎤 στο Mac, το μικρόφωνο του πληκτρολογίου σε κινητό ή tablet.' }));
+    const downloadable = status === 'downloadable' || status === 'downloading';
+    Modal.open({
+      title: 'Η φωνητική αναγνώριση δεν είναι διαθέσιμη', size: 'sm',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('p', { text: 'Η σύνδεση στο internet υπάρχει, αλλά ο browser δεν μπόρεσε να επικοινωνήσει με την υπηρεσία φωνητικής αναγνώρισης. Πιθανές αιτίες:' }),
+        causes,
+        downloadable ? Util.h('p', { text: 'Ο browser σου μπορεί να κατεβάσει τα ελληνικά για αναγνώριση στη συσκευή, χωρίς την υπηρεσία.' }) : null),
+      actions: [
+        { label: 'Κλείσιμο', variant: downloadable ? 'secondary' : 'primary' },
+        downloadable ? {
+          label: 'Λήψη ελληνικών', variant: 'primary', onClick: () => {
+            Toast.show('Λήψη ελληνικών για αναγνώριση στη συσκευή…', 'info', 5000);
+            Promise.resolve(Recognition.install(LOCAL_OPTS)).then(ok => {
+              if (!ok) throw new Error('install');
+              local = true;
+              start(id);
+            }).catch(() => Toast.show('Η λήψη των ελληνικών δεν ολοκληρώθηκε.', 'error', 6000));
+            return true;
+          }
+        } : null
+      ]
+    });
   }
 
   /** Σταματά την υπαγόρευση. */
