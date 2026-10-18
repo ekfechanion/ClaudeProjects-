@@ -193,9 +193,13 @@ button { cursor: pointer; }
   height: 56px; padding: 0 16px;
   background: var(--surface); box-shadow: var(--shadow-header);
 }
-.brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 0; }
+.brand {
+  display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 0; margin: -4px; padding: 4px 8px 4px 4px;
+  border: none; border-radius: var(--radius-btn); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.brand:hover, .brand:focus-visible { background: var(--surface-2); outline: none; }
 .brand-logo { width: 32px; height: 32px; color: var(--primary); flex-shrink: 0; }
-.brand-name { font-size: 14px; font-weight: 700; line-height: 1.2; }
+.brand-name { display: block; font-size: 14px; font-weight: 700; line-height: 1.2; }
 .brand-sub { display: block; font-size: 12px; font-weight: 400; color: var(--text-2); }
 .doc-title-wrap { flex: 1; min-width: 160px; display: flex; justify-content: center; }
 .doc-title-input {
@@ -570,12 +574,19 @@ button { cursor: pointer; }
 .fit-result.is-error { color: var(--danger); font-family: var(--font-ui); font-size: 13px; }
 
 .graph-source { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-2); }
+.graph-eq-options { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.graph-eq-title { font-size: 13px; font-weight: 600; color: var(--text-2); }
 .graph-source-cols { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
 .graph-source-cols .btn { height: 36px; }
 
 .editor-content .wf-formula { cursor: pointer; border-radius: 3px; padding: 0 2px; background: var(--primary-soft); font-variant-numeric: tabular-nums; }
 .editor-content .wf-formula[data-error] { color: var(--danger); }
 .editor-content .wf-formula:empty::before { content: 'ƒx'; color: var(--text-3); font-style: italic; }
+.formula-layer > div { position: fixed; z-index: 155; pointer-events: none; border: 2px solid; border-radius: 2px; }
+.fill-handle {
+  position: fixed; z-index: 156; width: 9px; height: 9px; border: 1px solid #FFFFFF; border-radius: 1px;
+  background: var(--primary); cursor: crosshair;
+}
 .formula-ops { display: flex; flex-wrap: wrap; gap: 6px; }
 .formula-sym { display: inline-block; min-width: 16px; margin-right: 4px; font-weight: 700; color: var(--primary); }
 .formula-grid-wrap { max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-card); scrollbar-width: thin; }
@@ -982,18 +993,18 @@ kbd {
 </head>
 <body>
 <header class="app-header">
-  <div class="brand">
+  <button id="btn-brand" class="brand" type="button" title="Νέο φύλλο εργασίας (θα σου προταθεί πρώτα να αποθηκεύσεις το τρέχον)">
     <svg class="brand-logo" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M19 4H8a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h9"/>
       <path d="M19 4l5 5h-5z"/>
       <path d="M10 12h7M10 16h9M10 20h5"/>
       <path d="M27.5 15.5l-7.8 7.8-3.2.9.9-3.2 7.8-7.8a1.6 1.6 0 0 1 2.3 0 1.6 1.6 0 0 1 0 2.3z"/>
     </svg>
-    <div class="brand-text">
-      <div class="brand-name">Σύνταξη φύλλων εργασίας</div>
+    <span class="brand-text">
+      <span class="brand-name">Σύνταξη φύλλων εργασίας</span>
       <span class="brand-sub">Γυμνάσιο &amp; Λύκειο</span>
-    </div>
-  </div>
+    </span>
+  </button>
   <div class="doc-title-wrap">
     <input id="doc-title" class="doc-title-input" type="text" maxlength="200" placeholder="Τίτλος φύλλου εργασίας" aria-label="Τίτλος φύλλου εργασίας" autocomplete="off">
   </div>
@@ -7155,7 +7166,265 @@ const Formulas = (() => {
     update();
   }
 
-  return { parse, recalc, shift, convert, convertPending, open, grid, values, colName, format, rewrite };
+  // Επεξεργασία όπως στο Excel: όσο γράφεται τύπος, κλικ ή σύρσιμο σε κελιά βάζει αναφορές,
+  // και η λαβή στη γωνία ενός κελιού με τύπο τον αντιγράφει στα διπλανά κελιά.
+  const REF_COLORS = ['#2563EB', '#DC2626', '#7C3AED', '#059669', '#D97706', '#DB2777'];
+  let layer = null;
+  let handle = null;
+  let handleCell = null;
+  let picking = null;
+  let filling = null;
+  let lastPick = null;
+  let swallowUntil = 0;
+
+  /** @param {Node} node @returns {HTMLTableCellElement|null} */
+  function cellOf(node) {
+    const el = node && (node.nodeType === 1 ? node : node.parentElement);
+    return el ? el.closest('td, th') : null;
+  }
+
+  /** @returns {HTMLTableCellElement|null} κελί όπου γράφεται τώρα τύπος (ξεκινά με = και δεν έχει γίνει ακόμη τύπος) */
+  function editingCell() {
+    const sel = document.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    const cell = cellOf(sel.anchorNode);
+    if (!cell || !cell.closest('.editor-content') || own(cell)) return null;
+    return cell.textContent.replace(/\u00A0/g, ' ').trimStart().startsWith('=') ? cell : null;
+  }
+
+  /** @returns {HTMLTableCellElement|null} κελί με τύπο όπου βρίσκεται ο κέρσορας */
+  function formulaCell() {
+    const sel = document.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    const cell = cellOf(sel.anchorNode);
+    return cell && cell.closest('.editor-content') && own(cell) ? cell : null;
+  }
+
+  /**
+   * Ορθογώνιο της οθόνης που καλύπτει τα κελιά από (r1, c1) έως (r2, c2).
+   * @returns {DOMRect|null}
+   */
+  function boxOf(g, r1, c1, r2, c2) {
+    const rows = g.cells.length;
+    if (!rows) return null;
+    const clamp = (v, max) => Math.max(0, Math.min(v, max));
+    const a = g.cells[clamp(Math.min(r1, r2), rows - 1)]?.[clamp(Math.min(c1, c2), g.cols - 1)];
+    const b = g.cells[clamp(Math.max(r1, r2), rows - 1)]?.[clamp(Math.max(c1, c2), g.cols - 1)];
+    if (!a || !b) return null;
+    const ra = a.getBoundingClientRect();
+    const rb = b.getBoundingClientRect();
+    return new DOMRect(Math.min(ra.left, rb.left), Math.min(ra.top, rb.top),
+      Math.max(ra.right, rb.right) - Math.min(ra.left, rb.left), Math.max(ra.bottom, rb.bottom) - Math.min(ra.top, rb.top));
+  }
+
+  /** @returns {string} B2 ή B2:B6 για τα κελιά a έως b */
+  function rangeRef(table, a, b) {
+    const g = grid(table);
+    const [r1, c1] = g.pos.get(a);
+    const [r2, c2] = g.pos.get(b);
+    const tl = `${colName(Math.min(c1, c2))}${Math.min(r1, r2) + 1}`;
+    const br = `${colName(Math.max(c1, c2))}${Math.max(r1, r2) + 1}`;
+    return tl === br ? tl : `${tl}:${br}`;
+  }
+
+  /** Σχεδιάζει τα πλαίσια των αναφορών, της επιλογής και της συμπλήρωσης, και τη λαβή. */
+  function paint() {
+    if (!layer) return;
+    const boxes = [];
+    const cell = editingCell();
+    if (cell) {
+      const table = cell.closest('table');
+      const g = grid(table);
+      let toks = [];
+      try { toks = lex(cell.textContent.trim().replace(/^=/, '')); } catch (e) { toks = []; }
+      let n = 0;
+      for (let i = 0; i < toks.length; i++) {
+        if (toks[i].t !== 'ref') continue;
+        const a = toks[i].v;
+        let b = a;
+        if (toks[i + 1] && toks[i + 1].t === ':' && toks[i + 2] && toks[i + 2].t === 'ref') {
+          b = toks[i + 2].v;
+          i += 2;
+        }
+        const rect = boxOf(g, a.row, a.col, b.row, b.col);
+        if (rect) boxes.push({ rect, color: REF_COLORS[n++ % REF_COLORS.length] });
+      }
+    }
+    if (picking) {
+      const g = grid(picking.table);
+      const [r1, c1] = g.pos.get(picking.a);
+      const [r2, c2] = g.pos.get(picking.b);
+      boxes.push({ rect: boxOf(g, r1, c1, r2, c2), color: '#2563EB', dashed: true });
+    }
+    if (filling) {
+      const g = grid(filling.table);
+      boxes.push({ rect: boxOf(g, filling.r, filling.c, filling.r2, filling.c2), color: '#64748B', dashed: true });
+    }
+    layer.replaceChildren(...boxes.filter(b => b.rect).map(({ rect, color, dashed }) => Util.h('div', {
+      style: {
+        left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px`,
+        borderColor: color, borderStyle: dashed ? 'dashed' : 'solid', background: `${color}1A`
+      }
+    })));
+    handleCell = picking || filling || cell ? null : formulaCell();
+    if (handleCell) {
+      const r = handleCell.getBoundingClientRect();
+      handle.hidden = false;
+      handle.style.left = `${r.right - 5}px`;
+      handle.style.top = `${r.bottom - 5}px`;
+    } else if (!filling) {
+      handle.hidden = true;
+    }
+  }
+
+  /**
+   * Βάζει αναφορά στη θέση του κέρσορα. Αν ακριβώς πριν μπήκε άλλη αναφορά με κλικ, την αντικαθιστά (όπως το Excel).
+   * @param {string} text
+   */
+  function insertRef(text) {
+    const sel = document.getSelection();
+    if (!sel.rangeCount) return;
+    const r = sel.getRangeAt(0);
+    if (lastPick && r.collapsed && r.startContainer === lastPick.node && r.startOffset === lastPick.end
+      && lastPick.node.nodeValue.slice(lastPick.start, lastPick.end) === lastPick.text) {
+      const prev = document.createRange();
+      prev.setStart(lastPick.node, lastPick.start);
+      prev.setEnd(lastPick.node, lastPick.end);
+      sel.removeAllRanges();
+      sel.addRange(prev);
+    }
+    document.execCommand('insertText', false, text);
+    const after = sel.rangeCount ? sel.getRangeAt(0) : null;
+    lastPick = after && after.startContainer.nodeType === Node.TEXT_NODE && after.startOffset >= text.length
+      ? { node: after.startContainer, start: after.startOffset - text.length, end: after.startOffset, text } : null;
+  }
+
+  /**
+   * Σύρσιμο σε κελιά όσο γράφεται τύπος: B2 με κλικ, B2:B6 με σύρσιμο.
+   * @param {MouseEvent} e
+   * @param {HTMLTableCellElement} editing
+   * @param {HTMLTableCellElement} target
+   */
+  function startPick(e, editing, target) {
+    e.preventDefault();
+    picking = { table: editing.closest('table'), a: target, b: target };
+    paint();
+    const move = ev => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const c = el && el.closest && el.closest('td, th');
+      if (c && c.closest('table') === picking.table && c !== picking.b) {
+        picking.b = c;
+        paint();
+      }
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      const text = rangeRef(picking.table, picking.a, picking.b);
+      picking = null;
+      swallowUntil = Date.now() + 400;
+      insertRef(text);
+      paint();
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+
+  /**
+   * Λαβή συμπλήρωσης: σύρσιμο προς τα κάτω/πάνω ή δεξιά/αριστερά αντιγράφει τον τύπο,
+   * μετακινώντας τις σχετικές αναφορές σε κάθε κελί.
+   * @param {MouseEvent} e
+   */
+  function startFill(e) {
+    const source = handleCell;
+    if (!source) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const table = source.closest('table');
+    const g = grid(table);
+    const [r, c] = g.pos.get(source);
+    filling = { table, r, c, r2: r, c2: c };
+    paint();
+    const move = ev => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const cell = el && el.closest && el.closest('td, th');
+      if (!cell || cell.closest('table') !== table) return;
+      const [tr, tc] = g.pos.get(cell);
+      const vertical = Math.abs(tr - r) >= Math.abs(tc - c);
+      filling.r2 = vertical ? tr : r;
+      filling.c2 = vertical ? c : tc;
+      paint();
+      const hr = boxOf(g, filling.r2, filling.c2, filling.r2, filling.c2);
+      if (hr) {
+        handle.style.left = `${hr.right - 5}px`;
+        handle.style.top = `${hr.bottom - 5}px`;
+      }
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      const { r2, c2 } = filling;
+      filling = null;
+      swallowUntil = Date.now() + 400;
+      const span = own(source);
+      if (span && (r2 !== r || c2 !== c)) {
+        const formula = span.getAttribute('data-formula');
+        const decimals = span.getAttribute('data-decimals') || '';
+        let count = 0;
+        for (let rr = Math.min(r, r2); rr <= Math.max(r, r2); rr++) {
+          for (let cc = Math.min(c, c2); cc <= Math.max(c, c2); cc++) {
+            const cell = g.cells[rr] && g.cells[rr][cc];
+            if (!cell || cell === source || g.pos.get(cell)[0] !== rr || g.pos.get(cell)[1] !== cc) continue;
+            if (cell.querySelector('img, table, .math-node, .wf-embed')) continue;
+            const dr = rr - r;
+            const dc = cc - c;
+            setFormula(cell, rewrite(formula, x => {
+              const next = { ...x, row: x.absRow ? x.row : x.row + dr, col: x.absCol ? x.col : x.col + dc };
+              return next.row < 0 || next.col < 0 ? null : next;
+            }), decimals);
+            count++;
+          }
+        }
+        if (count) {
+          recalc(table);
+          const id = table.closest('.editor-block')?.dataset.sectionId;
+          if (id) EditorManager.commit(id);
+        }
+      }
+      paint();
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+
+  /** Καθολικοί ακροατές για την επεξεργασία τύπων με το ποντίκι. */
+  function init() {
+    layer = Util.h('div', { class: 'formula-layer', 'aria-hidden': 'true' });
+    handle = Util.h('div', { class: 'fill-handle', hidden: true, title: 'Σύρε προς τα κάτω ή δεξιά για να αντιγραφεί ο τύπος στα διπλανά κελιά' });
+    document.body.append(layer, handle);
+    handle.addEventListener('mousedown', startFill);
+    document.addEventListener('mousedown', e => {
+      if (e.button !== 0 || e.target === handle) return;
+      const editing = editingCell();
+      const target = e.target.closest && e.target.closest('td, th');
+      if (editing && target && target !== editing && target.closest('table') === editing.closest('table')) startPick(e, editing, target);
+    }, true);
+    // Το κλικ που κλείνει ένα σύρσιμο δεν πρέπει να μετακινήσει τον κέρσορα ή να ολοκληρώσει τον τύπο.
+    document.addEventListener('click', e => {
+      if (Date.now() < swallowUntil) {
+        swallowUntil = 0;
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+    const repaint = () => requestAnimationFrame(paint);
+    document.addEventListener('selectionchange', repaint);
+    document.addEventListener('input', repaint);
+    window.addEventListener('scroll', repaint, true);
+    window.addEventListener('resize', repaint);
+  }
+
+  return { init, parse, recalc, shift, convert, convertPending, open, grid, values, colName, format, rewrite };
 })();
 
 /**
@@ -8220,6 +8489,59 @@ const GraphEngine = (() => {
   };
 
   /**
+   * Εξίσωση και R² όπως τα διάλεξε ο χρήστης (απλό κείμενο για την εικόνα, LaTeX για το φύλλο).
+   * @param {Object} data
+   * @param {Object} result
+   * @returns {{text: string, tex: string}}
+   */
+  function equationParts(data, result) {
+    if (!result || !result.equation) return { text: '', tex: '' };
+    const text = [];
+    const tex = [];
+    if (data.showEquation !== false) {
+      text.push(result.equation);
+      tex.push(result.latex);
+    }
+    if (data.showR2 !== false) {
+      text.push(`R² = ${Util.fmt(result.r2)}`);
+      tex.push(`R^2 = ${texNum(result.r2)}`);
+    }
+    return { text: text.join('    '), tex: tex.join(',\\quad ') };
+  }
+
+  /**
+   * Η εξίσωση που μπήκε ως LaTeX ακριβώς κάτω από το γράφημα, αν υπάρχει.
+   * @param {HTMLImageElement} img
+   * @returns {HTMLElement|null}
+   */
+  function equationBelow(img) {
+    const host = img.closest('p') || img.parentElement;
+    const next = host && host.nextElementSibling;
+    const node = next && next.tagName === 'P' ? next.querySelector(':scope > .math-node.math-display') : null;
+    return node && /^\s*(y\s*=|R\^2)/.test(node.getAttribute('data-latex') || '') ? node : null;
+  }
+
+  /**
+   * Βάζει, ενημερώνει ή βγάζει την εξίσωση κάτω από το γράφημα σύμφωνα με τις επιλογές.
+   * @param {HTMLImageElement} img
+   * @param {Object} data
+   * @param {string} id ενότητα
+   */
+  function syncEquationBelow(img, data, id) {
+    const tex = data.eqPlacement === 'below' ? equationParts(data, fit(data.xValues, data.yValues, data.regressionType)).tex : '';
+    const node = equationBelow(img);
+    if (node && tex) {
+      node.setAttribute('data-latex', tex);
+      MathEngine.renderInto(node);
+    } else if (node) {
+      node.parentElement.remove();
+    } else if (tex) {
+      EditorManager.caretIn(img.closest('p') || img.parentElement, true);
+      MathEngine.insert(tex, true, id);
+    }
+  }
+
+  /**
    * Ρυθμίσεις Chart.js: διάγραμμα διασποράς + καμπύλη (η καμπύλη δεν εμφανίζεται στο υπόμνημα).
    * @param {Object} data
    * @param {Object} result
@@ -8249,7 +8571,7 @@ const GraphEngine = (() => {
       ticks: { color: text, font: { size: forExport ? 14 : 12 } },
       ...(axis === 'x' && data.includeOrigin ? { min: Math.min(0, ...data.xValues.filter(Number.isFinite)) } : {})
     });
-    const equation = result && result.equation ? `${result.equation}    R² = ${Util.fmt(result.r2)}` : '';
+    const equation = (data.eqPlacement || 'image') === 'image' ? equationParts(data, result).text : '';
     return {
       type: 'scatter',
       data: { datasets },
@@ -8263,7 +8585,7 @@ const GraphEngine = (() => {
         plugins: {
           legend: { display: true, labels: { color: text, usePointStyle: true, filter: item => item.datasetIndex === 0, font: { size: forExport ? 14 : 12 } } },
           title: { display: !!data.chartTitle, text: data.chartTitle, color: text, font: { size: forExport ? 20 : 15, weight: '700' } },
-          subtitle: { display: !!equation, text: equation, color: '#B91C1C', font: { size: forExport ? 16 : 13, family: 'Georgia, serif' }, padding: { bottom: 8 } },
+          subtitle: { display: !!equation, text: equation, position: 'bottom', color: '#B91C1C', font: { size: forExport ? 16 : 13, family: 'Georgia, serif' }, padding: { top: 8 } },
           tooltip: { callbacks: { label: ctx => `(${Util.fmt(ctx.parsed.x)}, ${Util.fmt(ctx.parsed.y)})` } }
         },
         scales: { x: scale(data.xLabel, 'x'), y: scale(data.yLabel, 'y') }
@@ -8355,7 +8677,11 @@ const GraphEngine = (() => {
       chartTitle: initial ? initial.chartTitle : '',
       regressionType: initial ? initial.regressionType : 'linear',
       showGrid: initial ? initial.showGrid !== false : true,
-      includeOrigin: initial ? !!initial.includeOrigin : false
+      includeOrigin: initial ? !!initial.includeOrigin : false,
+      showEquation: initial ? initial.showEquation !== false : true,
+      showR2: initial ? initial.showR2 !== false : true,
+      // Παλιά γραφήματα χωρίς την επιλογή: «κάτω» αν έχουν ήδη εξίσωση από κάτω.
+      eqPlacement: initial && initial.eqPlacement ? initial.eqPlacement : (image && equationBelow(image) ? 'below' : 'image')
     };
     const rows = initial && Array.isArray(initial.xValues)
       ? initial.xValues.map((x, i) => ({ x: numToStr(x), y: numToStr(initial.yValues[i]) }))
@@ -8369,7 +8695,12 @@ const GraphEngine = (() => {
     regression.value = data.regressionType;
     const gridCheck = Util.h('input', { type: 'checkbox', checked: data.showGrid });
     const originCheck = Util.h('input', { type: 'checkbox', checked: data.includeOrigin });
-    const eqCheck = Util.h('input', { type: 'checkbox', checked: true });
+    const eqCheck = Util.h('input', { type: 'checkbox', checked: data.showEquation });
+    const r2Check = Util.h('input', { type: 'checkbox', checked: data.showR2 });
+    const placement = Util.h('select', { class: 'select', 'aria-label': 'Πού φαίνονται η εξίσωση και το R²' },
+      Util.h('option', { value: 'image', text: 'Μέσα στην εικόνα, κάτω από τον άξονα x' }),
+      Util.h('option', { value: 'below', text: 'Ως εξίσωση στο φύλλο, κάτω από την εικόνα (επεξεργάσιμη)' }));
+    placement.value = data.eqPlacement;
     const tbody = Util.h('tbody');
     const count = Util.h('span', { class: 'hint' });
     const resultBox = Util.h('div', { class: 'fit-result', 'aria-live': 'polite' });
@@ -8399,6 +8730,9 @@ const GraphEngine = (() => {
         regressionType: regression.value,
         showGrid: gridCheck.checked,
         includeOrigin: originCheck.checked,
+        showEquation: eqCheck.checked,
+        showR2: r2Check.checked,
+        eqPlacement: placement.value,
         xValues: xs,
         yValues: ys
       };
@@ -8571,7 +8905,7 @@ const GraphEngine = (() => {
       refresh();
     });
     [titleInput, xLabel, yLabel].forEach(el => el.addEventListener('input', schedule));
-    [regression, gridCheck, originCheck].forEach(el => el.addEventListener('change', refresh));
+    [regression, gridCheck, originCheck, eqCheck, r2Check, placement].forEach(el => el.addEventListener('change', refresh));
     renderRows();
     if (fromTable && !image) loadSource();
 
@@ -8594,6 +8928,7 @@ const GraphEngine = (() => {
           image.alt = alt;
           image.setAttribute('data-graph-json', json);
           image.classList.add('wf-graph');
+          syncEquationBelow(image, d, id);
           EditorManager.commit(id);
         } else {
           graphId = `g-${Util.uuid()}`;
@@ -8605,9 +8940,8 @@ const GraphEngine = (() => {
             }
             EditorManager.caretIn(after);
           }
-          await InsertTools.insertImageData(id, dataURL, { alt, widthPct: 80, className: 'wf-graph', attrs: { 'data-graph-id': graphId, 'data-graph-json': json } });
-          const result = fit(d.xValues, d.yValues, d.regressionType);
-          if (eqCheck.checked && result.latex) MathEngine.insert(`${result.latex},\\quad R^2 = ${texNum(result.r2)}`, true, id);
+          const img = await InsertTools.insertImageData(id, dataURL, { alt, widthPct: 80, className: 'wf-graph', attrs: { 'data-graph-id': graphId, 'data-graph-json': json } });
+          if (img) syncEquationBelow(img, d, id);
         }
         AppState.setGraph(graphId, d);
         Toast.show(image ? 'Το γράφημα ενημερώθηκε' : 'Το γράφημα εισήχθη στο φύλλο', 'success');
@@ -8646,8 +8980,14 @@ const GraphEngine = (() => {
           resultBox,
           Util.h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '16px' } },
             Util.h('label', { class: 'check' }, gridCheck, 'Πλέγμα'),
-            Util.h('label', { class: 'check' }, originCheck, 'Να φαίνεται η αρχή των αξόνων'),
-            image ? null : Util.h('label', { class: 'check' }, eqCheck, 'Εισαγωγή της εξίσωσης κάτω από το γράφημα')))),
+            Util.h('label', { class: 'check' }, originCheck, 'Να φαίνεται η αρχή των αξόνων')),
+          Util.h('div', { class: 'graph-eq-options' },
+            Util.h('span', { class: 'graph-eq-title' }, 'Κάτω από το γράφημα να φαίνονται:',
+              Util.tip('Ισχύει όταν έχεις διαλέξει καμπύλη προσέγγισης. Ξετσέκαρε και τα δύο για γράφημα χωρίς εξίσωση.')),
+            Util.h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '16px' } },
+              Util.h('label', { class: 'check' }, eqCheck, 'Η εξίσωση της καμπύλης'),
+              Util.h('label', { class: 'check' }, r2Check, 'Το R²')),
+            placement))),
       actions: [
         { label: 'Ακύρωση', variant: 'secondary' },
         { label: image ? 'Ενημέρωση γραφήματος' : 'Εισαγωγή στο Φύλλο', variant: 'primary', onClick: submit }
@@ -10087,12 +10427,17 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
     requestAnimationFrame(render);
   }
 
-  /** Αποθηκεύει ολόκληρο το έργο (πρότυπο + περιεχόμενο + γραφήματα) σε .json. */
+  /**
+   * Αποθηκεύει ολόκληρο το έργο (πρότυπο + περιεχόμενο + γραφήματα) σε .json.
+   * @returns {Promise<boolean>} αν αποθηκεύτηκε
+   */
   async function saveProject() {
     EditorManager.flushAll();
     Autosave.pruneGraphs();
     const payload = { app: 'worksheet-forge', version: '1.0.0', savedAt: new Date().toISOString(), state: AppState.toJSON() };
-    if (await Util.downloadBlob(new Blob([JSON.stringify(payload)], { type: 'application/json' }), Util.safeFilename(docTitle(), 'json'))) Toast.show('Το έργο αποθηκεύτηκε σε αρχείο', 'success');
+    const saved = await Util.downloadBlob(new Blob([JSON.stringify(payload)], { type: 'application/json' }), Util.safeFilename(docTitle(), 'json'));
+    if (saved) Toast.show('Το έργο αποθηκεύτηκε σε αρχείο', 'success');
+    return !!saved;
   }
 
   /**
@@ -11377,17 +11722,35 @@ const UIController = (() => {
     $('btn-export-template').addEventListener('click', () => TemplateManager.exportTemplate());
     $('btn-import-template').addEventListener('click', () => TemplateManager.importTemplate());
     $('btn-import-doc').addEventListener('click', () => ImportManager.run());
-    $('btn-new-sheet').addEventListener('click', async () => {
-      const ok = await Modal.confirm({
-        title: 'Νέο φύλλο',
-        message: 'Το τρέχον φύλλο εργασίας (δομή και περιεχόμενο) θα διαγραφεί. Αν θέλεις να το κρατήσεις, αποθήκευσέ το πρώτα σε αρχείο.',
-        confirmLabel: 'Νέο φύλλο', danger: true
-      });
-      if (!ok) return;
-      AppState.replace(AppState.createEmpty(), 'new-sheet');
-      Toast.show('Διάλεξε πρότυπο για το νέο φύλλο', 'info');
-    });
+    $('btn-new-sheet').addEventListener('click', newSheet);
+    $('btn-brand').addEventListener('click', newSheet);
     renderLibrary();
+  }
+
+  /**
+   * Νέο φύλλο: αν το τρέχον έχει περιεχόμενο, προτείνει πρώτα αποθήκευση σε αρχείο.
+   * @returns {Promise<void>}
+   */
+  async function newSheet() {
+    EditorManager.flushAll();
+    if (AppState.sections().some(s => EditorManager.hasContent(s.id))) {
+      const answer = await Modal.choice({
+        title: 'Νέο φύλλο εργασίας',
+        message: 'Θέλεις να αποθηκεύσεις το τρέχον φύλλο σε αρχείο πριν ξεκινήσεις νέο; Χωρίς αποθήκευση, η δομή και το περιεχόμενό του θα διαγραφούν.',
+        buttons: [
+          { label: 'Ακύρωση', variant: 'secondary', value: null },
+          { label: 'Χωρίς αποθήκευση', variant: 'danger', value: 'discard' },
+          { label: 'Αποθήκευση και νέο', variant: 'primary', value: 'save' }
+        ]
+      });
+      if (!answer) return;
+      if (answer === 'save' && !(await ExportManager.saveProject())) {
+        Toast.show('Το φύλλο δεν αποθηκεύτηκε, οπότε δεν άνοιξε νέο', 'warning', 5000);
+        return;
+      }
+    }
+    AppState.replace(AppState.createEmpty(), 'new-sheet');
+    Toast.show('Διάλεξε πρότυπο για το νέο φύλλο', 'info');
   }
 
   /**
@@ -11875,6 +12238,7 @@ const UIController = (() => {
     }
     EditorManager.init();
     InsertTools.init();
+    Formulas.init();
     ExportManager.init();
     bindHeader();
     bindPanel();
