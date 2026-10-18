@@ -11434,9 +11434,10 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
    * @param {Function} paginate η ίδια σελιδοποίηση με την εξαγωγή PDF της εφαρμογής
    */
   function exportRuntime(paginate) {
-    const KEY = `wf-answers:${document.title}`;
     const cfgEl = document.getElementById('wf-pdf-config');
     const CFG = cfgEl ? JSON.parse(cfgEl.textContent) : null;
+    // Κάθε εξαγωγή έχει δικό της κλειδί: απαντήσεις από παλιότερο HTML με τον ίδιο τίτλο δεν περνούν σε νέο.
+    const KEY = `wf-answers:${CFG && CFG.id ? CFG.id : document.title}`;
     const fields = () => Array.from(document.querySelectorAll('#print-root [contenteditable="true"]'));
     const items = () => Array.from(document.querySelectorAll('#print-root ul.wf-checklist > li'));
     const save = () => {
@@ -11723,7 +11724,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const cfg = {
         title: docTitle(), g, headerTitle: !!opts.headerTitle, date: opts.headerDate && m.date ? Util.formatDate(m.date) : '', pageNumbers: !!opts.pageNumbers,
         logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null, fit: fitScale(), bySection: bySection(),
-        decimals: AppState.get().style.formulaDecimals || ''
+        decimals: AppState.get().style.formulaDecimals || '',
+        id: `${Date.now().toString(36)}-${Util.uuid()}`
       };
       const logoHtml = logo ? `<img class="wf-page-logo" src="${logo.src}" alt="Λογότυπο" style="top:${logo.top.toFixed(2)}mm;left:${g.left}mm;width:${logo.w.toFixed(2)}mm;height:${logo.h.toFixed(2)}mm"><img class="wf-head-preload" src="${logo.svg}" alt="">` : '';
       const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${logoHtml}${root.outerHTML}</main>`;
