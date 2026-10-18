@@ -598,6 +598,20 @@ button { cursor: pointer; }
 .formula-help-result { font-size: 14px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .formula-help-result.is-error { color: var(--danger); font-weight: 400; font-size: 13px; }
 .formula-help-fn { margin-top: 4px; padding: 2px 6px; border-radius: 4px; background: var(--primary-soft); color: var(--text); font-family: var(--font-mono); }
+.doc-content table.wf-stripe-rows > tbody > tr:nth-child(even) > td,
+.doc-content table.wf-stripe-cols > tbody > tr > td:nth-child(even) { background-color: var(--wf-stripe, #DBEAFE); }
+/* Τα χρώματα κελιών είναι ανοιχτά· το κείμενο μένει σκούρο και στο σκοτεινό θέμα. */
+.doc-content td[style*="background-color"], .doc-content th[style*="background-color"],
+.doc-content table.wf-stripe-rows > tbody > tr:nth-child(even) > td,
+.doc-content table.wf-stripe-cols > tbody > tr > td:nth-child(even) { color: #0F172A; }
+.doc-content table, .doc-content td, .doc-content th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.swatch {
+  width: 28px; height: 28px; padding: 0; border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer;
+}
+.swatch[aria-pressed="true"], .swatch-custom.is-on { outline: 2px solid var(--primary); outline-offset: 2px; }
+.swatch-none { background: linear-gradient(to top right, #FFFFFF calc(50% - 1px), #DC2626 50%, #FFFFFF calc(50% + 1px)); }
+.swatch-custom { width: 36px; height: 30px; padding: 0 2px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface); cursor: pointer; }
 body.is-col-resize, body.is-col-resize * { cursor: col-resize !important; }
 body.is-row-resize, body.is-row-resize * { cursor: row-resize !important; }
 .formula-ops { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1747,6 +1761,7 @@ const Util = (() => {
     redo: ['M15 15l6-6-6-6', 'M21 9H9a6 6 0 0 0 0 12h3'],
     eraser: ['M6 4h12', 'M12 4l-3 16', 'M4 20l16-16'],
     hr: ['M3 12h18'],
+    copy: ['M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z', 'M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1'],
     pagebreak: ['M4 4v5h16V4', 'M4 20v-5h16v5', 'M3 12h2', 'M8 12h2', 'M14 12h2', 'M19 12h2'],
     expand: ['M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9', 'M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15', 'M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9', 'M20.25 20.25h-4.5m4.5 0v-4.5m0 4.5L15 15'],
     compress: ['M9 3.75V9H3.75', 'M9 9L3.75 3.75', 'M9 20.25V15H3.75', 'M9 15l-5.25 5.25', 'M15 3.75V9h5.25', 'M15 9l5.25-5.25', 'M15 20.25V15h5.25', 'M15 15l5.25 5.25'],
@@ -2341,9 +2356,9 @@ const Sanitizer = (() => {
   };
   const RENAME = { h5: 'h4', h6: 'h4', ins: 'u' };
   const STYLE_PROPS = ['text-align', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'text-decoration-line',
-    'vertical-align', 'width', 'height', 'margin-left', 'margin-right', 'margin', 'padding-left', 'padding', 'border', 'display'];
+    'vertical-align', 'width', 'height', 'background-color', '--wf-stripe', 'margin-left', 'margin-right', 'margin', 'padding-left', 'padding', 'border', 'display'];
   const PASTE_STYLE_PROPS = ['text-align', 'font-weight', 'font-style', 'text-decoration-line', 'vertical-align'];
-  const CLASSES = new Set(['wf-table', 'wf-caption', 'wf-graph', 'wf-img', 'wf-grid', 'wf-grid-plain', 'wf-tip', 'wf-card', 'wf-card-title',
+  const CLASSES = new Set(['wf-table', 'wf-stripe-rows', 'wf-stripe-cols', 'wf-caption', 'wf-graph', 'wf-img', 'wf-grid', 'wf-grid-plain', 'wf-tip', 'wf-card', 'wf-card-title',
     'wf-card-note', 'wf-card-tip', 'wf-card-warn', 'wf-card-def', 'wf-card-remember', 'wf-checklist', 'wf-float-left', 'wf-float-right',
     'wf-obj-left', 'wf-obj-right']);
   const PLACEMENT = ['wf-float-left', 'wf-float-right', 'wf-obj-left', 'wf-obj-right'];
@@ -3335,6 +3350,35 @@ const TemplateManager = (() => {
   }
 
   /**
+   * Αντίγραφο ενότητας ακριβώς από κάτω, με όλο το περιεχόμενο και τις ρυθμίσεις της.
+   * Τα γραφήματα παίρνουν νέο αναγνωριστικό, ώστε το αντίγραφο να μην εξαρτάται από το αρχικό.
+   * @param {string} id
+   * @returns {string|null} id του αντιγράφου
+   */
+  function duplicateSection(id) {
+    EditorManager.flush(id);
+    const sections = AppState.sections();
+    const index = sections.findIndex(s => s.id === id);
+    if (index < 0) return null;
+    const src = sections[index];
+    const holder = document.createElement('template');
+    holder.innerHTML = AppState.get().content[id] || '';
+    const graphs = [];
+    holder.content.querySelectorAll('img[data-graph-id]').forEach(img => {
+      const old = AppState.get().graphs[img.getAttribute('data-graph-id')];
+      const graphId = `g-${Util.uuid()}`;
+      img.setAttribute('data-graph-id', graphId);
+      if (old) graphs.push([graphId, old]);
+    });
+    const copy = { ...src, id: Util.uuid(), title: `${src.title} (αντίγραφο)`.slice(0, 100), collapsed: false };
+    const newId = AppState.addSection(copy, index + 1, holder.innerHTML);
+    graphs.forEach(([graphId, data]) => AppState.setGraph(graphId, { ...data, sectionId: newId }));
+    Toast.show(`Δημιουργήθηκε αντίγραφο της ενότητας «${src.title || 'Χωρίς τίτλο'}»`, 'success');
+    requestAnimationFrame(() => EditorManager.focusSection(newId, true));
+    return newId;
+  }
+
+  /**
    * Αφαιρεί ενότητα· ζητά επιβεβαίωση αν έχει περιεχόμενο.
    * @param {string} id
    * @returns {Promise<void>}
@@ -3441,7 +3485,7 @@ const TemplateManager = (() => {
   }
 
   return {
-    TYPE_LABELS, predefinedList, loadPredefined, applyTemplate, render, addSection, addExercise, removeSection,
+    TYPE_LABELS, predefinedList, loadPredefined, applyTemplate, render, addSection, addExercise, duplicateSection, removeSection,
     exportTemplate, importTemplate, library, saveToLibrary, loadFromLibrary, deleteFromLibrary
   };
 })();
@@ -3922,6 +3966,7 @@ const EditorManager = (() => {
       const s = AppState.getSection(block.id);
       if (s) AppState.updateSection(block.id, { hidden: !s.hidden });
     });
+    const copyBtn = iconButton('copy', 'Αντίγραφο της ενότητας (μπαίνει ακριβώς από κάτω)', () => TemplateManager.duplicateSection(block.id));
     const deleteBtn = iconButton('trash', 'Διαγραφή ενότητας', () => TemplateManager.removeSection(block.id), true);
     block.spanSelect = Util.h('select', { class: 'chip-select span-select', title: 'Πλάτος καρτέλας', 'aria-label': 'Πλάτος καρτέλας' },
       SPAN_LABELS.map(([v, l]) => Util.h('option', { value: String(v), text: l })));
@@ -3930,7 +3975,7 @@ const EditorManager = (() => {
     block.resizer.addEventListener('mousedown', e => startBlockResize(e, block));
     block.resizer.addEventListener('dblclick', () => AppState.updateSection(block.id, { minHeight: 0 }));
     const header = Util.h('div', { class: 'block-header' }, handle, indexEl, titleInput, typeSelect, block.spanSelect, reqBtn,
-      Util.h('div', { class: 'block-actions' }, block.hideBtn, block.titleBtn, block.collapseBtn, block.focusBtn, deleteBtn));
+      Util.h('div', { class: 'block-actions' }, block.hideBtn, block.titleBtn, block.collapseBtn, block.focusBtn, copyBtn, deleteBtn));
     block.el = Util.h('article', { class: 'editor-block', dataset: { sectionId: section.id } }, header, block.toolbar, content, block.resizer);
     blocks.set(section.id, block);
     wire(block, handle);
@@ -5755,6 +5800,97 @@ const InsertTools = (() => {
     document.addEventListener('mouseup', up);
   }
 
+  const CELL_COLORS = [
+    ['#FEF3C7', 'Κίτρινο'], ['#FFEDD5', 'Πορτοκαλί'], ['#FEE2E2', 'Κόκκινο'], ['#FCE7F3', 'Ροζ'], ['#EDE9FE', 'Μωβ'],
+    ['#DBEAFE', 'Μπλε'], ['#E0F2FE', 'Γαλάζιο'], ['#DCFCE7', 'Πράσινο'], ['#F1F5F9', 'Γκρι'], ['#E2E8F0', 'Σκούρο γκρι']
+  ];
+
+  /**
+   * Σειρά επιλογής χρώματος: έτοιμα ανοιχτά χρώματα, δικό σου χρώμα και «χωρίς χρώμα».
+   * @param {string} value αρχική τιμή ('' = χωρίς)
+   * @param {string} label
+   * @returns {{el: HTMLElement, get: Function}}
+   */
+  function colorPicker(value, label) {
+    let current = value;
+    const custom = Util.h('input', { type: 'color', class: 'swatch-custom', title: 'Δικό σου χρώμα', 'aria-label': `${label}: δικό σου χρώμα`, value: value || '#FEF3C7' });
+    const none = Util.h('button', { type: 'button', class: 'swatch swatch-none', title: 'Χωρίς χρώμα', 'aria-label': 'Χωρίς χρώμα' });
+    const swatches = CELL_COLORS.map(([hex, name]) => Util.h('button', { type: 'button', class: 'swatch', title: name, 'aria-label': name, style: { background: hex }, dataset: { color: hex } }));
+    const mark = () => {
+      [none, ...swatches].forEach(b => b.setAttribute('aria-pressed', String((b.dataset.color || '') === current)));
+      custom.classList.toggle('is-on', !!current && !CELL_COLORS.some(([hex]) => hex === current));
+    };
+    [none, ...swatches].forEach(b => b.addEventListener('click', () => { current = b.dataset.color || ''; mark(); }));
+    custom.addEventListener('input', () => { current = custom.value.toUpperCase(); mark(); });
+    mark();
+    return { el: Util.h('div', { class: 'swatches', role: 'group', 'aria-label': label }, none, ...swatches, custom), get: () => current };
+  }
+
+  /** @param {string} css χρώμα όπως το δίνει ο browser @returns {string} #RRGGBB ή '' */
+  function toHex(css) {
+    if (!css) return '';
+    if (/^#[0-9a-f]{6}$/i.test(css)) return css.toUpperCase();
+    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(css);
+    if (!m || (m[4] !== undefined && Number(m[4]) === 0)) return '';
+    return `#${[m[1], m[2], m[3]].map(v => Number(v).toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+  }
+
+  /**
+   * Χρώματα πίνακα: φόντο σε κελί/γραμμή/στήλη/πίνακα και διχρωμία (εναλλασσόμενες γραμμές ή στήλες).
+   * @param {HTMLTableCellElement} cell
+   * @param {string} id
+   */
+  function colorDialog(cell, id) {
+    const table = cell.closest('table');
+    const g = Formulas.grid(table);
+    const [r, c] = g.pos.get(cell);
+    const fill = colorPicker(toHex(cell.style.backgroundColor), 'Χρώμα φόντου');
+    const scope = Util.h('select', { class: 'select', 'aria-label': 'Πού εφαρμόζεται' },
+      [['cell', 'Σε αυτό το κελί'], ['row', 'Σε όλη τη γραμμή'], ['col', 'Σε όλη τη στήλη'], ['table', 'Σε όλο τον πίνακα']].map(([v, t]) => Util.h('option', { value: v, text: t })));
+    const mode = Util.h('select', { class: 'select', 'aria-label': 'Διχρωμία' },
+      [['none', 'Χωρίς διχρωμία'], ['rows', 'Εναλλάξ γραμμές'], ['cols', 'Εναλλάξ στήλες']].map(([v, t]) => Util.h('option', { value: v, text: t })));
+    mode.value = table.classList.contains('wf-stripe-rows') ? 'rows' : (table.classList.contains('wf-stripe-cols') ? 'cols' : 'none');
+    const stripe = colorPicker(toHex(table.style.getPropertyValue('--wf-stripe')) || '#DBEAFE', 'Δεύτερο χρώμα');
+    Modal.open({
+      title: 'Χρώματα πίνακα', size: 'md',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('section', { class: 'stack', style: { gap: '8px' } },
+          Util.h('h3', { class: 'panel-heading', text: 'Χρώμα φόντου' }),
+          fill.el,
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Εφαρμογή' }), scope)),
+        Util.h('section', { class: 'stack', style: { gap: '8px' } },
+          Util.h('h3', { class: 'panel-heading' }, 'Διχρωμία', Util.tip('Οι γραμμές (ή οι στήλες) εναλλάσσονται: λευκό και το δεύτερο χρώμα. Ισχύει για το σώμα του πίνακα, όχι για την κεφαλίδα. Ένα κελί με δικό του χρώμα κρατά το δικό του.')),
+          Util.h('label', { class: 'field' }, Util.h('span', { text: 'Μορφή' }), mode),
+          stripe.el)),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        {
+          label: 'Εφαρμογή', variant: 'primary', onClick: () => {
+            const color = fill.get();
+            const targets = new Set();
+            g.cells.forEach((row, rr) => row.forEach((x, cc) => {
+              if (!x) return;
+              const s = scope.value;
+              if (s === 'table' || (s === 'cell' && x === cell) || (s === 'row' && rr === r) || (s === 'col' && cc === c)) targets.add(x);
+            }));
+            const changedFill = scope.value !== 'cell' || toHex(cell.style.backgroundColor) !== color;
+            if (changedFill) targets.forEach(x => { x.style.backgroundColor = color; if (!x.getAttribute('style')) x.removeAttribute('style'); });
+            table.classList.remove('wf-stripe-rows', 'wf-stripe-cols');
+            if (mode.value !== 'none') {
+              table.classList.add(mode.value === 'rows' ? 'wf-stripe-rows' : 'wf-stripe-cols');
+              table.style.setProperty('--wf-stripe', stripe.get() || '#DBEAFE');
+            } else {
+              table.style.removeProperty('--wf-stripe');
+            }
+            if (!table.getAttribute('style')) table.removeAttribute('style');
+            EditorManager.commit(id);
+            return true;
+          }
+        }
+      ]
+    });
+  }
+
   /**
    * Μενού δεξιού κλικ σε κελί πίνακα.
    * @param {MouseEvent} e
@@ -5783,6 +5919,7 @@ const InsertTools = (() => {
       ['Εισαγωγή στήλης αριστερά', () => addColumn(cell, false)],
       ['Εισαγωγή στήλης δεξιά', () => addColumn(cell, true)],
       null,
+      ['Χρώματα πίνακα…', () => colorDialog(cell, id), false, 'Χρώμα φόντου σε κελί, γραμμή, στήλη ή πίνακα, και διχρωμία (εναλλάξ γραμμές ή στήλες)'],
       ['Διαίρεση κελιού…', () => splitDialog(cell, id), false, 'Χωρίζει το κελί σε στήλες ή γραμμές'],
       ['Συγχώνευση με το δεξί κελί', () => mergeCell(cell, 'right')],
       ['Συγχώνευση με το κάτω κελί', () => mergeCell(cell, 'down')],
@@ -10303,6 +10440,16 @@ const ExportManager = (() => {
       });
     };
 
+    // Χρώμα CSS (rgb() ή #hex) σε RRGGBB για το DOCX.
+    const hexOf = css => {
+      if (!css) return '';
+      const h = /^#([0-9a-f]{6})$/i.exec(css);
+      if (h) return h[1].toUpperCase();
+      const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(css);
+      if (!m || (m[4] !== undefined && Number(m[4]) === 0)) return '';
+      return [m[1], m[2], m[3]].map(v => Number(v).toString(16).padStart(2, '0')).join('').toUpperCase();
+    };
+
     const table = (tableEl, para = {}) => {
       const plain = tableEl.classList.contains('wf-grid-plain');
       const rows = Array.from(tableEl.rows);
@@ -10326,6 +10473,10 @@ const ExportManager = (() => {
           height: D.HeightRule ? { value: Math.max(454, Math.round((parseFloat(tr.style.height) || 0) * 15)), rule: D.HeightRule.ATLEAST } : undefined,
           children: Array.from(tr.cells).map(cell => {
             const isTh = cell.tagName === 'TH';
+            const inBody = tr.parentElement.tagName === 'TBODY';
+            const striped = inBody && ((tableEl.classList.contains('wf-stripe-rows') && tr.sectionRowIndex % 2 === 1)
+              || (tableEl.classList.contains('wf-stripe-cols') && cell.cellIndex % 2 === 1));
+            const fill = hexOf(cell.style.backgroundColor) || (striped ? hexOf(tableEl.style.getPropertyValue('--wf-stripe').trim()) || 'DBEAFE' : '') || (isTh ? thFill : '');
             let kids = blocks(cell, { cell: true, align: alignOf(cell) || (isTh ? 'center' : null), bold: isTh, widthTwips: spanW(cell) - 200 });
             if (!kids.length) kids = [new D.Paragraph({ children: [] })];
             return new D.TableCell({
@@ -10333,7 +10484,7 @@ const ExportManager = (() => {
               columnSpan: cell.colSpan > 1 ? cell.colSpan : undefined,
               rowSpan: cell.rowSpan > 1 ? cell.rowSpan : undefined,
               width: { size: spanW(cell), type: D.WidthType.DXA },
-              shading: isTh ? { fill: thFill, type: D.ShadingType.CLEAR, color: 'auto' } : undefined,
+              shading: fill ? { fill, type: D.ShadingType.CLEAR, color: 'auto' } : undefined,
               borders: plain ? noBorders : undefined,
               margins: { top: 60, bottom: 60, left: 100, right: 100 },
               verticalAlign: D.VerticalAlign.CENTER
@@ -12588,6 +12739,11 @@ const UIController = (() => {
         e.stopPropagation();
         TemplateManager.removeSection(s.id);
       });
+      const dup = Util.h('button', { class: 'btn-icon btn-sm', type: 'button', title: 'Αντίγραφο ενότητας', 'aria-label': `Αντίγραφο ενότητας ${s.title}` }, Util.icon('copy', 14));
+      dup.addEventListener('click', e => {
+        e.stopPropagation();
+        TemplateManager.duplicateSection(s.id);
+      });
       const li = Util.h('li', {
         class: `section-item${s.id === active ? ' is-active' : ''}`, draggable: 'true', tabindex: '0', role: 'button',
         dataset: { id: s.id }, 'aria-label': `${i + 1}. ${s.title || 'Χωρίς τίτλο'}. Alt+βέλη για μετακίνηση`
@@ -12597,7 +12753,7 @@ const UIController = (() => {
       Util.h('span', { class: `status-dot${filled ? ' is-ok' : (s.required ? ' is-error' : '')}`, title: filled ? 'Συμπληρωμένη' : (s.required ? 'Υποχρεωτική, κενή' : 'Κενή') }),
       Util.h('span', { class: 'section-item-title', title: s.title }, s.title || 'Χωρίς τίτλο', s.required ? Util.h('span', { class: 'req', title: 'Υποχρεωτική', text: '*' }) : null),
       Util.h('span', { class: 'section-item-type', text: TemplateManager.TYPE_LABELS[s.type] }),
-      del);
+      dup, del);
       li.addEventListener('click', () => EditorManager.focusSection(s.id));
       li.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') {
