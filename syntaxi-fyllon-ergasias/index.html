@@ -225,6 +225,8 @@ button { cursor: pointer; }
 .menu-item.is-danger { color: var(--danger); }
 .menu-sep { height: 1px; margin: 4px 0; background: var(--border); }
 .menu-item kbd { margin-left: auto; }
+.menu-hint { max-width: 260px; margin: 4px 0 0; padding: 6px 8px 2px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-2); }
+.info-tip { display: inline-block; margin-left: 4px; color: var(--primary); font-size: 13px; font-weight: 400; cursor: help; }
 
 .app-body { position: relative; display: flex; min-height: 0; }
 
@@ -447,6 +449,7 @@ button { cursor: pointer; }
   overflow-wrap: break-word;
 }
 .doc-content th { background: var(--surface-2); font-weight: 700; }
+.doc-content hr { height: 0; margin: 12px 0; border: none; border-top: 1px solid currentColor; opacity: 0.45; }
 .doc-content .wf-caption { text-align: center; font-size: 14px; font-style: italic; color: var(--text-2); }
 .doc-content .math-node { display: inline-block; cursor: pointer; border-radius: 4px; padding: 0 2px; }
 .doc-content .math-node:hover { background: var(--primary-soft); }
@@ -1005,7 +1008,7 @@ kbd {
         <button class="menu-item" type="button" role="menuitem" data-export="print"><span data-icon="printer"></span>Εκτύπωση/PDF<kbd>Ctrl+P</kbd></button>
         <button class="menu-item" type="button" role="menuitem" data-export="pdf"><span data-icon="document"></span>PDF (προηγμένο)</button>
         <button class="menu-item" type="button" role="menuitem" data-export="docx"><span data-icon="word"></span>Έγγραφο Word (DOCX)</button>
-        <button class="menu-item" type="button" role="menuitem" data-export="html"><span data-icon="checklist"></span>Διαδραστικό HTML (για μαθητές)</button>
+        <button class="menu-item" type="button" role="menuitem" data-export="html" title="Οι μαθητές συμπληρώνουν στην οθόνη. Οι τύποι των πινάκων δείχνουν τις τιμές τους αλλά δεν ξαναϋπολογίζονται όταν οι μαθητές γράφουν τιμές."><span data-icon="checklist"></span>Διαδραστικό HTML (για μαθητές)</button>
       </div>
     </div>
     <span class="header-sep" aria-hidden="true"></span>
@@ -1718,6 +1721,7 @@ const Util = (() => {
     undo: ['M9 15L3 9l6-6', 'M3 9h12a6 6 0 0 1 0 12h-3'],
     redo: ['M15 15l6-6-6-6', 'M21 9H9a6 6 0 0 0 0 12h3'],
     eraser: ['M6 4h12', 'M12 4l-3 16', 'M4 20l16-16'],
+    hr: ['M3 12h18'],
     pagebreak: ['M4 4v5h16V4', 'M4 20v-5h16v5', 'M3 12h2', 'M8 12h2', 'M14 12h2', 'M19 12h2'],
     expand: ['M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9', 'M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15', 'M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9', 'M20.25 20.25h-4.5m4.5 0v-4.5m0 4.5L15 15'],
     compress: ['M9 3.75V9H3.75', 'M9 9L3.75 3.75', 'M9 20.25V15H3.75', 'M9 15l-5.25 5.25', 'M15 3.75V9h5.25', 'M15 9l5.25-5.25', 'M15 20.25V15h5.25', 'M15 15l5.25 5.25'],
@@ -1816,6 +1820,15 @@ const Util = (() => {
     }
     append(el, children);
     return el;
+  }
+
+  /**
+   * Εικονίδιο ⓘ με επεξήγηση που εμφανίζεται όταν περνά το ποντίκι από πάνω.
+   * @param {string} text
+   * @returns {HTMLElement}
+   */
+  function tip(text) {
+    return h('span', { class: 'info-tip', title: text, 'aria-label': text, role: 'img', text: 'ⓘ' });
   }
 
   /**
@@ -2125,7 +2138,7 @@ const Util = (() => {
   }
 
   return {
-    uuid, h, icon, hydrateIcons, debounce, formatTime, formatDate, todayISO, safeFilename, downloadBlob, downloadsApi, inArtifact,
+    uuid, h, tip, icon, hydrateIcons, debounce, formatTime, formatDate, todayISO, safeFilename, downloadBlob, downloadsApi, inArtifact,
     pickFiles, readAsDataURL, readAsText, loadImage, idle, parseNumber, fmt, fmtInt, dataURLToBytes, clamp, isMod, nextFrame
   };
 })();
@@ -3141,6 +3154,7 @@ const TemplateManager = (() => {
         { id: 'ekfe-title', title: 'Τίτλος Πειράματος', type: 'text', required: true, placeholder: 'Π.χ. Μέτρηση της επιτάχυνσης της βαρύτητας με απλό εκκρεμές' },
         { id: 'ekfe-theory', title: 'Θεωρητικό Υπόβαθρο', type: 'mixed', placeholder: 'Οι βασικές έννοιες και οι νόμοι που χρειάζονται, με εξισώσεις και σχήματα.' },
         { id: 'ekfe-goal', title: 'Σκοπός', type: 'text', required: true, placeholder: 'Τι θα μάθουν ή θα μετρήσουν οι μαθητές σε αυτή τη δραστηριότητα.' },
+        { id: 'ekfe-hypothesis', title: 'Υπόθεση - Πρόβλεψη', type: 'text', placeholder: 'Τι περιμένουν οι μαθητές να συμβεί και γιατί, πριν κάνουν το πείραμα.' },
         { id: 'ekfe-materials', title: 'Υλικά - Όργανα', type: 'text', required: true, placeholder: 'Λίστα με τα υλικά και τα όργανα του πειράματος.', starter: '<ul><li><br></li></ul>' },
         { id: 'ekfe-procedure', title: 'Πειραματική Διαδικασία', type: 'mixed', required: true, placeholder: 'Τα βήματα του πειράματος, με σχήματα αν χρειάζεται.', starter: '<ol><li><br></li></ol>' },
         { id: 'ekfe-measurements', title: 'Πίνακας Μετρήσεων', type: 'table', placeholder: 'Πάτησε «Πίνακας» για να εισαγάγεις πίνακα μετρήσεων.', starter: MEASUREMENTS_TABLE },
@@ -3740,12 +3754,12 @@ const EditorManager = (() => {
   };
 
   const TYPE_TOOLS = {
-    text: ['block', 'inline', 'list', 'align', 'image', 'math', 'card', 'link', 'embed'],
+    text: ['block', 'inline', 'list', 'align', 'image', 'math', 'card', 'link', 'embed', 'hr'],
     table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'math', 'card', 'embed'],
     image: ['inlineBasic', 'align', 'image', 'caption', 'math', 'embed'],
     math: ['inlineBasic', 'list', 'align', 'math', 'image'],
     graph: ['inline', 'align', 'graph', 'image', 'caption', 'math'],
-    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'pagebreak']
+    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'hr', 'pagebreak']
   };
 
   const BUTTONS = {
@@ -3758,7 +3772,7 @@ const EditorManager = (() => {
     ul: { icon: 'list-ul', title: 'Λίστα με κουκκίδες (Ctrl+Shift+8)', cmd: 'insertUnorderedList', state: 'insertUnorderedList' },
     ol: { icon: 'list-ol', title: 'Αριθμημένη λίστα (Ctrl+Shift+7)', cmd: 'insertOrderedList', state: 'insertOrderedList' },
     check: { icon: 'checklist', title: 'Λίστα ελέγχου με κουτάκια (Ctrl+Shift+9)', run: id => toggleChecklist(id) },
-    mic: { icon: 'mic', title: 'Φωνητική πληκτρολόγηση (Ctrl+Shift+Space)', run: id => Dictation.toggle(id) },
+    mic: { icon: 'mic', title: 'Φωνητική πληκτρολόγηση (Ctrl+Shift+Space). Λειτουργεί σε Google Chrome και Edge με internet, όχι σε Vivaldi, Brave, Opera.', run: id => Dictation.toggle(id) },
     indent: { icon: 'indent', title: 'Αύξηση εσοχής (Ctrl+])', cmd: 'indent' },
     outdent: { icon: 'outdent', title: 'Μείωση εσοχής (Ctrl+[)', cmd: 'outdent' },
     left: { icon: 'align-left', title: 'Στοίχιση αριστερά', cmd: 'justifyLeft', state: 'justifyLeft' },
@@ -3774,6 +3788,7 @@ const EditorManager = (() => {
     embed: { icon: 'embed', title: 'Ενσωμάτωση από σύνδεσμο: βίντεο, προσομοίωση, εφαρμογή (Ctrl+Alt+E)', run: id => Embeds.open({ sectionId: id }) },
     columns: { icon: 'columns', title: 'Διάταξη σε στήλες (π.χ. Παρατήρηση / Πείραμα / Συμπέρασμα)', run: id => InsertTools.columns(id) },
     card: { icon: 'card', title: 'Πλαίσιο περιεχομένου (Σημείωση, Tip, Προσοχή, Ορισμός…)', run: id => InsertTools.card(id) },
+    hr: { icon: 'hr', title: 'Οριζόντια γραμμή (Ctrl+Alt+H)', run: id => InsertTools.horizontalRule(id) },
     pagebreak: { icon: 'pagebreak', title: 'Αλλαγή σελίδας στην εκτύπωση', run: id => InsertTools.pageBreak(id) },
     undo: { icon: 'undo', title: 'Αναίρεση (Ctrl+Z)', run: id => undo(id) },
     redo: { icon: 'redo', title: 'Επανάληψη (Ctrl+Y)', run: id => redo(id) },
@@ -3953,6 +3968,8 @@ const EditorManager = (() => {
     content.addEventListener('contextmenu', e => {
       const cell = e.target.closest && e.target.closest('td, th');
       if (cell && content.contains(cell)) {
+        // Πάνω σε λέξη αφήνουμε το μενού του browser, για τις προτάσεις ορθογραφίας.
+        if (!e.shiftKey && wordAt(e.clientX, e.clientY)) return;
         e.preventDefault();
         InsertTools.tableMenu(e, cell, block.id);
       }
@@ -4022,7 +4039,7 @@ const EditorManager = (() => {
     else if (tools.has('inlineBasic')) groups.push(['bold', 'italic', 'underline', 'sup', 'sub'].map(k => toolButton(block, k)));
     if (tools.has('list')) groups.push(['ul', 'ol', 'check', 'indent', 'outdent'].map(k => toolButton(block, k)));
     if (tools.has('align')) groups.push(['left', 'center', 'right', 'justify'].map(k => toolButton(block, k)));
-    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'pagebreak'].filter(k => tools.has(k));
+    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'hr', 'pagebreak'].filter(k => tools.has(k));
     if (inserts.length) groups.push(inserts.map(k => toolButton(block, k)));
     groups.push((Dictation.supported() ? ['mic', 'undo', 'redo', 'clear'] : ['undo', 'redo', 'clear']).map(k => toolButton(block, k)));
     groups.forEach((group, i) => {
@@ -4774,6 +4791,7 @@ const EditorManager = (() => {
       if (code === 'KeyT') return run(() => InsertTools.table(block.id));
       if (code === 'KeyG') return run(() => GraphEngine.open({ sectionId: block.id }));
       if (code === 'KeyE') return run(() => Embeds.open({ sectionId: block.id }));
+      if (code === 'KeyH') return run(() => InsertTools.horizontalRule(block.id));
       if (code === 'KeyI') return run(() => InsertTools.image(block.id));
     }
     if ((e.key === 'Enter' || e.key === 'Tab') && !mod && !e.altKey) {
@@ -4920,6 +4938,34 @@ const EditorManager = (() => {
     if (block.type === 'math' && !isFilled(block.content) && !(target.closest && target.closest('.math-node'))) {
       MathEngine.open({ sectionId: block.id });
     }
+  }
+
+  /**
+   * Αν στο σημείο υπάρχει γράμμα κειμένου (όχι τύπος ή εξίσωση).
+   * @param {number} x
+   * @param {number} y
+   * @returns {boolean}
+   */
+  function wordAt(x, y) {
+    let node = null;
+    let offset = 0;
+    if (document.caretPositionFromPoint) {
+      const pos = document.caretPositionFromPoint(x, y);
+      if (pos) [node, offset] = [pos.offsetNode, pos.offset];
+    } else if (document.caretRangeFromPoint) {
+      const r = document.caretRangeFromPoint(x, y);
+      if (r) [node, offset] = [r.startContainer, r.startOffset];
+    }
+    if (!node || node.nodeType !== Node.TEXT_NODE || node.parentElement.closest('.wf-formula, .math-node')) return false;
+    const text = node.nodeValue;
+    return [offset, offset - 1].some(k => {
+      if (k < 0 || k >= text.length || !/\p{L}/u.test(text[k])) return false;
+      const r = document.createRange();
+      r.setStart(node, k);
+      r.setEnd(node, k + 1);
+      const b = r.getBoundingClientRect();
+      return x >= b.left - 1 && x <= b.right + 1 && y >= b.top - 1 && y <= b.bottom + 1;
+    });
   }
 
   /**
@@ -5282,7 +5328,7 @@ const InsertTools = (() => {
           Util.h('label', { class: 'field' }, Util.h('span', { text: 'Γραμμές (έως 20)' }), rowsInput),
           Util.h('label', { class: 'field' }, Util.h('span', { text: 'Στήλες (έως 20)' }), colsInput)),
         Util.h('label', { class: 'check' }, headerCheck, 'Πρώτη γραμμή ως επικεφαλίδα'),
-        Util.h('p', { class: 'hint', text: 'Δεξί κλικ σε κελί για προσθήκη ή διαγραφή γραμμών και στηλών.' })),
+        Util.h('p', { class: 'hint', text: 'Δεξί κλικ σε κενό σημείο ή σε αριθμό του κελιού: γραμμές, στήλες, τύποι, γράφημα. Δεξί κλικ πάνω σε λέξη: διόρθωση ορθογραφίας. Shift+δεξί κλικ: πάντα το μενού του πίνακα.' })),
       actions: [
         { label: 'Ακύρωση', variant: 'secondary' },
         { label: 'Εισαγωγή', variant: 'primary', onClick: () => { insert(Number(rowsInput.value), Number(colsInput.value)); return false; } }
@@ -5373,9 +5419,9 @@ const InsertTools = (() => {
     hideMenu();
     const formula = cell.querySelector('.wf-formula');
     const items = [
-      [formula ? 'Επεξεργασία τύπου…' : 'Τύπος υπολογισμού…', () => Formulas.open(cell, id)],
+      [formula ? 'Επεξεργασία τύπου…' : 'Τύπος υπολογισμού…', () => Formulas.open(cell, id), false, 'Υπολογισμός από κελιά αυτού του πίνακα, π.χ. =B2*C2 ή μέση τιμή στήλης'],
       ...(formula ? [['Κατάργηση τύπου (μένει η τιμή)', () => cell.replaceChildren(document.createTextNode(formula.textContent))]] : []),
-      ['Γραφική παράσταση από τον πίνακα…', () => GraphEngine.open({ sectionId: id, table: cell.closest('table') })],
+      ['Γραφική παράσταση από τον πίνακα…', () => GraphEngine.open({ sectionId: id, table: cell.closest('table') }), false, 'Οι τιμές αντιγράφονται στο γράφημα. Αν αλλάξεις μετά τον πίνακα, διπλό κλικ στο γράφημα και «Φόρτωση».'],
       null,
       ['Εισαγωγή γραμμής πάνω', () => addRow(cell, false)],
       ['Εισαγωγή γραμμής κάτω', () => addRow(cell, true)],
@@ -5393,8 +5439,8 @@ const InsertTools = (() => {
         menu.append(Util.h('div', { class: 'menu-sep' }));
         return;
       }
-      const [label, fn, danger] = item;
-      const btn = Util.h('button', { class: `menu-item${danger ? ' is-danger' : ''}`, type: 'button', role: 'menuitem', text: label });
+      const [label, fn, danger, title] = item;
+      const btn = Util.h('button', { class: `menu-item${danger ? ' is-danger' : ''}`, type: 'button', role: 'menuitem', text: label, title });
       btn.addEventListener('click', () => {
         hideMenu();
         fn();
@@ -5402,6 +5448,7 @@ const InsertTools = (() => {
       });
       menu.append(btn);
     });
+    menu.append(Util.h('p', { class: 'menu-hint', text: 'Δεξί κλικ πάνω σε λέξη: διόρθωση ορθογραφίας του browser. Shift+δεξί κλικ: πάντα αυτό το μενού.' }));
     document.body.append(menu);
     const r = menu.getBoundingClientRect();
     menu.style.left = `${Math.min(e.clientX, window.innerWidth - r.width - 8)}px`;
@@ -6138,6 +6185,16 @@ const InsertTools = (() => {
   }
 
   /**
+   * Εισάγει οριζόντια γραμμή (στο κελί, στο πλαίσιο ή στη λίστα όπου βρίσκεται ο κέρσορας).
+   * @param {string} [sectionId]
+   */
+  function horizontalRule(sectionId) {
+    const id = target(sectionId);
+    if (!id) return;
+    EditorManager.insertBlock(id, [Util.h('hr')]);
+  }
+
+  /**
    * Εισάγει αλλαγή σελίδας για την εκτύπωση.
    * @param {string} [sectionId]
    */
@@ -6292,7 +6349,7 @@ const InsertTools = (() => {
 
   return {
     init, table, addRow, tableMenu, image, insertImageFile, insertImageData, prepareImage, selectImage, selectedImage, editImage, setPlacement,
-    removeSelectedImage, hideOverlays, link, linkPopover, caption, pageBreak, columns, card, target
+    removeSelectedImage, hideOverlays, link, linkPopover, caption, horizontalRule, pageBreak, columns, card, target
   };
 })();
 
@@ -7019,7 +7076,7 @@ const Formulas = (() => {
       update();
     };
     const mini = Util.h('table', { class: 'formula-grid' },
-      Util.h('thead', null, Util.h('tr', null, Util.h('th'), Array.from({ length: g.cols }, (_, c) => Util.h('th', { text: colName(c) })))),
+      Util.h('thead', null, Util.h('tr', null, Util.h('th'), Array.from({ length: g.cols }, (_, c) => Util.h('th', { text: colName(c), title: `Στήλη ${colName(c)}` })))),
       Util.h('tbody', null, g.cells.map((row, r) => Util.h('tr', null, Util.h('th', { text: String(r + 1) }),
         Array.from({ length: g.cols }, (_, c) => {
           const src = row[c];
@@ -7070,10 +7127,13 @@ const Formulas = (() => {
         Util.h('div', { class: 'formula-grid-wrap' }, mini),
         Util.h('p', { class: 'hint', text: 'Κλικ σε κελί για να μπει στον τύπο· Shift+κλικ σε δεύτερο κελί για περιοχή (π.χ. B2:B6).' }),
         Util.h('div', { class: 'formula-row' },
-          Util.h('label', { class: 'field', style: { flex: '1' } }, Util.h('span', { text: 'Τύπος' }), input),
+          Util.h('label', { class: 'field', style: { flex: '1' } }, Util.h('span', null, 'Τύπος',
+            Util.tip('Ο τύπος βλέπει μόνο κελιά αυτού του πίνακα. Ανάμεσα στα ορίσματα βάλε ; γιατί το κόμμα ανάμεσα σε αριθμούς είναι δεκαδικό: =MAX(3,5) σημαίνει 3,5. Με ελληνικό πληκτρολόγιο μετράει το πλήκτρο: Ψ = C, Γ = G (όχι η 3η στήλη).')), input),
           Util.h('label', { class: 'field' }, Util.h('span', { text: 'Δεκαδικά' }), decimals)),
         result,
-        below.length ? Util.h('label', { class: 'check' }, fillCheck, `Ίδιος τύπος και στα ${below.length} κελιά από κάτω (κάθε γραμμή με τα δικά της κελιά)`) : null,
+        below.length ? Util.h('label', { class: 'check' }, fillCheck, `Ίδιος τύπος και στα ${below.length} κελιά από κάτω (κάθε γραμμή με τα δικά της κελιά)`,
+          Util.tip('Τα κελιά με κείμενο δεν αλλάζουν. Με $ η αναφορά μένει σταθερή, π.χ. =B2/$B$8.')) : null,
+        Util.h('p', { class: 'hint' }, 'Στο διαδραστικό HTML οι τιμές φαίνονται, αλλά δεν ξαναϋπολογίζονται όταν οι μαθητές γράφουν στον πίνακα.'),
         Util.h('details', { class: 'hint' },
           Util.h('summary', { text: 'Συναρτήσεις και σύνταξη' }),
           Util.h('p', { text: 'Πράξεις: + − * / ^ (δύναμη), π.χ. =B2*C2, =(C2-B2)/B2, =B2^2. Μπορείς να γράψεις τύπο και απευθείας σε κελί, ξεκινώντας με =.' }),
@@ -8485,7 +8545,7 @@ const GraphEngine = (() => {
       renderRows();
       refresh();
     };
-    const loadBtn = Util.h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Φόρτωση' });
+    const loadBtn = Util.h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Φόρτωση', title: 'Αντιγράφει τις στήλες στον πίνακα X-Y. Ξαναπάτησέ το αν αλλάξει ο πίνακας του φύλλου.' });
     loadBtn.addEventListener('click', loadSource);
     sourceSelect.addEventListener('change', pickSource);
     const fromTable = table && sources.includes(table) ? table : null;
@@ -8564,7 +8624,8 @@ const GraphEngine = (() => {
       body: Util.h('div', { class: 'graph-layout' },
         Util.h('div', { class: 'stack' },
           sources.length ? Util.h('div', { class: 'graph-source' },
-            Util.h('label', { class: 'field' }, Util.h('span', { text: 'Δεδομένα από πίνακα του φύλλου' }), sourceSelect),
+            Util.h('label', { class: 'field' }, Util.h('span', null, 'Δεδομένα από πίνακα του φύλλου',
+              Util.tip('Οι τιμές αντιγράφονται τη στιγμή της φόρτωσης. Αν αλλάξεις μετά τον πίνακα, άνοιξε το γράφημα με διπλό κλικ και πάτα ξανά «Φόρτωση».')), sourceSelect),
             Util.h('div', { class: 'graph-source-cols' },
               Util.h('label', { class: 'field' }, Util.h('span', { text: 'Στήλη X' }), xCol),
               Util.h('label', { class: 'field' }, Util.h('span', { text: 'Στήλη Y' }), yCol),
