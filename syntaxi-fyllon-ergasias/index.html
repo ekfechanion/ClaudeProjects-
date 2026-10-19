@@ -2158,6 +2158,49 @@ const Util = (() => {
   }
 
   /**
+   * Μικραίνει εικόνα (data URL): το πολύ `maxPx` στη μεγάλη πλευρά, και JPEG όταν δεν έχει διαφάνεια
+   * (σχέδια και στιγμιότυπα μένουν PNG αν δεν είναι πολύ μεγαλύτερα). Τα GIF μένουν ως έχουν (μπορεί να κινούνται).
+   * @param {string} src
+   * @param {number} maxPx
+   * @param {number} [quality] ποιότητα JPEG
+   * @returns {Promise<string>} η νέα εικόνα, ή η αρχική αν η νέα δεν βγαίνει αισθητά μικρότερη
+   */
+  async function shrinkImage(src, maxPx, quality = 0.85) {
+    if (!/^data:image\/(png|jpe?g|webp|bmp);/i.test(src)) return src;
+    try {
+      const img = await loadImage(src);
+      const nw = img.naturalWidth;
+      const nh = img.naturalHeight;
+      if (!nw || !nh) return src;
+      const scale = Math.min(1, maxPx / Math.max(nw, nh));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(nw * scale));
+      canvas.height = Math.max(1, Math.round(nh * scale));
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      let alpha = false;
+      if (!/^data:image\/jpe?g/i.test(src)) {
+        const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let i = 3; i < d.length; i += 4) {
+          if (d[i] < 255) {
+            alpha = true;
+            break;
+          }
+        }
+      }
+      let out = canvas.toDataURL('image/png');
+      if (!alpha) {
+        const jpeg = canvas.toDataURL('image/jpeg', quality);
+        if (/^data:image\/jpe?g/i.test(src) || out.length > jpeg.length * 1.5) out = jpeg;
+      }
+      return out.length < src.length * 0.9 ? out : src;
+    } catch (e) {
+      return src;
+    }
+  }
+
+  /**
    * Εκτελεί εργασία σε χρόνο αδράνειας του browser.
    * @param {Function} fn
    */
@@ -2250,7 +2293,7 @@ const Util = (() => {
 
   return {
     uuid, h, tip, icon, hydrateIcons, debounce, formatTime, formatDate, todayISO, safeFilename, downloadBlob, downloadsApi, inArtifact,
-    pickFiles, readAsDataURL, readAsText, loadImage, idle, parseNumber, fmt, fmtInt, dataURLToBytes, clamp, isMod, nextFrame
+    pickFiles, readAsDataURL, readAsText, loadImage, shrinkImage, idle, parseNumber, fmt, fmtInt, dataURLToBytes, clamp, isMod, nextFrame
   };
 })();
 
@@ -2381,6 +2424,7 @@ const Prefs = (() => {
       sectionLines: true,
       sectionTitles: true,
       qrLinks: true,
+      pdfQuality: 'normal',
       showLogo: true,
       showSchool: true,
       showTitle: true,
@@ -6470,10 +6514,13 @@ const InsertTools = (() => {
 
   /**
    * Ελέγχει μέγεθος, διαβάζει και (αν χρειάζεται) μετατρέπει εικόνα σε PNG.
+   * Οι μεγάλες εικόνες (π.χ. φωτογραφίες κινητού) μικραίνουν σε `maxPx` και, χωρίς διαφάνεια, γίνονται JPEG:
+   * αρκεί για A4 και κρατά μικρά το φύλλο, την αυτόματη αποθήκευση και τα εξαγόμενα.
    * @param {File} file
+   * @param {number} [maxPx] μέγιστη πλευρά σε pixel
    * @returns {Promise<string|null>} data URL
    */
-  async function prepareImage(file) {
+  async function prepareImage(file, maxPx = 1600) {
     if (!file || !file.type.startsWith('image/')) {
       Toast.show('Το αρχείο δεν είναι εικόνα', 'error');
       return null;
@@ -6487,13 +6534,15 @@ const InsertTools = (() => {
       if (!ok) return null;
     }
     const dataURL = await Util.readAsDataURL(file);
-    if (/^data:image\/(png|jpe?g|gif);base64,/i.test(dataURL)) return dataURL;
+    if (/^data:image\/gif;base64,/i.test(dataURL)) return dataURL;
+    if (/^data:image\/(png|jpe?g);base64,/i.test(dataURL)) return Util.shrinkImage(dataURL, maxPx);
     const img = await Util.loadImage(dataURL);
     const canvas = Util.h('canvas');
-    canvas.width = img.naturalWidth || 800;
-    canvas.height = img.naturalHeight || 600;
+    const scale = Math.min(1, maxPx / Math.max(img.naturalWidth || 800, img.naturalHeight || 600));
+    canvas.width = Math.round((img.naturalWidth || 800) * scale);
+    canvas.height = Math.round((img.naturalHeight || 600) * scale);
     canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/png');
+    return Util.shrinkImage(canvas.toDataURL('image/png'), maxPx);
   }
 
   /**
@@ -10358,6 +10407,14 @@ const ExportManager = (() => {
     return AppState.get().style.pdfPaging === 'flow' ? 0 : 0.65;
   }
 
+  // Ποιότητα των εικόνων σελίδας στο PDF: ανάλυση (× px οθόνης, 2 ≈ 190 dpi) και ποιότητα JPEG.
+  const PDF_QUALITY = { high: { scale: 2, jpeg: 0.92 }, normal: { scale: 2, jpeg: 0.8 }, small: { scale: 1.5, jpeg: 0.72 } };
+
+  /** @returns {{scale: number, jpeg: number}} */
+  function pdfQuality() {
+    return PDF_QUALITY[options().pdfQuality] || PDF_QUALITY.normal;
+  }
+
   /** @returns {Object} επιλογές εκτύπωσης */
   function options() {
     return { ...Prefs.get('print') };
@@ -10374,7 +10431,8 @@ const ExportManager = (() => {
     if (!src || logoDims.has(src)) return;
     try {
       const img = await Util.loadImage(src);
-      logoDims.set(src, { w: img.naturalWidth || 1, h: img.naturalHeight || 1 });
+      // Στην κεφαλίδα το λογότυπο είναι το πολύ 12 mm ψηλό: αρκεί μικρό αντίγραφο (μπαίνει σε κάθε σελίδα του HTML).
+      logoDims.set(src, { w: img.naturalWidth || 1, h: img.naturalHeight || 1, small: await Util.shrinkImage(src, 600) });
     } catch (e) {
       logoDims.set(src, null);
     }
@@ -10400,8 +10458,9 @@ const ExportManager = (() => {
     }
     const W = d ? d.w : 1000;
     const H = d ? d.h : Math.round(1000 / ratio);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w.toFixed(2)}mm" height="${h.toFixed(2)}mm" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMid meet"><image width="${W}" height="${H}" xlink:href="${st.logo}"/></svg>`;
-    return { src: st.logo, w, h, top: (g.top - h) / 2, svg: `data:image/svg+xml;base64,${btoa(svg)}` };
+    const src = (d && d.small) || st.logo;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w.toFixed(2)}mm" height="${h.toFixed(2)}mm" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMid meet"><image width="${W}" height="${H}" xlink:href="${src}"/></svg>`;
+    return { src, w, h, top: (g.top - h) / 2, svg: `data:image/svg+xml;base64,${btoa(svg)}` };
   }
 
   /** @returns {string} τίτλος εγγράφου */
@@ -10536,6 +10595,31 @@ const ExportManager = (() => {
       if (block === content || /^(LI|TD|TH)$/.test(block.tagName) || block.classList.contains('wf-card')) block.append(row);
       else block.after(row);
     });
+  }
+
+  /**
+   * Η εικόνα μιας σελίδας από τον καμβά όλου του εγγράφου. Μια πλατυσμένη σελίδα (βλ. `paginate`) μικραίνει
+   * στο κανονικό πλάτος, αφού στο PDF μπαίνει ούτως ή άλλως σμικρυμένη: ίδια ανάλυση με τις άλλες, μικρότερο αρχείο.
+   * Αυτόνομη συνάρτηση: περνά και στο διαδραστικό HTML μέσω toString.
+   * @param {HTMLCanvasElement} canvas
+   * @param {{start: number, end: number, width: number}} p σε px εγγράφου
+   * @param {number} scale px καμβά ανά px εγγράφου
+   * @param {number} baseW κανονικό πλάτος σε px εγγράφου
+   * @returns {HTMLCanvasElement}
+   */
+  function pageSlice(canvas, p, scale, baseW) {
+    const sw = Math.min(canvas.width, Math.round((p.width || baseW) * scale));
+    const sh = Math.max(1, Math.round((p.end - p.start) * scale));
+    const k = Math.min(1, (baseW * scale) / sw);
+    const slice = document.createElement('canvas');
+    slice.width = Math.max(1, Math.round(sw * k));
+    slice.height = Math.max(1, Math.round(sh * k));
+    const ctx = slice.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, slice.width, slice.height);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(canvas, 0, Math.round(p.start * scale), sw, sh, 0, 0, slice.width, slice.height);
+    return slice;
   }
 
   /**
@@ -10969,9 +11053,12 @@ const ExportManager = (() => {
       const pxPerMm = root.getBoundingClientRect().width / g.contentW;
       const pages = paginate(root, g.contentH * pxPerMm, fitScale(), bySection());
       const rect = root.getBoundingClientRect();
-      const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
+      const quality = pdfQuality();
+      const scale = Math.min(quality.scale, 30000 / Math.max(rect.height, 1));
       const canvas = await window.html2canvas(root, {
         scale, backgroundColor: '#ffffff', logging: false, useCORS: false, onclone: revealStage,
+        // Το html2canvas αντιγράφει όλο το έγγραφο: η υπόλοιπη εφαρμογή (επεξεργαστές, μενού) δεν χρειάζεται.
+        ignoreElements: el => el.parentElement === document.body && !el.contains(root),
         windowWidth: Math.max(document.documentElement.clientWidth, Math.ceil(rect.width) + 40), windowHeight: Math.max(window.innerHeight, Math.ceil(rect.height) + 100)
       });
       busy.set(0.7);
@@ -10979,16 +11066,10 @@ const ExportManager = (() => {
       const m = AppState.get().metadata;
       pages.forEach((p, i) => {
         if (i) pdf.addPage();
-        const slice = Util.h('canvas');
-        slice.width = Math.min(canvas.width, Math.round(p.width * scale));
-        slice.height = Math.max(1, Math.round((p.end - p.start) * scale));
-        const ctx = slice.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, slice.width, slice.height);
-        ctx.drawImage(canvas, 0, Math.round(p.start * scale), slice.width, slice.height, 0, 0, slice.width, slice.height);
+        const slice = pageSlice(canvas, p, scale, g.contentW * pxPerMm);
         const s = p.scale || 1;
         const w = (p.width / pxPerMm) * s;
-        pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left + (g.contentW - w) / 2, g.top, w, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
+        pdf.addImage(slice.toDataURL('image/jpeg', quality.jpeg), 'JPEG', g.left + (g.contentW - w) / 2, g.top, w, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
         const titleX = logo ? logo.w + 3 : 0;
         if (logoPng) pdf.addImage(logoPng.data, logoPng.format, g.left, logo.top, logo.w, logo.h, 'wf-logo', 'FAST');
         if (opts.headerTitle) {
@@ -11618,6 +11699,7 @@ const ExportManager = (() => {
       const root = buildPrintable(opts);
       stage = mountStage(root);
       await ready(root);
+      await compressImages(root);
       busy.set(0.2);
       let mathImages = new Map();
       try {
@@ -11699,7 +11781,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
    * Κώδικας της σελίδας HTML που εξάγεται. Εκτελείται εκεί αυτόνομα (μέσω toString), οπότε δεν χρησιμοποιεί τίποτα από την εφαρμογή.
    * @param {Function} paginate η ίδια σελιδοποίηση με την εξαγωγή PDF της εφαρμογής
    */
-  function exportRuntime(paginate, addPdfLinks) {
+  function exportRuntime(paginate, addPdfLinks, pageSlice) {
     const cfgEl = document.getElementById('wf-pdf-config');
     const CFG = cfgEl ? JSON.parse(cfgEl.textContent) : null;
     // Κάθε εξαγωγή έχει δικό της κλειδί: απαντήσεις από παλιότερο HTML με τον ίδιο τίτλο δεν περνούν σε νέο.
@@ -11770,7 +11852,9 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       save();
     });
     document.getElementById('wf-save').addEventListener('click', () => {
-      download(new Blob([`<!DOCTYPE html>${document.documentElement.outerHTML}`], { type: 'text/html' }), `${document.title || 'φύλλο'} - απαντήσεις.html`);
+      const copy = document.documentElement.cloneNode(true);
+      copy.querySelectorAll('.wf-lib-loaded, .export-stage').forEach(n => n.remove());
+      download(new Blob([`<!DOCTYPE html>${copy.outerHTML}`], { type: 'text/html' }), `${document.title || 'φύλλο'} - απαντήσεις.html`);
     });
     const printBtn = document.getElementById('wf-print');
     if (printBtn) printBtn.addEventListener('click', () => window.print());
@@ -11832,9 +11916,27 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const base = `${CFG.title} - ${name || 'απαντήσεις'}`.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 100);
       return `${base || 'φύλλο εργασίας'}.pdf`;
     };
+    // Οι βιβλιοθήκες PDF είναι συμπιεσμένες (gzip) μέσα στο αρχείο και ανοίγουν την πρώτη φορά που χρειάζονται.
+    const loadLibs = async () => {
+      if (window.jspdf && typeof window.html2canvas === 'function') return;
+      for (const el of Array.from(document.querySelectorAll('script.wf-lib'))) {
+        const bytes = Uint8Array.from(atob(el.textContent.trim()), c => c.charCodeAt(0));
+        const text = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+        const script = document.createElement('script');
+        script.className = 'wf-lib-loaded';
+        script.textContent = text;
+        document.head.append(script);
+      }
+    };
     pdfBtn.addEventListener('click', async () => {
+      try {
+        await loadLibs();
+      } catch (e) {
+        /* παρακάτω: εκτύπωση αντί για PDF */
+      }
       if (!window.jspdf || typeof window.html2canvas !== 'function') {
-        window.alert('Η δημιουργία PDF δεν είναι διαθέσιμη σε αυτόν τον browser.');
+        window.alert('Η δημιουργία PDF δεν είναι διαθέσιμη σε αυτόν τον browser. Θα ανοίξει η εκτύπωση: διάλεξε «Αποθήκευση ως PDF».');
+        window.print();
         return;
       }
       const label = pdfBtn.textContent;
@@ -11856,10 +11958,12 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         const pxPerMm = root.getBoundingClientRect().width / g.contentW;
         const pages = paginate(root, g.contentH * pxPerMm, CFG.fit || 0, !!CFG.bySection);
         const rect = root.getBoundingClientRect();
-        const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
+        const quality = CFG.quality || { scale: 2, jpeg: 0.8 };
+        const scale = Math.min(quality.scale, 30000 / Math.max(rect.height, 1));
         const canvas = await window.html2canvas(root, {
           scale, backgroundColor: '#ffffff', logging: false, useCORS: false,
           onclone: doc => doc.querySelectorAll('.export-stage').forEach(s => { s.style.visibility = 'visible'; }),
+          ignoreElements: el => el.parentElement === document.body && !el.contains(root),
           windowWidth: Math.max(document.documentElement.clientWidth, Math.ceil(rect.width) + 40),
           windowHeight: Math.max(window.innerHeight, Math.ceil(rect.height) + 100)
         });
@@ -11867,16 +11971,10 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: g.landscape ? 'landscape' : 'portrait', compress: true });
         pages.forEach((p, i) => {
           if (i) pdf.addPage();
-          const slice = document.createElement('canvas');
-          slice.width = Math.min(canvas.width, Math.round(p.width * scale));
-          slice.height = Math.max(1, Math.round((p.end - p.start) * scale));
-          const ctx = slice.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, slice.width, slice.height);
-          ctx.drawImage(canvas, 0, Math.round(p.start * scale), slice.width, slice.height, 0, 0, slice.width, slice.height);
+          const slice = pageSlice(canvas, p, scale, g.contentW * pxPerMm);
           const s = p.scale || 1;
           const w = (p.width / pxPerMm) * s;
-          pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left + (g.contentW - w) / 2, g.top, w, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
+          pdf.addImage(slice.toDataURL('image/jpeg', quality.jpeg), 'JPEG', g.left + (g.contentW - w) / 2, g.top, w, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
           const L = CFG.logo;
           const titleX = L ? L.w + 3 : 0;
           if (logo) pdf.addImage(logo.data, logo.format, g.left, L.top, L.w, L.h, 'wf-logo', 'FAST');
@@ -11904,6 +12002,44 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         pdfBtn.textContent = label;
       }
     });
+  }
+
+  /**
+   * Μικραίνει τις μεγάλες εικόνες ενός εξαγόμενου (HTML, DOCX) σε περίπου 2,5 φορές το μέγεθος εμφάνισης
+   * (≈ 240 dpi, 600–1600 px), ώστε το αρχείο να μη μεταφέρει φωτογραφίες πολλών MB που φαίνονται σε λίγα εκατοστά.
+   * Ο root πρέπει να είναι τοποθετημένος (για το μέγεθος εμφάνισης).
+   * @param {HTMLElement} root
+   * @returns {Promise<void>}
+   */
+  async function compressImages(root) {
+    const done = new Map();
+    for (const img of Array.from(root.querySelectorAll('img'))) {
+      const src = img.getAttribute('src') || '';
+      if (src.length < 150000 || !src.startsWith('data:image/')) continue;
+      const r = img.getBoundingClientRect();
+      const maxPx = Math.min(1600, Math.max(600, Math.round(Math.max(r.width, r.height) * 2.5)));
+      const key = `${maxPx}|${src.length}|${src.slice(-64)}`;
+      if (!done.has(key)) done.set(key, await Util.shrinkImage(src, maxPx));
+      img.setAttribute('src', done.get(key));
+    }
+  }
+
+  /**
+   * gzip + base64, για τις βιβλιοθήκες PDF του διαδραστικού HTML (περίπου 1/3 του μεγέθους).
+   * @param {string} text
+   * @returns {Promise<string|null>} null αν ο browser δεν έχει CompressionStream
+   */
+  async function gzipBase64(text) {
+    if (typeof CompressionStream !== 'function') return null;
+    try {
+      const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+      const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      return btoa(bin);
+    } catch (e) {
+      return null;
+    }
   }
 
   /**
@@ -11943,6 +12079,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const root = buildPrintable({ ...opts, liveEmbeds: true });
       stage = mountStage(root);
       await ready(root);
+      await compressImages(root);
       try {
         applyMathImages(await rasterizeMath(root));
       } catch (e) {
@@ -11993,6 +12130,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         title: docTitle(), g, headerTitle: !!opts.headerTitle, date: opts.headerDate && m.date ? Util.formatDate(m.date) : '', pageNumbers: !!opts.pageNumbers,
         logo: logo ? { top: logo.top, w: logo.w, h: logo.h } : null, fit: fitScale(), bySection: bySection(),
         decimals: AppState.get().style.formulaDecimals || '',
+        quality: pdfQuality(),
         id: `${Date.now().toString(36)}-${Util.uuid()}`
       };
       const logoHtml = logo ? `<img class="wf-page-logo" src="${logo.src}" alt="Λογότυπο" style="top:${logo.top.toFixed(2)}mm;left:${g.left}mm;width:${logo.w.toFixed(2)}mm;height:${logo.h.toFixed(2)}mm"><img class="wf-head-preload" src="${logo.svg}" alt="">` : '';
@@ -12000,10 +12138,15 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const bar = `<div class="wf-export-bar"><span>Συμπλήρωσε τα κενά πεδία και τσέκαρε τα κουτάκια. Οι απαντήσεις κρατιούνται σε αυτόν τον browser${canPdf ? '· με «PDF με απαντήσεις» κατεβάζεις το φύλλο συμπληρωμένο' : ''}.</span>`
         + '<button type="button" id="wf-clear">Καθαρισμός</button><button type="button" id="wf-save">Αποθήκευση HTML</button>'
         + (canPdf ? '<button type="button" class="primary" id="wf-pdf">PDF με απαντήσεις</button>' : '<button type="button" class="primary" id="wf-print">Εκτύπωση</button>') + '</div>';
-      const scripts = (canPdf ? pdfLibs : []).map(src => `<script>\n${src}\n<\/script>\n`).join('')
+      // Οι βιβλιοθήκες PDF μπαίνουν συμπιεσμένες και ανοίγουν μόνο όταν ο μαθητής ζητήσει PDF.
+      const packed = canPdf ? await Promise.all(pdfLibs.map(gzipBase64)) : [];
+      const libScripts = packed.length && packed.every(Boolean)
+        ? packed.map(b => `<script type="application/x-wf-gzip" class="wf-lib">${b}<\/script>\n`)
+        : (canPdf ? pdfLibs : []).map(src => `<script>\n${src}\n<\/script>\n`);
+      const scripts = libScripts.join('')
         + `<script type="application/json" id="wf-pdf-config">${JSON.stringify(cfg).replace(/</g, '\\u003c')}<\/script>\n`
         + (root.querySelector('.wf-formula') ? `<script>\n${formulaCore.toString()}\n<\/script>\n` : '')
-        + `<script>\n(${exportRuntime.toString()})(${paginate.toString()}, ${addPdfLinks.toString()});\n<\/script>`;
+        + `<script>\n(${exportRuntime.toString()})(${paginate.toString()}, ${addPdfLinks.toString()}, ${pageSlice.toString()});\n<\/script>`;
       const pageCss = `@page { size: A4 ${g.landscape ? 'landscape' : 'portrait'}; margin: ${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm;${logo ? ` @top-left { content: url("${logo.svg}"); vertical-align: middle; }` : ''} }`;
       const html = `<!DOCTYPE html>\n<html lang="el">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(docTitle())}</title>\n<style>\n${css}\n${INTERACTIVE_CSS}\n${pageCss}\n</style>\n</head>\n<body class="wf-export">\n${bar}\n${page}\n${scripts}\n</body>\n</html>\n`;
       if (await Util.downloadBlob(new Blob([html], { type: 'text/html' }), Util.safeFilename(docTitle(), 'html'))) Toast.show('Το διαδραστικό HTML δημιουργήθηκε', 'success');
@@ -12111,6 +12254,13 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       marginCustom.hidden = marginSel.value !== 'custom';
       rerender();
     });
+    const qualitySel = Util.h('select', { class: 'select', 'aria-label': 'Ποιότητα PDF' },
+      [['high', 'Υψηλή (για εκτύπωση)'], ['normal', 'Κανονική'], ['small', 'Μικρό αρχείο (για email/οθόνη)']].map(([v, t]) => Util.h('option', { value: v, text: t })));
+    qualitySel.value = PDF_QUALITY[opts.pdfQuality] ? opts.pdfQuality : 'normal';
+    qualitySel.addEventListener('change', () => {
+      opts.pdfQuality = qualitySel.value;
+      Prefs.set('print', { ...opts });
+    });
     const group = (title, ...kids) => Util.h('section', { class: 'preview-group' }, Util.h('h3', { class: 'panel-heading', text: title }), ...kids);
     Modal.open({
       title: 'Προεπισκόπηση και επιλογές εξαγωγής', size: 'xl',
@@ -12132,6 +12282,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Χωρισμός σε σελίδες' }), paging),
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Περιθώρια' }), marginSel),
             marginCustom,
+            Util.h('label', { class: 'field', title: 'Για το PDF (προηγμένο) και το «PDF με απαντήσεις» των μαθητών. Κανονική: σχεδόν ίδια όψη με την υψηλή, περίπου 30% μικρότερο αρχείο. Μικρό αρχείο: περίπου το μισό, λίγο λιγότερο καθαρά γράμματα στην εκτύπωση.' },
+              Util.h('span', { text: 'Ποιότητα PDF' }), qualitySel),
             check('headerTitle', 'Τίτλος στην κεφαλίδα σελίδας'), check('headerDate', 'Ημερομηνία στην κεφαλίδα σελίδας'), check('pageNumbers', 'Αριθμός σελίδας')),
           Util.h('p', { class: 'hint', text: 'Ό,τι επιλέξεις εδώ ισχύει σε όλες τις εξαγωγές: Εκτύπωση/PDF, PDF (προηγμένο), DOCX και διαδραστικό HTML, και κρατιέται για την επόμενη φορά. Στο DOCX η «μία ενότητα ανά σελίδα» γίνεται αλλαγή σελίδας, χωρίς σμίκρυνση.' })),
         pagesEl),
@@ -13658,7 +13810,7 @@ const UIController = (() => {
         Toast.show('Το λογότυπο πρέπει να είναι μικρότερο από 2MB', 'warning');
         return;
       }
-      const data = await InsertTools.prepareImage(file);
+      const data = await InsertTools.prepareImage(file, 800);
       if (data) AppState.setStyle({ logo: data });
     });
     $('btn-logo-remove').addEventListener('click', () => AppState.setStyle({ logo: '' }));
