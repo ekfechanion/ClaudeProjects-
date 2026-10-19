@@ -282,6 +282,8 @@ body.is-panel-resizing .left-panel { transition: none; }
 .row { display: flex; gap: 8px; align-items: center; }
 .row > .grow { flex: 1; min-width: 0; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.margin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; margin-top: 8px; }
+.margin-grid[hidden] { display: none; }
 
 .section-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .section-item {
@@ -1212,7 +1214,13 @@ kbd {
           <h3 class="panel-heading">Σελίδα A4</h3>
           <div class="grid-2">
             <label class="field"><span>Προσανατολισμός</span><select id="style-orientation" class="select"><option value="portrait">Κατακόρυφος</option><option value="landscape">Οριζόντιος</option></select></label>
-            <label class="field"><span>Περιθώρια</span><select id="style-margins" class="select"><option value="normal">Κανονικά</option><option value="narrow">Στενά</option></select></label>
+            <label class="field"><span>Περιθώρια</span><select id="style-margins" class="select"><option value="normal">Κανονικά (2,5 εκ.)</option><option value="narrow">Στενά (1,27 εκ.)</option><option value="minimal">Ελάχιστα (0,8 εκ.)</option><option value="custom">Προσαρμοσμένα…</option></select></label>
+          </div>
+          <div id="style-margins-custom" class="margin-grid" hidden>
+            <label class="field"><span>Πάνω (mm)</span><input id="style-margin-top" class="input" type="number" min="8" max="40" step="0.5"></label>
+            <label class="field"><span>Κάτω (mm)</span><input id="style-margin-bottom" class="input" type="number" min="8" max="40" step="0.5"></label>
+            <label class="field"><span>Αριστερά (mm)</span><input id="style-margin-left" class="input" type="number" min="5" max="40" step="0.5"></label>
+            <label class="field"><span>Δεξιά (mm)</span><input id="style-margin-right" class="input" type="number" min="5" max="40" step="0.5"></label>
           </div>
           <label class="field" title="Πώς χωρίζεται το φύλλο σε σελίδες σε όλα τα PDF (PDF προηγμένο, Εκτύπωση/PDF, προεπισκόπηση, PDF με απαντήσεις των μαθητών). Το DOCX δεν επηρεάζεται.">
             <span>Σελίδες στο PDF</span>
@@ -3021,7 +3029,7 @@ const AppState = (() => {
   const STYLE_DEFAULTS = {
     preset: 'classic', fontFamily: 'Georgia', fontSize: 12, accent: '#000000', tableHeaderFill: '#F1F5F9',
     titleAlign: 'center', sectionTitle: 'underline', sectionStyle: 'flow', layout: 'flow',
-    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal', pdfPaging: 'section', formulaDecimals: ''
+    logo: '', logoPosition: 'right', logoWidth: 30, orientation: 'portrait', margins: 'normal', marginTop: 20, marginBottom: 20, marginLeft: 25, marginRight: 25, pdfPaging: 'section', formulaDecimals: ''
   };
   const SPANS = [3, 4, 6, 8, 9, 12];
   const LOGO_SRC = /^data:image\/(png|jpe?g|gif);base64,[a-z0-9+/=]+$/i;
@@ -3054,6 +3062,11 @@ const AppState = (() => {
     const color = key => (/^#[0-9a-f]{6}$/i.test(src[key] || '') ? src[key].toUpperCase() : STYLE_DEFAULTS[key]);
     const size = Number(src.fontSize);
     const logoWidth = Number(src.logoWidth);
+    // Περιθώρια σε mm, με βήμα 0,5: πάνω/κάτω τουλάχιστον 8 (εκεί μπαίνουν κεφαλίδα και αριθμός σελίδας).
+    const mm = (key, min) => {
+      const v = Number(src[key]);
+      return Number.isFinite(v) ? Util.clamp(Math.round(v * 2) / 2, min, 40) : STYLE_DEFAULTS[key];
+    };
     return {
       preset: String(src.preset || STYLE_DEFAULTS.preset).slice(0, 30),
       fontFamily: Object.prototype.hasOwnProperty.call(FONTS, src.fontFamily) ? src.fontFamily : STYLE_DEFAULTS.fontFamily,
@@ -3068,7 +3081,11 @@ const AppState = (() => {
       logoPosition: pick('logoPosition', ['right', 'left', 'header']),
       logoWidth: Number.isFinite(logoWidth) ? Util.clamp(Math.round(logoWidth), 10, 80) : STYLE_DEFAULTS.logoWidth,
       orientation: pick('orientation', ['portrait', 'landscape']),
-      margins: pick('margins', ['normal', 'narrow']),
+      margins: pick('margins', ['normal', 'narrow', 'minimal', 'custom']),
+      marginTop: mm('marginTop', 8),
+      marginBottom: mm('marginBottom', 8),
+      marginLeft: mm('marginLeft', 5),
+      marginRight: mm('marginRight', 5),
       // Παλιά φύλλα με «μία σελίδα ανά αλλαγή σελίδας» κρατούν αυτή τη ρύθμιση.
       pdfPaging: src.pdfPaging === undefined && src.fitPages === true ? 'breaks' : pick('pdfPaging', ['section', 'breaks', 'flow']),
       formulaDecimals: ['0', '1', '2', '3'].includes(String(src.formulaDecimals)) ? String(src.formulaDecimals) : ''
@@ -10312,8 +10329,23 @@ const ExportManager = (() => {
     const landscape = st.orientation === 'landscape';
     const pageW = landscape ? 297 : 210;
     const pageH = landscape ? 210 : 297;
-    const m = st.margins === 'narrow' ? { top: 12.7, bottom: 12.7, left: 12.7, right: 12.7 } : { top: 20, bottom: 20, left: 25, right: 25 };
+    const m = {
+      normal: { top: 20, bottom: 20, left: 25, right: 25 },
+      narrow: { top: 12.7, bottom: 12.7, left: 12.7, right: 12.7 },
+      minimal: { top: 10, bottom: 10, left: 8, right: 8 },
+      custom: { top: st.marginTop, bottom: st.marginBottom, left: st.marginLeft, right: st.marginRight }
+    }[st.margins] || { top: 20, bottom: 20, left: 25, right: 25 };
     return { pageW, pageH, ...m, contentW: pageW - m.left - m.right, contentH: pageH - m.top - m.bottom, landscape };
+  }
+
+  /** @returns {string} τα περιθώρια με λόγια, π.χ. «κανονικά» ή «15/10/15/10 mm» */
+  function marginsLabel() {
+    const st = AppState.get().style;
+    if (st.margins === 'custom') {
+      const f = v => String(v).replace('.', ',');
+      return `${f(st.marginTop)}/${f(st.marginRight)}/${f(st.marginBottom)}/${f(st.marginLeft)} mm (πάνω/δεξιά/κάτω/αριστερά)`;
+    }
+    return { normal: 'κανονικά', narrow: 'στενά', minimal: 'ελάχιστα' }[st.margins] || 'κανονικά';
   }
 
   /** @returns {boolean} αν κάθε ενότητα ξεκινά νέα σελίδα στο PDF */
@@ -10533,12 +10565,13 @@ const ExportManager = (() => {
     if (!links.length || typeof pdf.link !== 'function') return;
     pages.forEach((p, i) => {
       const s = p.scale || 1;
+      const left = g.left + (g.contentW - ((p.width || g.contentW * pxPerMm) / pxPerMm) * s) / 2;
       pdf.setPage(i + 1);
       links.forEach(l => {
         const top = Math.max(l.top, p.start);
         const bottom = Math.min(l.bottom, p.end);
         if (bottom - top < 2) return;
-        pdf.link(g.left + (g.contentW * (1 - s)) / 2 + (l.x / pxPerMm) * s, g.top + ((top - p.start) / pxPerMm) * s, (l.w / pxPerMm) * s, ((bottom - top) / pxPerMm) * s, { url: l.url });
+        pdf.link(left + (l.x / pxPerMm) * s, g.top + ((top - p.start) / pxPerMm) * s, (l.w / pxPerMm) * s, ((bottom - top) / pxPerMm) * s, { url: l.url });
       });
     });
   }
@@ -10593,9 +10626,57 @@ const ExportManager = (() => {
    * @param {number} pageH ύψος περιοχής κειμένου σε px
    * @param {number} [minScale] 0 για κανονική σελιδοποίηση
    * @param {boolean} [sections] κάθε ενότητα (εκτός από την πρώτη, που μένει με την κεφαλίδα) ξεκινά νέα σελίδα
-   * @returns {Array<{start: number, end: number, scale: number}>}
+   * @returns {Array<{start: number, end: number, scale: number, width: number}>} width: πλάτος (px) της περιοχής της σελίδας, πριν τη σμίκρυνση
    */
   function paginate(root, pageH, minScale = 0, sections = false) {
+    // Κομμάτι που θα σμικρυνθεί: πρώτα πλαταίνει, ώστε το κείμενο να μοιραστεί σε μακρύτερες γραμμές.
+    // Έτσι χρειάζεται λιγότερη σμίκρυνση και, μετά από αυτή, πιάνει όλο το πλάτος της σελίδας.
+    // Ο root πλαταίνει όσο το πλατύτερο κομμάτι· τα υπόλοιπα κρατούν το αρχικό πλάτος.
+    const W0 = root.getBoundingClientRect().width;
+    const widened = new Map();
+    if (minScale > 0 && !root.classList.contains('wf-layout-grid')) {
+      const kids = Array.from(root.children);
+      const firstSection = kids.find(k => k.classList.contains('wf-print-section'));
+      const groups = [];
+      kids.forEach(k => {
+        const boundary = k.classList.contains('wf-break-before') || (sections && k.classList.contains('wf-print-section') && k !== firstSection);
+        if (!groups.length || boundary) groups.push([]);
+        groups[groups.length - 1].push(k);
+      });
+      const base = new Map(kids.map(k => [k, k.getBoundingClientRect().width]));
+      const setWidth = (group, f) => group.forEach(k => {
+        k.style.boxSizing = 'border-box';
+        k.style.width = `${base.get(k) * f}px`;
+      });
+      groups.forEach((group, gi) => {
+        if (group.some(k => k.querySelector('.wf-pagebreak'))) return;
+        const next = groups[gi + 1] ? groups[gi + 1][0] : null;
+        const height = () => (next ? next.getBoundingClientRect().top : root.getBoundingClientRect().bottom)
+          - (gi ? group[0].getBoundingClientRect().top : root.getBoundingClientRect().top);
+        if (height() <= pageH + 1) return;
+        const fits = f => {
+          setWidth(group, f);
+          return height() / f <= pageH;
+        };
+        let lo = 1;
+        let hi = 1 / minScale;
+        if (!fits(hi)) {
+          group.forEach(k => { k.style.width = ''; k.style.boxSizing = ''; });
+          return;
+        }
+        for (let i = 0; i < 10; i++) {
+          const mid = (lo + hi) / 2;
+          if (fits(mid)) hi = mid;
+          else lo = mid;
+        }
+        setWidth(group, hi);
+        group.forEach(k => widened.set(k, base.get(k) * hi));
+      });
+      if (widened.size) {
+        kids.forEach(k => { if (!widened.has(k)) setWidth([k], 1); });
+        root.style.width = `${Math.max(...widened.values())}px`;
+      }
+    }
     const rootTop = root.getBoundingClientRect().top;
     const total = Math.ceil(root.getBoundingClientRect().height);
     const y = el => Math.round(el.getBoundingClientRect().top - rootTop);
@@ -10668,7 +10749,14 @@ const ExportManager = (() => {
     } else {
       split(0, total);
     }
-    return pages.length ? pages : [{ start: 0, end: Math.max(total, 1), scale: 1 }];
+    return (pages.length ? pages : [{ start: 0, end: Math.max(total, 1), scale: 1 }]).map(p => {
+      let width = W0;
+      widened.forEach((w, k) => {
+        const r = k.getBoundingClientRect();
+        if (r.top - rootTop < p.end - 1 && r.bottom - rootTop > p.start + 1) width = Math.max(width, w);
+      });
+      return { ...p, width, scale: Math.min(p.scale, W0 / width) };
+    });
   }
 
   /**
@@ -10763,8 +10851,25 @@ const ExportManager = (() => {
     doc.querySelectorAll(':scope > .wf-print-section').forEach((sec, i) => {
       const r = sec.getBoundingClientRect();
       const room = pageH - (i === 0 ? r.top - top : 0);
-      const scale = room / r.height;
-      if (scale < 1 && scale >= 0.65) sec.style.zoom = scale.toFixed(3);
+      if (r.height <= room) return;
+      // Με zoom η ενότητα κρατά όλο το πλάτος και το κείμενο ξαναμοιράζεται σε μακρύτερες γραμμές,
+      // οπότε αρκεί μικρότερη σμίκρυνση από room / ύψος: βρίσκεται με διχοτόμηση.
+      const fits = z => {
+        sec.style.zoom = String(z);
+        return sec.getBoundingClientRect().height <= room;
+      };
+      if (!fits(0.65)) {
+        sec.style.zoom = '';
+        return;
+      }
+      let lo = 0.65;
+      let hi = 1;
+      for (let k = 0; k < 10; k++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      sec.style.zoom = lo.toFixed(3);
     });
   }
 
@@ -10860,14 +10965,14 @@ const ExportManager = (() => {
         Toast.show('Οι εξισώσεις αποδόθηκαν με περιορισμένη ακρίβεια', 'warning');
       }
       busy.set(0.3);
-      const rect = root.getBoundingClientRect();
       const g = geometry();
-      const pxPerMm = rect.width / g.contentW;
+      const pxPerMm = root.getBoundingClientRect().width / g.contentW;
       const pages = paginate(root, g.contentH * pxPerMm, fitScale(), bySection());
+      const rect = root.getBoundingClientRect();
       const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
       const canvas = await window.html2canvas(root, {
         scale, backgroundColor: '#ffffff', logging: false, useCORS: false, onclone: revealStage,
-        windowWidth: document.documentElement.clientWidth, windowHeight: Math.max(window.innerHeight, Math.ceil(rect.height) + 100)
+        windowWidth: Math.max(document.documentElement.clientWidth, Math.ceil(rect.width) + 40), windowHeight: Math.max(window.innerHeight, Math.ceil(rect.height) + 100)
       });
       busy.set(0.7);
       const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: g.landscape ? 'landscape' : 'portrait', compress: true });
@@ -10875,14 +10980,15 @@ const ExportManager = (() => {
       pages.forEach((p, i) => {
         if (i) pdf.addPage();
         const slice = Util.h('canvas');
-        slice.width = canvas.width;
+        slice.width = Math.min(canvas.width, Math.round(p.width * scale));
         slice.height = Math.max(1, Math.round((p.end - p.start) * scale));
         const ctx = slice.getContext('2d');
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, slice.width, slice.height);
-        ctx.drawImage(canvas, 0, Math.round(p.start * scale), canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+        ctx.drawImage(canvas, 0, Math.round(p.start * scale), slice.width, slice.height, 0, 0, slice.width, slice.height);
         const s = p.scale || 1;
-        pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left + (g.contentW * (1 - s)) / 2, g.top, g.contentW * s, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
+        const w = (p.width / pxPerMm) * s;
+        pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left + (g.contentW - w) / 2, g.top, w, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
         const titleX = logo ? logo.w + 3 : 0;
         if (logoPng) pdf.addImage(logoPng.data, logoPng.format, g.left, logo.top, logo.w, logo.h, 'wf-logo', 'FAST');
         if (opts.headerTitle) {
@@ -11747,9 +11853,9 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         if (document.fonts && document.fonts.ready) await document.fonts.ready;
         await new Promise(r => requestAnimationFrame(() => r()));
         const g = CFG.g;
-        const rect = root.getBoundingClientRect();
-        const pxPerMm = rect.width / g.contentW;
+        const pxPerMm = root.getBoundingClientRect().width / g.contentW;
         const pages = paginate(root, g.contentH * pxPerMm, CFG.fit || 0, !!CFG.bySection);
+        const rect = root.getBoundingClientRect();
         const scale = Math.min(2, 30000 / Math.max(rect.height, 1));
         const canvas = await window.html2canvas(root, {
           scale, backgroundColor: '#ffffff', logging: false, useCORS: false,
@@ -11762,14 +11868,15 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         pages.forEach((p, i) => {
           if (i) pdf.addPage();
           const slice = document.createElement('canvas');
-          slice.width = canvas.width;
+          slice.width = Math.min(canvas.width, Math.round(p.width * scale));
           slice.height = Math.max(1, Math.round((p.end - p.start) * scale));
           const ctx = slice.getContext('2d');
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, slice.width, slice.height);
-          ctx.drawImage(canvas, 0, Math.round(p.start * scale), canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+          ctx.drawImage(canvas, 0, Math.round(p.start * scale), slice.width, slice.height, 0, 0, slice.width, slice.height);
           const s = p.scale || 1;
-          pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left + (g.contentW * (1 - s)) / 2, g.top, g.contentW * s, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
+          const w = (p.width / pxPerMm) * s;
+          pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', g.left + (g.contentW - w) / 2, g.top, w, ((p.end - p.start) / pxPerMm) * s, undefined, 'FAST');
           const L = CFG.logo;
           const titleX = L ? L.w + 3 : 0;
           if (logo) pdf.addImage(logo.data, logo.format, g.left, L.top, L.w, L.h, 'wf-logo', 'FAST');
@@ -11941,7 +12048,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         const clone = root.cloneNode(true);
         clone.style.marginTop = `${-p.start}px`;
         const s = p.scale || 1;
-        const content = s < 1 ? Util.h('div', { style: { transform: `scale(${s})`, transformOrigin: '50% 0' } }, clone) : clone;
+        const w = p.width || g.contentW * pxPerMm;
+        const content = Util.h('div', { style: { width: `${w}px`, overflow: 'hidden', transform: s < 1 ? `scale(${s})` : null, transformOrigin: '0 0', marginLeft: `${(g.contentW * pxPerMm - w * s) / 2}px` } }, clone);
         const page = Util.h('div', { class: 'preview-page', 'aria-label': `Σελίδα ${i + 1}`, style: { width: `${g.pageW}mm`, height: `${g.pageH}mm`, padding: `${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm` } },
           Util.h('div', { class: 'preview-head', style: { left: `${g.left}mm`, right: `${g.right}mm`, top: logo ? `${logo.top}mm` : `${Math.max(3, g.top / 2 - 3)}mm`, height: logo ? `${logo.h}mm` : null } },
             Util.h('span', { class: 'preview-head-left' },
@@ -11954,7 +12062,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         return page;
       }));
       const shrunk = pages.filter(p => p.scale < 1).map(p => Math.round(p.scale * 100));
-      info.textContent = `${pages.length} ${pages.length === 1 ? 'σελίδα' : 'σελίδες'} A4 ${g.landscape ? 'οριζόντια' : 'κατακόρυφα'} · περιθώρια ${AppState.get().style.margins === 'narrow' ? 'στενά' : 'κανονικά'}`
+      info.textContent = `${pages.length} ${pages.length === 1 ? 'σελίδα' : 'σελίδες'} A4 ${g.landscape ? 'οριζόντια' : 'κατακόρυφα'} · περιθώρια ${marginsLabel()}`
         + (bySection() ? ' · μία ενότητα ανά σελίδα' : '')
         + (shrunk.length ? ` · σμίκρυνση για να χωρέσουν: ${shrunk.map(v => `${v}%`).join(', ')}` : '');
     };
@@ -11983,6 +12091,26 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       AppState.setStyle({ pdfPaging: paging.value });
       rerender();
     });
+    // Περιθώρια: ίδια ρύθμιση με το Εμφάνιση → Σελίδα A4.
+    const st0 = AppState.get().style;
+    const marginSel = Util.h('select', { class: 'select', 'aria-label': 'Περιθώρια' },
+      [['normal', 'Κανονικά (2,5 εκ.)'], ['narrow', 'Στενά (1,27 εκ.)'], ['minimal', 'Ελάχιστα (0,8 εκ.)'], ['custom', 'Προσαρμοσμένα…']].map(([v, t]) => Util.h('option', { value: v, text: t })));
+    marginSel.value = st0.margins;
+    const marginInputs = [['marginTop', 'Πάνω', 8], ['marginBottom', 'Κάτω', 8], ['marginLeft', 'Αριστερά', 5], ['marginRight', 'Δεξιά', 5]].map(([key, label, min]) => {
+      const input = Util.h('input', { class: 'input', type: 'number', min: String(min), max: '40', step: '0.5', value: String(st0[key]) });
+      input.addEventListener('change', () => {
+        AppState.setStyle({ [key]: Number(input.value) });
+        input.value = String(AppState.get().style[key]);
+        rerender();
+      });
+      return Util.h('label', { class: 'field' }, Util.h('span', { text: `${label} (mm)` }), input);
+    });
+    const marginCustom = Util.h('div', { class: 'margin-grid', hidden: st0.margins !== 'custom' }, ...marginInputs);
+    marginSel.addEventListener('change', () => {
+      AppState.setStyle({ margins: marginSel.value });
+      marginCustom.hidden = marginSel.value !== 'custom';
+      rerender();
+    });
     const group = (title, ...kids) => Util.h('section', { class: 'preview-group' }, Util.h('h3', { class: 'panel-heading', text: title }), ...kids);
     Modal.open({
       title: 'Προεπισκόπηση και επιλογές εξαγωγής', size: 'xl',
@@ -12002,6 +12130,8 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
             check('qrLinks', 'QR code για κάθε σύνδεσμο', 'Στο PDF, στην Εκτύπωση και στο DOCX, κάτω από κάθε σύνδεσμο μπαίνει QR code, ώστε να ανοίγει από κινητό ή tablet. Οι σύνδεσμοι και τα QR codes στο PDF ανοίγουν και με κλικ.')),
           group('Σελίδες',
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Χωρισμός σε σελίδες' }), paging),
+            Util.h('label', { class: 'field' }, Util.h('span', { text: 'Περιθώρια' }), marginSel),
+            marginCustom,
             check('headerTitle', 'Τίτλος στην κεφαλίδα σελίδας'), check('headerDate', 'Ημερομηνία στην κεφαλίδα σελίδας'), check('pageNumbers', 'Αριθμός σελίδας')),
           Util.h('p', { class: 'hint', text: 'Ό,τι επιλέξεις εδώ ισχύει σε όλες τις εξαγωγές: Εκτύπωση/PDF, PDF (προηγμένο), DOCX και διαδραστικό HTML, και κρατιέται για την επόμενη φορά. Στο DOCX η «μία ενότητα ανά σελίδα» γίνεται αλλαγή σελίδας, χωρίς σμίκρυνση.' })),
         pagesEl),
@@ -13506,7 +13636,11 @@ const UIController = (() => {
       ['style-logo-pos', 'logoPosition', 'change', v => v],
       ['style-logo-width', 'logoWidth', 'change', Number],
       ['style-orientation', 'orientation', 'change', v => v],
-      ['style-margins', 'margins', 'change', v => v]
+      ['style-margins', 'margins', 'change', v => v],
+      ['style-margin-top', 'marginTop', 'change', Number],
+      ['style-margin-bottom', 'marginBottom', 'change', Number],
+      ['style-margin-left', 'marginLeft', 'change', Number],
+      ['style-margin-right', 'marginRight', 'change', Number]
     ];
     const visual = new Set(['fontFamily', 'fontSize', 'accent', 'tableHeaderFill', 'sectionTitle', 'titleAlign']);
     fields.forEach(([id, key, ev, conv]) => {
@@ -13559,6 +13693,11 @@ const UIController = (() => {
     set('style-logo-width', st.logoWidth);
     set('style-orientation', st.orientation);
     set('style-margins', st.margins);
+    set('style-margin-top', st.marginTop);
+    set('style-margin-bottom', st.marginBottom);
+    set('style-margin-left', st.marginLeft);
+    set('style-margin-right', st.marginRight);
+    $('style-margins-custom').hidden = st.margins !== 'custom';
     set('style-pdf-paging', st.pdfPaging);
     set('formula-decimals', st.formulaDecimals || '');
     $('layout-flow').setAttribute('aria-pressed', String(st.layout !== 'grid'));
