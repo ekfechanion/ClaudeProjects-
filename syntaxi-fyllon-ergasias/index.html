@@ -712,10 +712,6 @@ kbd {
 .preview-options { display: flex; flex-direction: column; gap: 14px; max-height: calc(100vh - 220px); overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
 .preview-group { display: flex; flex-direction: column; gap: 6px; }
 .preview-group .panel-heading { margin-bottom: 2px; }
-.preview-sections { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-btn); }
-.preview-section-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.preview-section-row > .check:first-child { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.preview-title-check { flex-shrink: 0; font-size: 12px; color: var(--text-2); }
 .preview-pages { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 24px; background: var(--surface-3); border-radius: var(--radius-card); overflow: auto; max-height: calc(100vh - 220px); }
 .preview-page {
   position: relative; flex-shrink: 0; width: 210mm; height: 297mm; padding: 20mm 25mm;
@@ -10310,8 +10306,7 @@ const ExportManager = (() => {
 
   /** @returns {boolean} αν κάθε ενότητα ξεκινά νέα σελίδα στο PDF */
   function bySection() {
-    const st = AppState.get().style;
-    return st.pdfPaging === 'section' && st.layout !== 'grid';
+    return AppState.get().style.pdfPaging === 'section';
   }
 
   /** @returns {number} ελάχιστη σμίκρυνση όταν κάθε κομμάτι γίνεται μία σελίδα PDF (ανά ενότητα ή ανά αλλαγή σελίδας), αλλιώς 0 */
@@ -10509,6 +10504,28 @@ const ExportManager = (() => {
     });
     floats.forEach(([top, bottom]) => candidates.forEach(v => { if (v > top + 2 && v < bottom - 2) candidates.delete(v); }));
     const forced = Array.from(root.querySelectorAll('.wf-pagebreak, .wf-break-before')).map(el => (el.classList.contains('wf-pagebreak') ? Math.round(el.getBoundingClientRect().bottom - rootTop) : y(el))).sort((a, b) => a - b);
+    // «Άτομα» που δεν κόβονται ποτέ: γραμμές κειμένου (p, li, τίτλοι), εικόνες, εξισώσεις, γραμμές απάντησης,
+    // και κελιά πίνακα χωρίς δικά τους μπλοκ. Σε πίνακα με στήλες, ένα σημείο ασφαλές για μία στήλη
+    // μπορεί να κόβει γραμμή σε διπλανή· γι' αυτό ελέγχονται όλα μαζί.
+    const atoms = Array.from(root.querySelectorAll('.wf-print-content p, .wf-print-content li, .wf-print-content h1, .wf-print-content h2, .wf-print-content h3, .wf-print-content h4, '
+      + '.wf-print-content img, .wf-print-content .math-display, .wf-field-box > div, .wf-answer-lines > div, .wf-print-section-title, .wf-student, .wf-doc-head, .wf-print-content td, .wf-print-content th'))
+      .filter(el => !/^T[DH]$/.test(el.tagName) || !el.querySelector('p, li, h1, h2, h3, h4, img, table, ul, ol, div'))
+      .map(el => {
+        const r = el.getBoundingClientRect();
+        return [Math.round(r.top - rootTop), Math.round(r.bottom - rootTop)];
+      })
+      .filter(([top, bottom]) => bottom - top > 2);
+    // Μετακινεί το σημείο κοπής πιο πάνω μέχρι να μην περνά μέσα από κανένα «άτομο».
+    const safe = (v, min) => {
+      let cut = v;
+      for (let i = 0; i < 50; i++) {
+        const crossing = atoms.filter(([top, bottom]) => top + 2 < cut && cut < bottom - 2);
+        if (!crossing.length) return cut;
+        cut = Math.min(...crossing.map(([top]) => top));
+        if (cut <= min) return v;
+      }
+      return v;
+    };
     const sorted = [...candidates].sort((a, b) => a - b);
     const pages = [];
     const split = (from, to) => {
@@ -10520,8 +10537,9 @@ const ExportManager = (() => {
         if (f !== undefined) end = f;
         else if (limit >= to) end = to;
         else {
-          const c = sorted.filter(v => v > start + pageH * 0.25 && v <= limit).pop();
-          end = c !== undefined ? c : limit;
+          const min = start + pageH * 0.25;
+          const c = sorted.filter(v => v > min && v <= limit && safe(v, min) === v).pop();
+          end = c !== undefined ? c : safe(limit, min);
         }
         pages.push({ start, end, scale: 1 });
         start = end;
@@ -11853,21 +11871,6 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       AppState.setStyle({ pdfPaging: paging.value });
       rerender();
     });
-    const sectionList = Util.h('div', { class: 'preview-sections' }, AppState.sections().map((sec, i) => {
-      const input = Util.h('input', { type: 'checkbox', checked: !sec.hidden, 'aria-label': `Η ενότητα ${sec.title} μπαίνει στο εξαγόμενο` });
-      input.addEventListener('change', () => {
-        AppState.updateSection(sec.id, { hidden: !input.checked });
-        rerender();
-      });
-      const titleInput = Util.h('input', { type: 'checkbox', checked: !sec.hideTitle, 'aria-label': `Τίτλος της ενότητας ${sec.title}` });
-      titleInput.addEventListener('change', () => {
-        AppState.updateSection(sec.id, { hideTitle: !titleInput.checked });
-        rerender();
-      });
-      return Util.h('div', { class: 'preview-section-row' },
-        Util.h('label', { class: 'check', title: sec.title }, input, `${i + 1}. ${sec.title || 'Χωρίς τίτλο'}`),
-        Util.h('label', { class: 'check preview-title-check', title: 'Να φαίνεται ο τίτλος αυτής της ενότητας' }, titleInput, 'τίτλος'));
-    }));
     const group = (title, ...kids) => Util.h('section', { class: 'preview-group' }, Util.h('h3', { class: 'panel-heading', text: title }), ...kids);
     Modal.open({
       title: 'Προεπισκόπηση και επιλογές εξαγωγής', size: 'xl',
@@ -11879,13 +11882,11 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
             check('showSubject', 'Μάθημα'), check('showClass', 'Τάξη'), check('showDate', 'Ημερομηνία'), check('showTeacher', 'Εκπαιδευτικός'),
             Util.h('label', { class: 'check' }, studentInput, 'Πεδία στοιχείων μαθητή')),
           group('Ενότητες',
-            check('sectionTitles', 'Τίτλοι ενοτήτων', 'Χωρίς τικ, καμία ενότητα δεν δείχνει τίτλο. Για μία μόνο ενότητα, χρησιμοποίησε το «τίτλος» στη λίστα παρακάτω.'),
+            check('sectionTitles', 'Τίτλοι ενοτήτων', 'Χωρίς τικ, καμία ενότητα δεν δείχνει τίτλο.'),
             check('numbering', 'Αρίθμηση ενοτήτων'),
             check('sectionLines', 'Λεπτή γραμμή ανάμεσα στις ενότητες'),
             check('answerLines', 'Γραμμές απάντησης σε κενές ενότητες'),
-            check('includeCollapsed', 'Συμπερίληψη συμπτυγμένων ενοτήτων'),
-            Util.h('p', { class: 'hint', text: 'Ποιες ενότητες μπαίνουν στο εξαγόμενο, και με ή χωρίς τίτλο:' }),
-            sectionList),
+            check('includeCollapsed', 'Συμπερίληψη συμπτυγμένων ενοτήτων')),
           group('Σελίδες',
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Χωρισμός σε σελίδες' }), paging),
             check('headerTitle', 'Τίτλος στην κεφαλίδα σελίδας'), check('headerDate', 'Ημερομηνία στην κεφαλίδα σελίδας'), check('pageNumbers', 'Αριθμός σελίδας')),
