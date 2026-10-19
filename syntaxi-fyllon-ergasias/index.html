@@ -245,6 +245,14 @@ button { cursor: pointer; }
 }
 .app-body.panel-collapsed .left-panel { width: 0; border-right-color: transparent; }
 .panel-inner { width: var(--panel-w); display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.panel-resizer {
+  position: absolute; top: 0; bottom: 0; left: calc(var(--panel-w) - 3px); z-index: 55; width: 7px;
+  cursor: col-resize; touch-action: none;
+}
+.panel-resizer:hover, .panel-resizer:focus-visible, body.is-panel-resizing .panel-resizer { background: var(--primary); opacity: 0.35; outline: none; }
+.app-body.panel-collapsed .panel-resizer { display: none; }
+body.is-panel-resizing { cursor: col-resize; user-select: none; }
+body.is-panel-resizing .left-panel { transition: none; }
 .panel-toggle {
   position: absolute; top: 12px; left: calc(var(--panel-w) - 12px); z-index: 60;
   width: 24px; height: 24px; padding: 0;
@@ -700,8 +708,12 @@ kbd {
 .shortcuts-table td { padding: 4px 0; border-bottom: 1px solid var(--border); }
 .shortcuts-table td:last-child { text-align: right; white-space: nowrap; }
 
-.preview-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; min-height: 0; }
-.preview-options { display: flex; flex-direction: column; gap: 12px; }
+.preview-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 24px; min-height: 0; }
+.preview-options { display: flex; flex-direction: column; gap: 14px; max-height: calc(100vh - 220px); overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
+.preview-group { display: flex; flex-direction: column; gap: 6px; }
+.preview-group .panel-heading { margin-bottom: 2px; }
+.preview-sections { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-btn); }
+.preview-sections .check { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .preview-pages { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 24px; background: var(--surface-3); border-radius: var(--radius-card); overflow: auto; max-height: calc(100vh - 220px); }
 .preview-page {
   position: relative; flex-shrink: 0; width: 210mm; height: 297mm; padding: 20mm 25mm;
@@ -765,6 +777,7 @@ kbd {
 .editor-content .wf-field-box::before { content: '✎ Πεδίο απάντησης μαθητή'; position: absolute; right: 6px; top: 2px; font: 11px var(--font-ui); color: var(--text-2); }
 .wf-print-doc img, .wf-print-doc tr, .wf-print-doc .math-display { break-inside: avoid; page-break-inside: avoid; }
 .wf-print-doc .wf-break-before { break-before: page; page-break-before: always; }
+.wf-print-doc.wf-section-lines:not(.wf-layout-grid) > .wf-print-section ~ .wf-print-section { margin-top: 5mm; padding-top: 4mm; border-top: 0.6pt solid #A6A6A6; }
 .wf-print-doc .wf-pagebreak { break-after: page; page-break-after: always; }
 
 #print-root { display: none; }
@@ -1060,6 +1073,7 @@ kbd {
     <div class="dropdown">
       <button id="btn-export" class="btn btn-primary has-text" type="button" aria-haspopup="menu" aria-expanded="false" title="Εξαγωγή φύλλου εργασίας"><span data-icon="export"></span><span class="btn-text">Εξαγωγή</span><span data-icon="chevron-down" data-size="14"></span></button>
       <div id="export-menu" class="dropdown-menu" role="menu" hidden>
+        <button class="menu-item" type="button" role="menuitem" data-export="preview" title="Διάλεξε τι θα εμφανίζεται (στοιχεία εγγράφου, ενότητες, αρίθμηση, σελίδες) και δες το αποτέλεσμα"><span data-icon="eye"></span>Επιλογές και προεπισκόπηση…</button>
         <button class="menu-item" type="button" role="menuitem" data-export="print"><span data-icon="printer"></span>Εκτύπωση/PDF<kbd>Ctrl+P</kbd></button>
         <button class="menu-item" type="button" role="menuitem" data-export="pdf"><span data-icon="document"></span>PDF (προηγμένο)</button>
         <button class="menu-item" type="button" role="menuitem" data-export="docx"><span data-icon="word"></span>Έγγραφο Word (DOCX)</button>
@@ -1253,6 +1267,7 @@ kbd {
       </div>
     </div>
   </aside>
+  <div id="panel-resizer" class="panel-resizer" role="separator" aria-orientation="vertical" aria-label="Πλάτος πάνελ" title="Σύρε για να αλλάξει το πλάτος του πάνελ (διπλό κλικ: αρχικό πλάτος)" tabindex="0"></div>
   <button id="panel-toggle" class="panel-toggle" type="button" title="Απόκρυψη/εμφάνιση πάνελ (Ctrl+\)" aria-label="Απόκρυψη/εμφάνιση πάνελ" aria-expanded="true">‹</button>
 
   <main id="editor-area" class="editor-area">
@@ -2345,7 +2360,15 @@ const Prefs = (() => {
       answerLines: true,
       numbering: false,
       breakPerSection: false,
-      includeCollapsed: true
+      includeCollapsed: true,
+      sectionLines: true,
+      showLogo: true,
+      showSchool: true,
+      showTitle: true,
+      showSubject: true,
+      showClass: true,
+      showDate: true,
+      showTeacher: true
     }
   };
   const stored = Storage.read(Storage.KEYS.prefs, {});
@@ -10284,7 +10307,8 @@ const ExportManager = (() => {
 
   /** @returns {boolean} αν κάθε ενότητα ξεκινά νέα σελίδα στο PDF */
   function bySection() {
-    return AppState.get().style.pdfPaging === 'section';
+    const st = AppState.get().style;
+    return st.pdfPaging === 'section' && st.layout !== 'grid';
   }
 
   /** @returns {number} ελάχιστη σμίκρυνση όταν κάθε κομμάτι γίνεται μία σελίδα PDF (ανά ενότητα ή ανά αλλαγή σελίδας), αλλιώς 0 */
@@ -10321,7 +10345,7 @@ const ExportManager = (() => {
    */
   function headerLogo() {
     const st = AppState.get().style;
-    if (!st.logo || st.logoPosition !== 'header') return null;
+    if (!st.logo || st.logoPosition !== 'header' || options().showLogo === false) return null;
     const g = geometry();
     const d = logoDims.get(st.logo);
     const maxH = Math.max(5, Math.min(12, g.top - 6));
@@ -10353,7 +10377,8 @@ const ExportManager = (() => {
     const m = AppState.get().metadata;
     const st = AppState.get().style;
     const g = geometry();
-    const root = Util.h('div', { class: `wf-print-doc wf-st-${st.sectionTitle}${st.layout === 'grid' ? ' wf-layout-grid' : ''}`, style: { width: `${g.contentW}mm` } });
+    const show = key => opts[key] !== false;
+    const root = Util.h('div', { class: `wf-print-doc wf-st-${st.sectionTitle}${st.layout === 'grid' ? ' wf-layout-grid' : ''}${show('sectionLines') ? ' wf-section-lines' : ''}`, style: { width: `${g.contentW}mm` } });
     root.style.setProperty('--doc-font', AppState.FONTS[st.fontFamily]);
     root.style.setProperty('--doc-size', `${st.fontSize}pt`);
     root.style.setProperty('--doc-accent', st.accent);
@@ -10361,24 +10386,24 @@ const ExportManager = (() => {
     root.style.setProperty('--doc-title-align', st.titleAlign);
     const head = Util.h('header', { class: 'wf-doc-head' });
     const headText = Util.h('div', { class: 'wf-doc-head-text' });
-    if (st.logo && st.logoPosition !== 'header') {
+    if (st.logo && st.logoPosition !== 'header' && show('showLogo')) {
       const logo = Util.h('img', { class: 'wf-doc-logo', src: st.logo, alt: 'Λογότυπο', style: { width: `${st.logoWidth}mm` } });
       if (st.logoPosition === 'left') head.append(logo, headText);
       else head.append(headText, logo);
     } else {
       head.append(headText);
     }
-    if (m.school) headText.append(Util.h('div', { class: 'wf-doc-school', text: m.school }));
-    headText.append(Util.h('h1', { class: 'wf-doc-title', text: docTitle() }));
+    if (m.school && show('showSchool')) headText.append(Util.h('div', { class: 'wf-doc-school', text: m.school }));
+    if (show('showTitle')) headText.append(Util.h('h1', { class: 'wf-doc-title', text: docTitle() }));
     const meta = [
-      m.subject && `Μάθημα: ${m.subject}`,
-      m.className && `Τάξη: ${m.className}`,
-      m.date && `Ημερομηνία: ${Util.formatDate(m.date)}`,
-      m.teacher && `Εκπαιδευτικός: ${m.teacher}`
+      show('showSubject') && m.subject && `Μάθημα: ${m.subject}`,
+      show('showClass') && m.className && `Τάξη: ${m.className}`,
+      show('showDate') && m.date && `Ημερομηνία: ${Util.formatDate(m.date)}`,
+      show('showTeacher') && m.teacher && `Εκπαιδευτικός: ${m.teacher}`
     ].filter(Boolean);
     if (meta.length) headText.append(Util.h('div', { class: 'wf-doc-meta', text: meta.join('   ·   ') }));
     root.append(head);
-    if (m.studentFields && opts.studentFields) {
+    if (m.studentFields && show('studentFields')) {
       const field = (label, width) => Util.h('span', null, label, Util.h('span', { class: 'line', style: { width } }));
       root.append(Util.h('div', { class: 'wf-student' }, field('Ονοματεπώνυμο:', '60mm'), field('Τμήμα:', '16mm'), field('Ημερομηνία:', '26mm')));
     }
@@ -10386,7 +10411,8 @@ const ExportManager = (() => {
     AppState.sections().forEach(s => {
       if (s.hidden || (s.collapsed && !opts.includeCollapsed)) return;
       n++;
-      const section = Util.h('section', { class: `wf-print-section${opts.breakPerSection && n > 1 ? ' wf-break-before' : ''}`, dataset: { sectionId: s.id, span: String(st.layout === 'grid' ? s.span : 12), minHeight: String(st.layout === 'grid' ? s.minHeight : 0) } });
+      // «Μία ενότητα ανά σελίδα» (Εμφάνιση → Σελίδες στο PDF) ισχύει σε όλες τις εξαγωγές, και στο DOCX ως αλλαγή σελίδας.
+      const section = Util.h('section', { class: `wf-print-section${st.pdfPaging === 'section' && st.layout !== 'grid' && n > 1 ? ' wf-break-before' : ''}`, dataset: { sectionId: s.id, span: String(st.layout === 'grid' ? s.span : 12), minHeight: String(st.layout === 'grid' ? s.minHeight : 0) } });
       if (st.layout === 'grid') {
         section.style.setProperty('--span', String(s.span));
         if (s.minHeight) section.style.minHeight = `${s.minHeight}mm`;
@@ -11182,8 +11208,8 @@ const ExportManager = (() => {
       const logoRun = imageRun(logoEl);
       children.push(new D.Paragraph({ alignment: st.logoPosition === 'left' ? D.AlignmentType.LEFT : D.AlignmentType.RIGHT, children: logoRun }));
     }
-    if (m.school) children.push(new D.Paragraph({ alignment: headAlign, children: [new D.TextRun({ text: m.school.toUpperCase(), size: 20, color: '333333' })] }));
-    children.push(new D.Paragraph({ alignment: headAlign, spacing: { before: 60, after: 80 }, children: [new D.TextRun({ text: docTitle(), bold: true, size: 40 })] }));
+    if (root.querySelector('.wf-doc-school')) children.push(new D.Paragraph({ alignment: headAlign, children: [new D.TextRun({ text: m.school.toUpperCase(), size: 20, color: '333333' })] }));
+    if (root.querySelector('.wf-doc-title')) children.push(new D.Paragraph({ alignment: headAlign, spacing: { before: 60, after: 80 }, children: [new D.TextRun({ text: docTitle(), bold: true, size: 40 })] }));
     const meta = root.querySelector('.wf-doc-meta');
     children.push(new D.Paragraph({
       alignment: headAlign, spacing: { after: 240 },
@@ -11268,8 +11294,10 @@ const ExportManager = (() => {
       });
       flushRow();
     } else {
-      sections.forEach(sec => {
+      const lines = root.classList.contains('wf-section-lines');
+      sections.forEach((sec, i) => {
         if (sec.classList.contains('wf-break-before')) children.push(new D.Paragraph({ children: [new D.PageBreak()] }));
+        if (lines && i > 0) children.push(new D.Paragraph({ children: [], spacing: { before: 120, after: 0 }, border: { bottom: { color: 'A6A6A6', space: 1, style: D.BorderStyle.SINGLE, size: 4 } } }));
         children.push(...sectionBlocks(sec, DOCX_CONTENT_TWIPS, false));
       });
     }
@@ -11797,29 +11825,60 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         + (bySection() ? ' · μία ενότητα ανά σελίδα' : '')
         + (shrunk.length ? ` · σμίκρυνση για να χωρέσουν: ${shrunk.map(v => `${v}%`).join(', ')}` : '');
     };
-    const checks = [
-      ['headerTitle', 'Τίτλος στην κεφαλίδα'],
-      ['headerDate', 'Ημερομηνία στην κεφαλίδα'],
-      ['pageNumbers', 'Αριθμός σελίδας'],
-      ['studentFields', 'Πεδία στοιχείων μαθητή'],
-      ['answerLines', 'Γραμμές απάντησης σε κενές ενότητες'],
-      ['numbering', 'Αρίθμηση ενοτήτων'],
-      ['breakPerSection', 'Κάθε ενότητα σε νέα σελίδα'],
-      ['includeCollapsed', 'Συμπερίληψη συμπτυγμένων ενοτήτων']
-    ].map(([key, label]) => {
-      const input = Util.h('input', { type: 'checkbox', checked: !!opts[key] });
+    const rerender = Util.debounce(render, 120);
+    const check = (key, label, title) => {
+      const input = Util.h('input', { type: 'checkbox', checked: opts[key] !== false });
       input.addEventListener('change', () => {
         opts[key] = input.checked;
         Prefs.set('print', { ...opts });
-        render();
+        rerender();
       });
-      return Util.h('label', { class: 'check' }, input, label);
+      return Util.h('label', { class: 'check', title }, input, label);
+    };
+    // Τα πεδία στοιχείων μαθητή είναι ρύθμιση του φύλλου (και στην κάρτα «Στοιχεία εγγράφου»).
+    const studentInput = Util.h('input', { type: 'checkbox', checked: !!AppState.get().metadata.studentFields });
+    studentInput.addEventListener('change', () => {
+      AppState.setMetadata({ studentFields: studentInput.checked });
+      opts.studentFields = true;
+      Prefs.set('print', { ...opts });
+      rerender();
     });
+    const paging = Util.h('select', { class: 'select', 'aria-label': 'Σελίδες' },
+      [['section', 'Μία ενότητα ανά σελίδα'], ['breaks', 'Νέα σελίδα μόνο στις αλλαγές σελίδας'], ['flow', 'Συνεχόμενα']].map(([v, t]) => Util.h('option', { value: v, text: t })));
+    paging.value = AppState.get().style.pdfPaging;
+    paging.addEventListener('change', () => {
+      AppState.setStyle({ pdfPaging: paging.value });
+      rerender();
+    });
+    const sectionList = Util.h('div', { class: 'preview-sections' }, AppState.sections().map((sec, i) => {
+      const input = Util.h('input', { type: 'checkbox', checked: !sec.hidden });
+      input.addEventListener('change', () => {
+        AppState.updateSection(sec.id, { hidden: !input.checked });
+        rerender();
+      });
+      return Util.h('label', { class: 'check', title: sec.title }, input, `${i + 1}. ${sec.title || 'Χωρίς τίτλο'}`);
+    }));
+    const group = (title, ...kids) => Util.h('section', { class: 'preview-group' }, Util.h('h3', { class: 'panel-heading', text: title }), ...kids);
     Modal.open({
-      title: 'Προεπισκόπηση εκτύπωσης', size: 'xl',
+      title: 'Προεπισκόπηση και επιλογές εξαγωγής', size: 'xl',
       body: Util.h('div', { class: 'preview-layout' },
-        Util.h('div', { class: 'preview-options' }, Util.h('h3', { class: 'panel-heading', text: 'Επιλογές σελίδας' }), checks, info,
-          Util.h('p', { class: 'hint', text: 'Οι επιλογές ισχύουν για εκτύπωση, PDF και DOCX. Η αλλαγή σελίδας γίνεται ανάμεσα σε στοιχεία, όχι μέσα σε πίνακες ή εικόνες.' })),
+        Util.h('div', { class: 'preview-options' },
+          info,
+          group('Στοιχεία εγγράφου',
+            check('showLogo', 'Λογότυπο'), check('showSchool', 'Σχολείο / Φορέας'), check('showTitle', 'Τίτλος φύλλου'),
+            check('showSubject', 'Μάθημα'), check('showClass', 'Τάξη'), check('showDate', 'Ημερομηνία'), check('showTeacher', 'Εκπαιδευτικός'),
+            Util.h('label', { class: 'check' }, studentInput, 'Πεδία στοιχείων μαθητή')),
+          group('Ενότητες',
+            check('numbering', 'Αρίθμηση ενοτήτων'),
+            check('sectionLines', 'Λεπτή γραμμή ανάμεσα στις ενότητες'),
+            check('answerLines', 'Γραμμές απάντησης σε κενές ενότητες'),
+            check('includeCollapsed', 'Συμπερίληψη συμπτυγμένων ενοτήτων'),
+            Util.h('p', { class: 'hint', text: 'Ποιες ενότητες μπαίνουν στο εξαγόμενο:' }),
+            sectionList),
+          group('Σελίδες',
+            Util.h('label', { class: 'field' }, Util.h('span', { text: 'Χωρισμός σε σελίδες' }), paging),
+            check('headerTitle', 'Τίτλος στην κεφαλίδα σελίδας'), check('headerDate', 'Ημερομηνία στην κεφαλίδα σελίδας'), check('pageNumbers', 'Αριθμός σελίδας')),
+          Util.h('p', { class: 'hint', text: 'Ό,τι επιλέξεις εδώ ισχύει σε όλες τις εξαγωγές: Εκτύπωση/PDF, PDF (προηγμένο), DOCX και διαδραστικό HTML, και κρατιέται για την επόμενη φορά. Στο DOCX η «μία ενότητα ανά σελίδα» γίνεται αλλαγή σελίδας, χωρίς σμίκρυνση.' })),
         pagesEl),
       actions: [
         { label: 'Κλείσιμο', variant: 'secondary' },
@@ -13037,7 +13096,8 @@ const UIController = (() => {
       if (!item) return;
       closeMenu();
       const kind = item.dataset.export;
-      if (kind === 'print') ExportManager.print();
+      if (kind === 'preview') ExportManager.preview();
+      else if (kind === 'print') ExportManager.print();
       else if (kind === 'pdf') ExportManager.exportPdf();
       else if (kind === 'docx') ExportManager.exportDocx();
       else if (kind === 'html') ExportManager.exportHtml();
@@ -13095,7 +13155,54 @@ const UIController = (() => {
     });
     select(tabs[0]);
     $('panel-toggle').addEventListener('click', () => setPanel(!$('app-body').classList.contains('panel-collapsed')));
+    initPanelResize();
     setPanel(Prefs.get('panelCollapsed') === undefined || Prefs.get('panelCollapsed') === false ? window.innerWidth < 900 : true);
+  }
+
+  /**
+   * Το αριστερό πάνελ φαρδαίνει ή στενεύει σέρνοντας το δεξί του όριο (και με ←/→ από το πληκτρολόγιο).
+   * Το πλάτος κρατιέται στις προτιμήσεις· διπλό κλικ επαναφέρει το αρχικό.
+   */
+  function initPanelResize() {
+    const handle = $('panel-resizer');
+    const rootStyle = document.documentElement.style;
+    const limits = () => [220, Math.max(260, Math.min(640, Math.round(window.innerWidth * 0.6)))];
+    const apply = (w, persist) => {
+      if (!w) {
+        rootStyle.removeProperty('--panel-w');
+        if (persist) Prefs.set('panelWidth', null);
+        return;
+      }
+      const [min, max] = limits();
+      const width = Util.clamp(Math.round(w), min, max);
+      rootStyle.setProperty('--panel-w', `${width}px`);
+      if (persist) Prefs.set('panelWidth', width);
+    };
+    if (Prefs.get('panelWidth')) apply(Prefs.get('panelWidth'), false);
+    handle.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      const start = e.clientX;
+      const from = document.querySelector('.left-panel').getBoundingClientRect().width;
+      handle.setPointerCapture(e.pointerId);
+      document.body.classList.add('is-panel-resizing');
+      const move = ev => apply(from + ev.clientX - start, false);
+      const up = ev => {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        document.body.classList.remove('is-panel-resizing');
+        apply(from + ev.clientX - start, true);
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
+    });
+    handle.addEventListener('dblclick', () => apply(null, true));
+    handle.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const w = document.querySelector('.left-panel').getBoundingClientRect().width;
+      apply(w + (e.key === 'ArrowRight' ? 20 : -20), true);
+    });
   }
 
   /**
