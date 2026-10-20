@@ -1240,7 +1240,7 @@ kbd {
             <label class="field"><span>Αριστερά (mm)</span><input id="style-margin-left" class="input" type="number" min="5" max="40" step="0.5"></label>
             <label class="field"><span>Δεξιά (mm)</span><input id="style-margin-right" class="input" type="number" min="5" max="40" step="0.5"></label>
           </div>
-          <label class="field" title="Πώς χωρίζεται το φύλλο σε σελίδες σε όλα τα PDF (PDF προηγμένο, Εκτύπωση/PDF, προεπισκόπηση, PDF με απαντήσεις των μαθητών). Το DOCX δεν επηρεάζεται.">
+          <label class="field" title="Πώς χωρίζεται το φύλλο σε σελίδες σε όλα τα PDF (PDF προηγμένο, Εκτύπωση/PDF, προεπισκόπηση, PDF του διαδραστικού HTML των μαθητών). Το DOCX δεν επηρεάζεται.">
             <span>Σελίδες στο PDF</span>
             <select id="style-pdf-paging" class="select">
               <option value="section">Μία ενότητα ανά σελίδα (σμίκρυνση αν χρειάζεται)</option>
@@ -7333,7 +7333,7 @@ const InsertTools = (() => {
       body: Util.h('div', { class: 'stack' },
         Util.h('label', { class: 'field' }, Util.h('span', { text: 'Είδος' }), kind),
         linesField, widthField,
-        Util.h('p', { class: 'hint', text: 'Στο διαδραστικό HTML ο μαθητής γράφει μέσα στο πεδίο και η απάντηση κρατιέται και περνά στο «PDF με απαντήσεις». Στην εκτύπωση, στο PDF και στο DOCX φαίνεται ως γραμμές για συμπλήρωση με το χέρι.' })),
+        Util.h('p', { class: 'hint', text: 'Στο διαδραστικό HTML ο μαθητής γράφει μέσα στο πεδίο και η απάντηση κρατιέται και περνά στο «PDF». Στην εκτύπωση, στο PDF και στο DOCX φαίνεται ως γραμμές για συμπλήρωση με το χέρι.' })),
       actions: [
         { label: 'Ακύρωση', variant: 'secondary' },
         {
@@ -12959,9 +12959,9 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       };
       const logoHtml = logo ? `<img class="wf-page-logo" src="${logo.src}" alt="Λογότυπο" style="top:${logo.top.toFixed(2)}mm;left:${g.left}mm;width:${logo.w.toFixed(2)}mm;height:${logo.h.toFixed(2)}mm"><img class="wf-head-preload" src="${logo.svg}" alt="">` : '';
       const page = `<main id="print-root" class="wf-export-page" style="width:${g.pageW}mm;padding:${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm">${logoHtml}${root.outerHTML}</main>`;
-      const bar = `<div class="wf-export-bar"><span>Συμπλήρωσε τα κενά πεδία και τσέκαρε τα κουτάκια. Οι απαντήσεις κρατιούνται σε αυτόν τον browser${canPdf ? '· με «PDF με απαντήσεις» κατεβάζεις το φύλλο συμπληρωμένο' : ''}.</span>`
+      const bar = `<div class="wf-export-bar"><span>Συμπλήρωσε τα κενά πεδία και τσέκαρε τα κουτάκια. Οι απαντήσεις κρατιούνται σε αυτόν τον browser${canPdf ? '· με το «PDF» κατεβάζεις το φύλλο συμπληρωμένο' : ''}.</span>`
         + '<button type="button" id="wf-clear">Καθαρισμός</button><button type="button" id="wf-save">Αποθήκευση HTML</button>'
-        + (canPdf ? '<button type="button" class="primary" id="wf-pdf">PDF με απαντήσεις</button>' : '<button type="button" class="primary" id="wf-print">Εκτύπωση</button>') + '</div>';
+        + (canPdf ? '<button type="button" class="primary" id="wf-pdf" title="Αν υπάρχουν απαντήσεις, συμπεριλαμβάνονται στο αρχείο">PDF</button>' : '<button type="button" class="primary" id="wf-print">Εκτύπωση</button>') + '</div>';
       // Οι βιβλιοθήκες PDF μπαίνουν συμπιεσμένες και ανοίγουν μόνο όταν ο μαθητής ζητήσει PDF.
       const packed = canPdf ? await Promise.all(pdfLibs.map(gzipBase64)) : [];
       const libScripts = packed.length && packed.every(Boolean)
@@ -13106,7 +13106,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Χωρισμός σε σελίδες' }), paging),
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Περιθώρια' }), marginSel),
             marginCustom,
-            Util.h('label', { class: 'field', title: 'Για το PDF (προηγμένο) και το «PDF με απαντήσεις» των μαθητών. Κανονική: σχεδόν ίδια όψη με την υψηλή, περίπου 30% μικρότερο αρχείο. Μικρό αρχείο: περίπου το μισό, λίγο λιγότερο καθαρά γράμματα στην εκτύπωση.' },
+            Util.h('label', { class: 'field', title: 'Για το PDF (προηγμένο) και το «PDF» του διαδραστικού HTML. Κανονική: σχεδόν ίδια όψη με την υψηλή, περίπου 30% μικρότερο αρχείο. Μικρό αρχείο: περίπου το μισό, λίγο λιγότερο καθαρά γράμματα στην εκτύπωση.' },
               Util.h('span', { text: 'Ποιότητα PDF' }), qualitySel),
             check('headerTitle', 'Τίτλος στην κεφαλίδα σελίδας'), check('headerDate', 'Ημερομηνία στην κεφαλίδα σελίδας'), check('pageNumbers', 'Αριθμός σελίδας')),
           Util.h('p', { class: 'hint', text: 'Ό,τι επιλέξεις εδώ ισχύει σε όλες τις εξαγωγές: Εκτύπωση/PDF, PDF (προηγμένο), DOCX και διαδραστικό HTML, και κρατιέται για την επόμενη φορά. Στο DOCX η «μία ενότητα ανά σελίδα» γίνεται αλλαγή σελίδας, χωρίς σμίκρυνση.' })),
