@@ -1134,7 +1134,7 @@ kbd {
         <section class="panel-section">
           <h3 class="panel-heading">Τα πρότυπά μου</h3>
           <div id="library-source" class="library-source"></div>
-          <label class="check" title="Το πρότυπο κρατά και το περιεχόμενο των ενοτήτων (πίνακες, ερωτήσεις, εικόνες), όχι μόνο τη δομή"><input id="template-with-content" type="checkbox" checked>Με περιεχόμενο και εμφάνιση</label>
+          <label class="check" title="Το πρότυπο κρατά και το περιεχόμενο των ενοτήτων (πίνακες, ερωτήσεις, εικόνες), όχι μόνο τη δομή. Η εμφάνιση (μορφοποίηση, χρώματα, περιθώρια) αποθηκεύεται πάντα"><input id="template-with-content" type="checkbox" checked>Με περιεχόμενο</label>
           <div class="row">
             <input id="template-name" class="input grow" type="text" maxlength="100" placeholder="Όνομα προτύπου" aria-label="Όνομα προτύπου">
             <button id="btn-save-template" class="btn btn-secondary" type="button" title="Αποθήκευση του φύλλου ως πρότυπο σε αρχείο .json">Αποθήκευση</button>
@@ -3724,7 +3724,7 @@ const TemplateManager = (() => {
       return;
     }
     const clean = String(name || '').trim().slice(0, 100) || AppState.get().metadata.title.trim().slice(0, 100) || `Πρότυπο ${library().length + 1}`;
-    await TemplateLibrary.save({ name: clean, sections, style: withContent() ? AppState.get().style : null });
+    await TemplateLibrary.save({ name: clean, sections, style: AppState.get().style });
   }
 
   /**
