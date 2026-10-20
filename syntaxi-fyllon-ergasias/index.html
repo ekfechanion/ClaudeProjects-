@@ -2112,6 +2112,26 @@ const Util = (() => {
         return false;
       }
     }
+    // Με παράθυρο «Αποθήκευση ως» (Chrome, Edge) περιμένουμε να ολοκληρωθεί η αποθήκευση, ώστε το μήνυμα επιτυχίας να βγαίνει μετά.
+    if (typeof window.showSaveFilePicker === 'function') {
+      try {
+        const ext = (/\.([A-Za-z0-9]+)$/.exec(filename) || [])[1];
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          ...(ext && blob.type ? { types: [{ description: ext.toUpperCase(), accept: { [blob.type]: [`.${ext.toLowerCase()}`] } }] } : {})
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return true;
+      } catch (e) {
+        if (e && e.name === 'AbortError') {
+          Toast.show('Η αποθήκευση ακυρώθηκε', 'info');
+          return false;
+        }
+        // Άλλο σφάλμα (π.χ. μέσα σε πλαίσιο ή χωρίς άδεια): συνεχίζουμε με απλή λήψη.
+      }
+    }
     const url = URL.createObjectURL(blob);
     const a = h('a', { href: url, download: filename, style: { display: 'none' } });
     document.body.append(a);
