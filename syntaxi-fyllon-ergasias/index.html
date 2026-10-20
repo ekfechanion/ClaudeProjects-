@@ -1011,6 +1011,24 @@ kbd {
 }
 .doc-content .wf-embed-link a { font-weight: 600; }
 .doc-content .wf-embed-mark { color: var(--doc-accent, var(--primary)); font-weight: 700; }
+.draw-layout { display: flex; flex-direction: column; gap: 12px; }
+.draw-main { display: flex; gap: 12px; align-items: flex-start; }
+.draw-tools { display: flex; flex-direction: column; gap: 6px; }
+.draw-tools-sep { height: 1px; background: var(--border); margin: 2px 0; }
+.draw-btn { padding: 6px; justify-content: center; }
+.draw-btn[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #FFFFFF; }
+.draw-btn:disabled { opacity: 0.4; cursor: default; }
+.draw-stage { flex: 1; min-width: 0; max-width: 720px; aspect-ratio: 8 / 5; background: #FFFFFF; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; }
+.draw-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+.draw-status { margin: 0; }
+.draw-props { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+.draw-prop { display: flex; align-items: center; gap: 8px; }
+.draw-prop-label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.draw-swatches { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.draw-swatch { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border-strong); padding: 0; cursor: pointer; }
+.draw-swatch[aria-pressed="true"] { outline: 2px solid var(--primary); outline-offset: 2px; }
+.draw-swatch.is-none { background: linear-gradient(135deg, #FFFFFF 44%, #DC2626 44%, #DC2626 56%, #FFFFFF 56%); }
+@media (max-width: 700px) { .draw-main { flex-direction: column; } .draw-tools { flex-direction: row; flex-wrap: wrap; } .draw-tools-sep { width: 1px; height: auto; align-self: stretch; } }
 .doc-content .wf-qr-row { display: flex; flex-wrap: wrap; gap: 2mm 6mm; margin: 1.5mm 0 3mm; break-inside: avoid; }
 .doc-content .wf-qr { display: inline-flex; flex-direction: column; align-items: center; gap: 1mm; max-width: 36mm; }
 .doc-content .wf-qr a { display: block; line-height: 0; }
@@ -1240,6 +1258,7 @@ kbd {
           <div class="tool-grid">
             <button class="tool-btn" type="button" data-tool="math"><span class="tool-glyph">∑</span>Μαθηματικά</button>
             <button class="tool-btn" type="button" data-tool="graph"><span data-icon="chart"></span>Γραφική παράσταση</button>
+            <button class="tool-btn" type="button" data-tool="draw"><span data-icon="shapes"></span>Σχέδιο</button>
             <button class="tool-btn" type="button" data-tool="table"><span data-icon="table"></span>Πίνακας</button>
             <button class="tool-btn" type="button" data-tool="image"><span data-icon="photo"></span>Εικόνα</button>
             <button class="tool-btn" type="button" data-tool="link"><span data-icon="link"></span>Σύνδεσμος</button>
@@ -1825,6 +1844,15 @@ const Util = (() => {
     photo: ['M2.25 15.75l5.16-5.16a2.25 2.25 0 0 1 3.18 0l5.16 5.16m-1.5-1.5l1.41-1.41a2.25 2.25 0 0 1 3.18 0l2.91 2.91', 'M3.75 19.5h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5z', 'M14.25 8.25h.01'],
     table: ['M3.75 5.25h16.5v13.5H3.75z', 'M3.75 9.75h16.5', 'M3.75 14.25h16.5', 'M9.75 5.25v13.5', 'M14.25 5.25v13.5'],
     link: ['M13.19 8.69a4.5 4.5 0 0 1 1.24 7.24l-4.5 4.5a4.5 4.5 0 0 1-6.36-6.36l1.76-1.76', 'M18.67 12.69l1.76-1.76a4.5 4.5 0 0 0-6.36-6.36l-4.5 4.5a4.5 4.5 0 0 0 1.24 7.24'],
+    'draw-select': ['M5 3l14 7-6 2-2 6z'],
+    'draw-line': ['M5 19L19 5'],
+    'draw-circle': ['M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z'],
+    'draw-square': ['M5 5h14v14H5z'],
+    'draw-triangle': ['M12 4l9 16H3z'],
+    'draw-fill': ['M5 11l6-6 8 8-6 6z', 'M11 5L9 3', 'M19 15c1 1.5 1.5 2.5 1.5 3.5a1.5 1.5 0 0 1-3 0c0-1 .5-2 1.5-3.5z'],
+    'arrow-up': ['M12 19V5', 'M6 11l6-6 6 6'],
+    'arrow-down': ['M12 5v14', 'M18 13l-6 6-6-6'],
+    shapes: ['M3.5 12.5h8v8h-8z', 'M17 3.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8z', 'M14 20.5l3.5-6 3.5 6z'],
     chart: ['M3 3v18h18', 'M7 16l4-5 3 3 5-7', 'M7 16h.01', 'M11 11h.01', 'M14 14h.01', 'M19 7h.01'],
     undo: ['M9 15L3 9l6-6', 'M3 9h12a6 6 0 0 1 0 12h-3'],
     redo: ['M15 15l6-6-6-6', 'M21 9H9a6 6 0 0 0 0 12h3'],
@@ -2474,14 +2502,14 @@ const Sanitizer = (() => {
     p: [], div: [], br: [], span: [], b: [], strong: [], i: [], em: [], u: [], s: [], strike: [], del: [],
     sub: [], sup: [], ul: [], ol: ['start'], li: ['data-checked'], a: ['href', 'target', 'rel', 'title'],
     table: [], thead: [], tbody: [], tfoot: [], tr: [], td: ['colspan', 'rowspan', 'data-locked'], th: ['colspan', 'rowspan', 'data-locked'],
-    img: ['src', 'alt', 'data-graph-id', 'data-graph-json'], h1: [], h2: [], h3: [], h4: [],
+    img: ['src', 'alt', 'data-graph-id', 'data-graph-json', 'data-draw-json'], h1: [], h2: [], h3: [], h4: [],
     blockquote: [], hr: [], pre: [], code: [], figure: [], figcaption: [], caption: [], colgroup: [], col: ['span']
   };
   const RENAME = { h5: 'h4', h6: 'h4', ins: 'u' };
   const STYLE_PROPS = ['text-align', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'text-decoration-line',
     'vertical-align', 'width', 'height', 'background-color', '--wf-stripe', 'margin-left', 'margin-right', 'margin', 'padding-left', 'padding', 'border', 'display'];
   const PASTE_STYLE_PROPS = ['text-align', 'font-weight', 'font-style', 'text-decoration-line', 'vertical-align'];
-  const CLASSES = new Set(['wf-table', 'wf-stripe-rows', 'wf-stripe-cols', 'wf-caption', 'wf-graph', 'wf-img', 'wf-grid', 'wf-grid-plain', 'wf-tip', 'wf-card', 'wf-card-title',
+  const CLASSES = new Set(['wf-table', 'wf-stripe-rows', 'wf-stripe-cols', 'wf-caption', 'wf-graph', 'wf-draw', 'wf-img', 'wf-grid', 'wf-grid-plain', 'wf-tip', 'wf-card', 'wf-card-title',
     'wf-card-note', 'wf-card-tip', 'wf-card-warn', 'wf-card-def', 'wf-card-remember', 'wf-checklist', 'wf-float-left', 'wf-float-right',
     'wf-obj-left', 'wf-obj-right']);
   const PLACEMENT = ['wf-float-left', 'wf-float-right', 'wf-obj-left', 'wf-obj-right'];
@@ -2591,6 +2619,8 @@ const Sanitizer = (() => {
         el.removeAttribute('data-graph-json');
         el.removeAttribute('data-graph-id');
       }
+      const draw = el.getAttribute('data-draw-json');
+      if (draw !== null && !validDrawJson(draw)) el.removeAttribute('data-draw-json');
     }
     if (tag === 'td' || tag === 'th') {
       ['colspan', 'rowspan'].forEach(name => {
@@ -2631,6 +2661,21 @@ const Sanitizer = (() => {
     try {
       const data = JSON.parse(json);
       return !!data && typeof data === 'object' && Array.isArray(data.xValues) && Array.isArray(data.yValues);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Ελέγχει ότι τα σχήματα ενός σχεδίου είναι έγκυρο JSON λογικού μεγέθους (το DrawEngine τα καθαρίζει στο άνοιγμα).
+   * @param {string} json
+   * @returns {boolean}
+   */
+  function validDrawJson(json) {
+    if (json.length > 100000) return false;
+    try {
+      const data = JSON.parse(json);
+      return !!data && typeof data === 'object' && Array.isArray(data.shapes) && data.shapes.length <= 300;
     } catch (e) {
       return false;
     }
@@ -4036,12 +4081,12 @@ const EditorManager = (() => {
   };
 
   const TYPE_TOOLS = {
-    text: ['block', 'inline', 'list', 'align', 'image', 'math', 'card', 'link', 'embed', 'field', 'hr'],
-    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'math', 'card', 'embed', 'field'],
+    text: ['block', 'inline', 'list', 'align', 'image', 'draw', 'math', 'card', 'link', 'embed', 'field', 'hr'],
+    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'draw', 'math', 'card', 'embed', 'field'],
     image: ['inlineBasic', 'align', 'image', 'caption', 'math', 'embed'],
     math: ['inlineBasic', 'list', 'align', 'math', 'image'],
-    graph: ['inline', 'align', 'graph', 'image', 'caption', 'math'],
-    mixed: ['block', 'inline', 'list', 'align', 'image', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'field', 'hr', 'pagebreak']
+    graph: ['inline', 'align', 'graph', 'draw', 'image', 'caption', 'math'],
+    mixed: ['block', 'inline', 'list', 'align', 'image', 'draw', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'field', 'hr', 'pagebreak']
   };
 
   const BUTTONS = {
@@ -4066,6 +4111,7 @@ const EditorManager = (() => {
     table: { icon: 'table', title: 'Εισαγωγή πίνακα (Ctrl+Alt+T)', run: id => InsertTools.table(id) },
     math: { glyph: '∑', label: 'Μαθηματικά', title: 'Εισαγωγή μαθηματικής έκφρασης (Ctrl+M)', run: id => MathEngine.open({ sectionId: id }) },
     graph: { icon: 'chart', title: 'Γραφική παράσταση (Ctrl+Alt+G)', run: id => GraphEngine.open({ sectionId: id }) },
+    draw: { icon: 'shapes', title: 'Σχέδιο: γραμμές και σχήματα (Ctrl+Alt+D)', run: id => DrawEngine.open({ sectionId: id }) },
     link: { icon: 'link', title: 'Εισαγωγή συνδέσμου (Ctrl+K)', run: id => InsertTools.link(id) },
     embed: { icon: 'embed', title: 'Ενσωμάτωση από σύνδεσμο: βίντεο, προσομοίωση, εφαρμογή (Ctrl+Alt+E)', run: id => Embeds.open({ sectionId: id }) },
     columns: { icon: 'columns', title: 'Διάταξη σε στήλες (π.χ. Παρατήρηση / Πείραμα / Συμπέρασμα)', run: id => InsertTools.columns(id) },
@@ -4330,7 +4376,7 @@ const EditorManager = (() => {
     else if (tools.has('inlineBasic')) groups.push(['bold', 'italic', 'underline', 'sup', 'sub'].map(k => toolButton(block, k)));
     if (tools.has('list')) groups.push(['ul', 'ol', 'check', 'indent', 'outdent'].map(k => toolButton(block, k)));
     if (tools.has('align')) groups.push(['left', 'center', 'right', 'justify'].map(k => toolButton(block, k)));
-    const inserts = ['math', 'graph', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'field', 'hr', 'pagebreak'].filter(k => tools.has(k));
+    const inserts = ['math', 'graph', 'draw', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'field', 'hr', 'pagebreak'].filter(k => tools.has(k));
     if (inserts.length) groups.push(inserts.map(k => toolButton(block, k)));
     groups.push((Dictation.supported() ? ['mic', 'undo', 'redo', 'clear'] : ['undo', 'redo', 'clear']).map(k => toolButton(block, k)));
     groups.forEach((group, i) => {
@@ -5099,6 +5145,7 @@ const EditorManager = (() => {
       if (heading) return run(() => exec('formatBlock', `<${heading}>`, block.id));
       if (code === 'KeyT') return run(() => InsertTools.table(block.id));
       if (code === 'KeyG') return run(() => GraphEngine.open({ sectionId: block.id }));
+      if (code === 'KeyD') return run(() => DrawEngine.open({ sectionId: block.id }));
       if (code === 'KeyE') return run(() => Embeds.open({ sectionId: block.id }));
       if (code === 'KeyH') return run(() => InsertTools.horizontalRule(block.id));
       if (code === 'KeyA') return run(() => InsertTools.answerField(block.id));
@@ -5310,6 +5357,12 @@ const EditorManager = (() => {
     if (img && block.content.contains(img)) {
       e.preventDefault();
       GraphEngine.open({ sectionId: block.id, image: img });
+      return;
+    }
+    const drawing = e.target.closest && e.target.closest('img[data-draw-json]');
+    if (drawing && block.content.contains(drawing)) {
+      e.preventDefault();
+      DrawEngine.open({ sectionId: block.id, image: drawing });
     }
   }
 
@@ -6204,7 +6257,7 @@ const InsertTools = (() => {
   // χρησιμοποιεί το πλήρες αντίγραφο που κρατιέται εδώ, χωρίς τον καθαρισμό της κοινής επικόλλησης.
   const OBJECT_SELECTOR = 'img, .wf-embed, .math-node, .wf-field, hr, .wf-pagebreak, .wf-card';
   const OBJECT_NAMES = [
-    ['img.wf-graph', 'γραφήματος'], ['img', 'εικόνας'], ['.wf-embed', 'ενσωμάτωσης'], ['.math-node', 'εξίσωσης'],
+    ['img.wf-graph', 'γραφήματος'], ['img.wf-draw', 'σχεδίου'], ['img', 'εικόνας'], ['.wf-embed', 'ενσωμάτωσης'], ['.math-node', 'εξίσωσης'],
     ['.wf-field', 'πεδίου απάντησης'], ['hr', 'γραμμής'], ['.wf-pagebreak', 'αλλαγής σελίδας'], ['.wf-card', 'πλαισίου'], ['table', 'πίνακα']
   ];
   let clip = null;
@@ -6680,6 +6733,7 @@ const InsertTools = (() => {
     };
     overlayLabel = Util.h('span', { class: 'img-size-label' });
     const isGraph = el.hasAttribute('data-graph-json');
+    const isDraw = el.hasAttribute('data-draw-json');
     const placeButtons = PLACEMENTS.map(([key, iconName, title]) => {
       const b = btn(iconName, title, () => setPlacement(key));
       b.dataset.place = key;
@@ -6692,8 +6746,9 @@ const InsertTools = (() => {
         btn('trash', 'Διαγραφή ενσωμάτωσης', removeSelectedImage, true)
       ]
       : [
-        isGraph ? null : btn('crop', 'Περικοπή και περιστροφή', editImage),
+        isGraph || isDraw ? null : btn('crop', 'Περικοπή και περιστροφή', editImage),
         btn('text', 'Εναλλακτικό κείμενο', editAlt),
+        isDraw ? btn('shapes', 'Επεξεργασία σχεδίου', () => { const i = overlayImg; hideImageOverlay(); DrawEngine.open({ sectionId: id, image: i }); }) : null,
         isGraph ? btn('chart', 'Επεξεργασία γραφήματος', () => { const i = overlayImg; hideImageOverlay(); GraphEngine.open({ sectionId: id, image: i }); }) : null,
         btn('trash', 'Διαγραφή εικόνας', removeSelectedImage, true)
       ];
@@ -10352,6 +10407,645 @@ const GraphEngine = (() => {
   return { fit, polyfit, linearFit, gaussSolve, renderImage, open, REGRESSIONS };
 })();
 
+/**
+ * Απλό εργαλείο σχεδίασης: γραμμή, κύκλος/έλλειψη, τετράγωνο/ορθογώνιο, τρίγωνο.
+ * Τα σχήματα σύρονται, αλλάζουν μέγεθος, παίρνουν χρώμα περιγράμματος και γέμισμα, και «κολλούν» (snap)
+ * σε οδηγούς όπως στο Canva: στο κέντρο και στα όρια του καμβά, στις άκρες και στα κέντρα των άλλων σχημάτων, και προαιρετικά σε πλέγμα.
+ * Το αποτέλεσμα μπαίνει στο φύλλο ως εικόνα PNG· τα σχήματα κρατιούνται στο `data-draw-json`, για επεξεργασία με διπλό κλικ.
+ * @namespace DrawEngine
+ */
+const DrawEngine = (() => {
+  const W = 800;
+  const H = 500;
+  const GRID = 20;
+  const SNAP = 6;
+  const MAX_SHAPES = 300;
+  const SWATCHES = ['#111827', '#6B7280', '#DC2626', '#EA580C', '#FACC15', '#16A34A', '#2563EB', '#7C3AED', '#EC4899', '#FFFFFF'];
+  const WIDTHS = [1, 2, 3, 4, 6, 8];
+  const TOOLS = [
+    ['select', 'draw-select', 'Επιλογή και μετακίνηση', 'V'],
+    ['line', 'draw-line', 'Γραμμή (Shift: ευθεία ή 45°)', 'L'],
+    ['ellipse', 'draw-circle', 'Κύκλος / έλλειψη (Shift: τέλειος κύκλος)', 'O'],
+    ['rect', 'draw-square', 'Τετράγωνο / ορθογώνιο (Shift: τέλειο τετράγωνο)', 'R'],
+    ['triangle', 'draw-triangle', 'Τρίγωνο', 'T'],
+    ['fill', 'draw-fill', 'Γέμισμα κλειστού σχήματος με το χρώμα γεμίσματος', 'F']
+  ];
+  const SHAPE_NAMES = { line: 'Γραμμή', ellipse: 'Κύκλος / έλλειψη', rect: 'Τετράγωνο / ορθογώνιο', triangle: 'Τρίγωνο' };
+
+  const num = (v, min, max, fallback) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Util.clamp(n, min, max) : fallback;
+  };
+  const color = (v, fallback) => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v : fallback);
+
+  /**
+   * Καθαρίζει τα αποθηκευμένα σχήματα (άγνωστα ή άκυρα πεδία απορρίπτονται).
+   * @param {*} data
+   * @returns {Array<{t: string, x1: number, y1: number, x2: number, y2: number, stroke: string, fill: (string|null), w: number}>}
+   */
+  function clean(data) {
+    const list = data && Array.isArray(data.shapes) ? data.shapes : [];
+    return list.slice(0, MAX_SHAPES).filter(s => s && SHAPE_NAMES[s.t]).map(s => ({
+      t: s.t,
+      x1: num(s.x1, 0, W, 0), y1: num(s.y1, 0, H, 0), x2: num(s.x2, 0, W, 0), y2: num(s.y2, 0, H, 0),
+      stroke: color(s.stroke, SWATCHES[0]),
+      fill: s.t !== 'line' && s.fill ? color(s.fill, null) : null,
+      w: num(s.w, 1, 12, 2)
+    }));
+  }
+
+  const bbox = s => {
+    const x = Math.min(s.x1, s.x2);
+    const y = Math.min(s.y1, s.y2);
+    return { x, y, w: Math.abs(s.x2 - s.x1), h: Math.abs(s.y2 - s.y1) };
+  };
+
+  /**
+   * Ζωγραφίζει ένα σχήμα (και στην οθόνη και στην εξαγωγή).
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {Object} s
+   */
+  function paintShape(ctx, s) {
+    const b = bbox(s);
+    ctx.lineWidth = s.w;
+    ctx.strokeStyle = s.stroke;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    if (s.t === 'line') {
+      ctx.moveTo(s.x1, s.y1);
+      ctx.lineTo(s.x2, s.y2);
+    } else if (s.t === 'ellipse') {
+      ctx.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, b.h / 2, 0, 0, Math.PI * 2);
+    } else if (s.t === 'rect') {
+      ctx.rect(b.x, b.y, b.w, b.h);
+    } else {
+      ctx.moveTo(b.x + b.w / 2, b.y);
+      ctx.lineTo(b.x + b.w, b.y + b.h);
+      ctx.lineTo(b.x, b.y + b.h);
+      ctx.closePath();
+    }
+    if (s.fill) {
+      ctx.fillStyle = s.fill;
+      ctx.fill();
+    }
+    ctx.stroke();
+  }
+
+  const distToSegment = (px, py, ax, ay, bx, by) => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 ? Util.clamp(((px - ax) * dx + (py - ay) * dy) / len2, 0, 1) : 0;
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  };
+
+  /**
+   * Είναι το σημείο μέσα στο σχήμα (ή κοντά στη γραμμή);
+   * @param {Object} s
+   * @param {number} px
+   * @param {number} py
+   * @param {number} tol ανοχή σε μονάδες καμβά
+   * @returns {boolean}
+   */
+  function hit(s, px, py, tol) {
+    if (s.t === 'line') return distToSegment(px, py, s.x1, s.y1, s.x2, s.y2) <= Math.max(tol, s.w / 2 + tol / 2);
+    const b = bbox(s);
+    const t = tol / 2;
+    if (px < b.x - t || px > b.x + b.w + t || py < b.y - t || py > b.y + b.h + t) return false;
+    if (s.t === 'rect') return true;
+    if (s.t === 'ellipse') {
+      const rx = b.w / 2 + t;
+      const ry = b.h / 2 + t;
+      return ((px - b.x - b.w / 2) / rx) ** 2 + ((py - b.y - b.h / 2) / ry) ** 2 <= 1;
+    }
+    // Τρίγωνο: μέσα στο ισοσκελές τρίγωνο της περιοχής.
+    if (!b.h) return false;
+    const k = Util.clamp((py - b.y) / b.h, 0, 1);
+    const half = (b.w / 2) * k + t;
+    return Math.abs(px - (b.x + b.w / 2)) <= half;
+  }
+
+  /**
+   * Περικοπή του καμβά στα σχήματα, με περιθώριο.
+   * @param {Array} shapes
+   * @returns {{url: string, w: number, h: number}}
+   */
+  function renderPng(shapes) {
+    let x0 = W; let y0 = H; let x1 = 0; let y1 = 0;
+    shapes.forEach(s => {
+      const b = bbox(s);
+      const pad = s.w / 2 + 6;
+      x0 = Math.min(x0, b.x - pad); y0 = Math.min(y0, b.y - pad);
+      x1 = Math.max(x1, b.x + b.w + pad); y1 = Math.max(y1, b.y + b.h + pad);
+    });
+    x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0));
+    x1 = Math.min(W, Math.ceil(x1)); y1 = Math.min(H, Math.ceil(y1));
+    const w = Math.max(1, x1 - x0);
+    const h = Math.max(1, y1 - y0);
+    const k = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = w * k;
+    canvas.height = h * k;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(k, k);
+    ctx.translate(-x0, -y0);
+    shapes.forEach(s => paintShape(ctx, s));
+    return { url: canvas.toDataURL('image/png'), w, h };
+  }
+
+  /**
+   * Ανοίγει τον διάλογο σχεδίασης (νέο σχέδιο ή επεξεργασία υπάρχοντος).
+   * @param {{sectionId?: string, image?: HTMLImageElement}} [options]
+   */
+  function open({ sectionId, image } = {}) {
+    const id = image ? image.closest('.editor-block')?.dataset.sectionId : InsertTools.target(sectionId);
+    if (!id) return;
+    InsertTools.hideOverlays();
+    let initial = null;
+    if (image) {
+      try { initial = JSON.parse(image.getAttribute('data-draw-json') || 'null'); } catch (e) { initial = null; }
+    }
+    let shapes = clean(initial);
+    let tool = 'select';
+    let selected = null;
+    let stroke = SWATCHES[0];
+    let fill = null;
+    let lineW = 2;
+    let guides = { x: [], y: [] };
+    let drag = null;
+    let undoStack = [];
+    let redoStack = [];
+    let snapGuides = true;
+    let snapGrid = false;
+    const snapshot = () => JSON.stringify(shapes);
+    let last = snapshot();
+
+    const canvas = Util.h('canvas', { width: String(W * 2), height: String(H * 2), tabindex: '0', 'aria-label': 'Καμβάς σχεδίασης' });
+    const ctx = canvas.getContext('2d');
+    const stage = Util.h('div', { class: 'draw-stage' }, canvas);
+    const status = Util.h('p', { class: 'hint draw-status' });
+
+    const scale = () => W / canvas.getBoundingClientRect().width;
+    const pos = e => {
+      const r = canvas.getBoundingClientRect();
+      return { x: Util.clamp((e.clientX - r.left) * W / r.width, 0, W), y: Util.clamp((e.clientY - r.top) * H / r.height, 0, H) };
+    };
+
+    /** Στόχοι snap: κέντρο και όρια του καμβά, άκρες και κέντρα των άλλων σχημάτων. */
+    const targets = exclude => {
+      const xs = [0, W / 2, W];
+      const ys = [0, H / 2, H];
+      shapes.forEach(s => {
+        if (s === exclude) return;
+        const b = bbox(s);
+        xs.push(b.x, b.x + b.w / 2, b.x + b.w);
+        ys.push(b.y, b.y + b.h / 2, b.y + b.h);
+      });
+      return { xs: snapGuides ? xs : [], ys: snapGuides ? ys : [] };
+    };
+    /** Η μικρότερη μετατόπιση που φέρνει κάποιο από τα `cands` σε στόχο· αλλιώς στο πλέγμα. */
+    const snapAxis = (cands, list) => {
+      let best = null;
+      const limit = SNAP * scale();
+      cands.forEach(c => list.forEach(t => {
+        const d = t - c;
+        if (Math.abs(d) <= limit && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, g: t };
+      }));
+      if (best) return best;
+      if (snapGrid) return { d: Math.round(cands[0] / GRID) * GRID - cands[0], g: null };
+      return { d: 0, g: null };
+    };
+    const snapPoint = (p, exclude) => {
+      const t = targets(exclude);
+      const sx = snapAxis([p.x], t.xs);
+      const sy = snapAxis([p.y], t.ys);
+      guides = { x: sx.g === null ? [] : [sx.g], y: sy.g === null ? [] : [sy.g] };
+      return { x: Util.clamp(p.x + sx.d, 0, W), y: Util.clamp(p.y + sy.d, 0, H) };
+    };
+
+    const handlesOf = s => {
+      if (s.t === 'line') return [['p1', s.x1, s.y1], ['p2', s.x2, s.y2]];
+      const b = bbox(s);
+      const xm = b.x + b.w / 2;
+      const ym = b.y + b.h / 2;
+      return [['nw', b.x, b.y], ['n', xm, b.y], ['ne', b.x + b.w, b.y], ['e', b.x + b.w, ym],
+        ['se', b.x + b.w, b.y + b.h], ['s', xm, b.y + b.h], ['sw', b.x, b.y + b.h], ['w', b.x, ym]];
+    };
+    const handleAt = (s, p) => {
+      const tol = 9 * scale();
+      return (s ? handlesOf(s) : []).find(([, x, y]) => Math.abs(p.x - x) <= tol && Math.abs(p.y - y) <= tol) || null;
+    };
+    const shapeAt = p => {
+      const tol = 5 * scale();
+      for (let i = shapes.length - 1; i >= 0; i--) if (hit(shapes[i], p.x, p.y, tol)) return shapes[i];
+      return null;
+    };
+
+    const paint = () => {
+      ctx.setTransform(2, 0, 0, 2, 0, 0);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, W, H);
+      const k = scale();
+      if (snapGrid) {
+        ctx.strokeStyle = '#E2E8F0';
+        ctx.lineWidth = 1 * k;
+        ctx.beginPath();
+        for (let x = GRID; x < W; x += GRID) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+        for (let y = GRID; y < H; y += GRID) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+        ctx.stroke();
+      }
+      shapes.forEach(s => paintShape(ctx, s));
+      if (selected && shapes.includes(selected)) {
+        ctx.save();
+        ctx.strokeStyle = '#2563EB';
+        ctx.lineWidth = 1 * k;
+        if (selected.t !== 'line') {
+          const b = bbox(selected);
+          ctx.setLineDash([5 * k, 4 * k]);
+          ctx.strokeRect(b.x, b.y, b.w, b.h);
+          ctx.setLineDash([]);
+        }
+        ctx.fillStyle = '#FFFFFF';
+        handlesOf(selected).forEach(([, x, y]) => {
+          ctx.beginPath();
+          ctx.rect(x - 4 * k, y - 4 * k, 8 * k, 8 * k);
+          ctx.fill();
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+      if (guides.x.length || guides.y.length) {
+        ctx.save();
+        ctx.strokeStyle = '#EC4899';
+        ctx.lineWidth = 1 * k;
+        ctx.beginPath();
+        guides.x.forEach(x => { ctx.moveTo(x, 0); ctx.lineTo(x, H); });
+        guides.y.forEach(y => { ctx.moveTo(0, y); ctx.lineTo(W, y); });
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+
+    // Προβολή των τρεχόντων χρωμάτων στα στοιχεία ελέγχου.
+    const swatchRows = {};
+    const refreshControls = () => {
+      const s = selected && shapes.includes(selected) ? selected : null;
+      if (s) { stroke = s.stroke; if (s.t !== 'line') fill = s.fill; lineW = s.w; }
+      Object.entries(swatchRows).forEach(([kind, row]) => {
+        const cur = kind === 'stroke' ? stroke : fill;
+        row.querySelectorAll('.draw-swatch').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.color || '') === (cur || ''))));
+        const custom = row.querySelector('input[type=color]');
+        if (custom && cur) custom.value = cur;
+      });
+      widthSelect.value = String(WIDTHS.includes(lineW) ? lineW : 2);
+      toolButtons.forEach(([key, b]) => b.setAttribute('aria-pressed', String(key === tool)));
+      deleteBtn.disabled = !s;
+      dupBtn.disabled = !s;
+      frontBtn.disabled = !s;
+      backBtn.disabled = !s;
+      undoBtn.disabled = !undoStack.length;
+      redoBtn.disabled = !redoStack.length;
+      status.textContent = s ? `${SHAPE_NAMES[s.t]} · Delete για διαγραφή, βέλη για μετατόπιση, Ctrl+D για αντίγραφο`
+        : tool === 'select' ? 'Διάλεξε ένα εργαλείο από αριστερά και σύρε στον καμβά. Με το βέλος επιλέγεις και μετακινείς σχήματα.'
+          : tool === 'fill' ? 'Κάνε κλικ μέσα σε ένα κλειστό σχήμα για να το γεμίσεις με το χρώμα γεμίσματος.'
+            : 'Σύρε στον καμβά για να σχεδιάσεις. Οι ροζ γραμμές δείχνουν ευθυγράμμιση.';
+      if (!drag) canvas.style.cursor = tool === 'select' ? 'default' : tool === 'fill' ? 'copy' : 'crosshair';
+    };
+    const redraw = () => { paint(); refreshControls(); };
+
+    const commit = () => {
+      const now = snapshot();
+      if (now === last) return;
+      undoStack.push(last);
+      if (undoStack.length > 100) undoStack.shift();
+      redoStack = [];
+      last = now;
+    };
+    const restore = json => {
+      const keep = selected ? shapes.indexOf(selected) : -1;
+      shapes = clean({ shapes: JSON.parse(json) });
+      selected = keep >= 0 ? shapes[keep] || null : null;
+      last = json;
+      redraw();
+    };
+    const undo = () => { if (!undoStack.length) return; redoStack.push(last); restore(undoStack.pop()); };
+    const redo = () => { if (!redoStack.length) return; undoStack.push(last); restore(redoStack.pop()); };
+
+    const setTool = t => { tool = t; if (t !== 'select') selected = null; redraw(); };
+    const remove = () => {
+      if (!selected) return;
+      shapes = shapes.filter(s => s !== selected);
+      selected = null;
+      commit();
+      redraw();
+    };
+    const duplicate = () => {
+      if (!selected || shapes.length >= MAX_SHAPES) return;
+      const copy = { ...selected };
+      const dx = Math.min(20, W - Math.max(copy.x1, copy.x2));
+      const dy = Math.min(20, H - Math.max(copy.y1, copy.y2));
+      copy.x1 += dx; copy.x2 += dx; copy.y1 += dy; copy.y2 += dy;
+      shapes.push(copy);
+      selected = copy;
+      commit();
+      redraw();
+    };
+    const reorder = front => {
+      if (!selected) return;
+      shapes = shapes.filter(s => s !== selected);
+      if (front) shapes.push(selected); else shapes.unshift(selected);
+      commit();
+      redraw();
+    };
+    const nudge = (dx, dy) => {
+      if (!selected) return;
+      const b = bbox(selected);
+      const mx = Util.clamp(dx, -b.x, W - (b.x + b.w));
+      const my = Util.clamp(dy, -b.y, H - (b.y + b.h));
+      selected.x1 += mx; selected.x2 += mx; selected.y1 += my; selected.y2 += my;
+      commit();
+      redraw();
+    };
+
+    const constrain = (a, p, t) => {
+      let dx = p.x - a.x;
+      let dy = p.y - a.y;
+      if (t === 'line') {
+        const ang = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
+        const len = Math.hypot(dx, dy);
+        dx = Math.cos(ang) * len;
+        dy = Math.sin(ang) * len;
+      } else {
+        const size = Math.max(Math.abs(dx), Math.abs(dy));
+        dx = Math.sign(dx || 1) * size;
+        dy = Math.sign(dy || 1) * size;
+      }
+      return { x: Util.clamp(a.x + dx, 0, W), y: Util.clamp(a.y + dy, 0, H) };
+    };
+
+    // --- Ποντίκι / αφή ---
+    canvas.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      canvas.focus();
+      const p = pos(e);
+      if (tool === 'fill') {
+        const s = shapeAt(p);
+        if (s && s.t !== 'line') {
+          s.fill = fill;
+          commit();
+          redraw();
+        } else {
+          Toast.show('Κάνε κλικ μέσα σε ένα κλειστό σχήμα (κύκλο, τετράγωνο ή τρίγωνο)', 'info');
+        }
+        return;
+      }
+      canvas.setPointerCapture(e.pointerId);
+      if (tool === 'select') {
+        const h = selected ? handleAt(selected, p) : null;
+        if (h) {
+          drag = { mode: 'resize', handle: h[0], orig: { ...selected }, shape: selected };
+        } else {
+          selected = shapeAt(p);
+          if (selected) drag = { mode: 'move', start: p, orig: { ...selected }, shape: selected };
+        }
+        redraw();
+        return;
+      }
+      if (shapes.length >= MAX_SHAPES) {
+        Toast.show(`Έως ${MAX_SHAPES} σχήματα σε κάθε σχέδιο`, 'warning');
+        return;
+      }
+      const a = snapPoint(p, null);
+      const s = { t: tool, x1: a.x, y1: a.y, x2: a.x, y2: a.y, stroke, fill: tool === 'line' ? null : fill, w: lineW };
+      shapes.push(s);
+      selected = s;
+      drag = { mode: 'create', anchor: a, shape: s };
+      redraw();
+    });
+    const RESIZE_CURSORS = { nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize', p1: 'move', p2: 'move' };
+    canvas.addEventListener('pointermove', e => {
+      const p = pos(e);
+      if (!drag) {
+        if (tool === 'select') {
+          const h = selected ? handleAt(selected, p) : null;
+          canvas.style.cursor = h ? RESIZE_CURSORS[h[0]] : shapeAt(p) ? 'move' : 'default';
+        }
+        return;
+      }
+      const s = drag.shape;
+      if (drag.mode === 'create') {
+        const q = snapPoint(e.shiftKey ? constrain(drag.anchor, p, s.t) : p, s);
+        s.x2 = q.x;
+        s.y2 = q.y;
+      } else if (drag.mode === 'move') {
+        const o = drag.orig;
+        const b = bbox(o);
+        let dx = p.x - drag.start.x;
+        let dy = p.y - drag.start.y;
+        const t = targets(s);
+        const sx = snapAxis([b.x + dx, b.x + dx + b.w / 2, b.x + dx + b.w], t.xs);
+        const sy = snapAxis([b.y + dy, b.y + dy + b.h / 2, b.y + dy + b.h], t.ys);
+        dx += sx.d; dy += sy.d;
+        guides = { x: sx.g === null ? [] : [sx.g], y: sy.g === null ? [] : [sy.g] };
+        dx = Util.clamp(dx, -b.x, W - (b.x + b.w));
+        dy = Util.clamp(dy, -b.y, H - (b.y + b.h));
+        s.x1 = o.x1 + dx; s.x2 = o.x2 + dx; s.y1 = o.y1 + dy; s.y2 = o.y2 + dy;
+      } else {
+        const o = drag.orig;
+        if (drag.handle === 'p1' || drag.handle === 'p2') {
+          const fixed = drag.handle === 'p1' ? { x: o.x2, y: o.y2 } : { x: o.x1, y: o.y1 };
+          const q = snapPoint(e.shiftKey ? constrain(fixed, p, 'line') : p, s);
+          if (drag.handle === 'p1') { s.x1 = q.x; s.y1 = q.y; } else { s.x2 = q.x; s.y2 = q.y; }
+        } else {
+          const b = bbox(o);
+          const t = targets(s);
+          const hn = drag.handle;
+          let l = b.x;
+          let tp = b.y;
+          let r = b.x + b.w;
+          let bt = b.y + b.h;
+          const gx = [];
+          const gy = [];
+          const MIN = 4;
+          if (hn.includes('w')) { const sn = snapAxis([p.x], t.xs); l = Math.min(p.x + sn.d, r - MIN); if (sn.g !== null) gx.push(sn.g); }
+          if (hn.includes('e')) { const sn = snapAxis([p.x], t.xs); r = Math.max(p.x + sn.d, l + MIN); if (sn.g !== null) gx.push(sn.g); }
+          if (hn.includes('n')) { const sn = snapAxis([p.y], t.ys); tp = Math.min(p.y + sn.d, bt - MIN); if (sn.g !== null) gy.push(sn.g); }
+          if (hn.includes('s')) { const sn = snapAxis([p.y], t.ys); bt = Math.max(p.y + sn.d, tp + MIN); if (sn.g !== null) gy.push(sn.g); }
+          guides = { x: gx, y: gy };
+          s.x1 = Util.clamp(l, 0, W); s.x2 = Util.clamp(r, 0, W); s.y1 = Util.clamp(tp, 0, H); s.y2 = Util.clamp(bt, 0, H);
+        }
+      }
+      redraw();
+    });
+    const endDrag = () => {
+      if (!drag) return;
+      const s = drag.shape;
+      if (drag.mode === 'create') {
+        const b = bbox(s);
+        const tiny = s.t === 'line' ? Math.hypot(b.w, b.h) < 3 : b.w < 3 && b.h < 3;
+        if (tiny) {
+          shapes = shapes.filter(x => x !== s);
+          selected = null;
+        } else {
+          tool = 'select';
+        }
+      }
+      drag = null;
+      guides = { x: [], y: [] };
+      commit();
+      redraw();
+    };
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+
+    // --- Στοιχεία ελέγχου ---
+    const iconBtn = (iconName, title, fn, extra = {}) => {
+      const b = Util.h('button', { class: 'btn btn-secondary btn-sm draw-btn', type: 'button', title, 'aria-label': title, ...extra }, Util.icon(iconName, 18));
+      b.addEventListener('click', fn);
+      return b;
+    };
+    const toolButtons = TOOLS.map(([key, iconName, title, hotkey]) => [key, iconBtn(iconName, `${title} (${hotkey})`, () => setTool(key), { 'aria-pressed': 'false' })]);
+    const undoBtn = iconBtn('undo', 'Αναίρεση (Ctrl+Z)', undo);
+    const redoBtn = iconBtn('redo', 'Επανάληψη (Ctrl+Y)', redo);
+    const dupBtn = iconBtn('copy', 'Αντίγραφο του επιλεγμένου σχήματος (Ctrl+D)', duplicate);
+    const frontBtn = iconBtn('arrow-up', 'Μπροστά από τα άλλα σχήματα', () => reorder(true));
+    const backBtn = iconBtn('arrow-down', 'Πίσω από τα άλλα σχήματα', () => reorder(false));
+    const deleteBtn = iconBtn('trash', 'Διαγραφή επιλεγμένου σχήματος (Delete)', remove);
+    deleteBtn.classList.add('is-danger');
+
+    const swatchRow = (kind, withNone) => {
+      const row = Util.h('div', { class: 'draw-swatches' });
+      const apply = value => {
+        if (kind === 'stroke') stroke = value; else fill = value;
+        const s = selected && shapes.includes(selected) ? selected : null;
+        if (s && (kind === 'stroke' || s.t !== 'line')) {
+          if (kind === 'stroke') s.stroke = value; else s.fill = value;
+          commit();
+        }
+        redraw();
+      };
+      if (withNone) {
+        const none = Util.h('button', { class: 'draw-swatch is-none', type: 'button', title: 'Χωρίς γέμισμα', 'aria-label': 'Χωρίς γέμισμα', 'aria-pressed': 'false' });
+        none.addEventListener('click', () => apply(null));
+        row.append(none);
+      }
+      SWATCHES.forEach(c => {
+        const b = Util.h('button', { class: 'draw-swatch', type: 'button', title: c, 'aria-label': c, 'aria-pressed': 'false', style: `background: ${c}` });
+        b.dataset.color = c;
+        b.addEventListener('click', () => apply(c));
+        row.append(b);
+      });
+      const custom = Util.h('input', { type: 'color', class: 'swatch-custom', title: 'Δικό σου χρώμα', 'aria-label': 'Δικό σου χρώμα', value: '#2563EB' });
+      custom.addEventListener('input', () => apply(custom.value.toUpperCase()));
+      row.append(custom);
+      swatchRows[kind] = row;
+      return row;
+    };
+    const strokeRow = swatchRow('stroke', false);
+    const fillRow = Util.h('div', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Γέμισμα' }), swatchRow('fill', true));
+    const widthSelect = Util.h('select', { class: 'select', 'aria-label': 'Πάχος γραμμής' }, WIDTHS.map(w => Util.h('option', { value: String(w), text: `${w} px` })));
+    widthSelect.addEventListener('change', () => {
+      lineW = Number(widthSelect.value);
+      if (selected && shapes.includes(selected)) { selected.w = lineW; commit(); }
+      redraw();
+    });
+    const guidesCheck = Util.h('input', { type: 'checkbox', checked: true });
+    guidesCheck.addEventListener('change', () => { snapGuides = guidesCheck.checked; });
+    const gridCheck = Util.h('input', { type: 'checkbox' });
+    gridCheck.addEventListener('change', () => { snapGrid = gridCheck.checked; redraw(); });
+    const clearBtn = Util.h('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: 'Καθαρισμός όλων' });
+    clearBtn.addEventListener('click', () => {
+      if (!shapes.length) return;
+      shapes = [];
+      selected = null;
+      commit();
+      redraw();
+    });
+
+    const root = Util.h('div', { class: 'draw-layout' },
+      Util.h('div', { class: 'draw-main' },
+        Util.h('div', { class: 'draw-tools', role: 'toolbar', 'aria-label': 'Εργαλεία σχεδίασης' },
+          toolButtons.map(([, b]) => b),
+          Util.h('span', { class: 'draw-tools-sep' }), undoBtn, redoBtn, Util.h('span', { class: 'draw-tools-sep' }),
+          dupBtn, frontBtn, backBtn, deleteBtn),
+        stage),
+      status,
+      Util.h('div', { class: 'draw-props' },
+        Util.h('div', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Περίγραμμα' }), strokeRow),
+        fillRow,
+        Util.h('label', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Πάχος' }), widthSelect)),
+      Util.h('div', { class: 'draw-props' },
+        Util.h('label', { class: 'check' }, guidesCheck, 'Οδηγοί snap (κέντρο, άκρες άλλων σχημάτων)',
+          Util.tip('Όταν σύρεις ή αλλάζεις μέγεθος, το σχήμα «κολλά» στο κέντρο και στα όρια του καμβά και στις άκρες ή στο κέντρο των άλλων σχημάτων. Οι ροζ γραμμές δείχνουν την ευθυγράμμιση.')),
+        Util.h('label', { class: 'check' }, gridCheck, 'Πλέγμα',
+          Util.tip('Εμφανίζει πλέγμα και κολλά τα σχήματα στους κόμβους του.')),
+        clearBtn));
+
+    root.addEventListener('keydown', e => {
+      if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+      const mod = e.ctrlKey || e.metaKey;
+      const step = e.shiftKey ? 10 : 1;
+      const hot = !mod && !e.altKey && e.target === canvas ? TOOLS.find(t => t[3].toLowerCase() === e.key.toLowerCase()) : null;
+      let handled = true;
+      if (mod && e.code === 'KeyZ') { if (e.shiftKey) redo(); else undo(); }
+      else if (mod && e.code === 'KeyY') redo();
+      else if (mod && e.code === 'KeyD') duplicate();
+      else if (e.key === 'Delete' || e.key === 'Backspace') remove();
+      else if (e.key === 'ArrowLeft') nudge(-step, 0);
+      else if (e.key === 'ArrowRight') nudge(step, 0);
+      else if (e.key === 'ArrowUp') nudge(0, -step);
+      else if (e.key === 'ArrowDown') nudge(0, step);
+      else if (hot) setTool(hot[0]);
+      else handled = false;
+      if (handled) { e.preventDefault(); e.stopPropagation(); }
+    });
+
+    const submit = async () => {
+      if (!shapes.length) {
+        Toast.show('Σχεδίασε τουλάχιστον ένα σχήμα', 'warning');
+        return false;
+      }
+      try {
+        const { url, w } = renderPng(shapes);
+        const json = JSON.stringify({ v: 1, cw: w, shapes });
+        if (image && document.contains(image)) {
+          const before = initial && Number(initial.cw);
+          const pct = parseFloat(image.style.width);
+          if (before && pct && /%$/.test(image.style.width)) image.style.width = `${Util.clamp(Math.round(pct * w / before), 5, 100)}%`;
+          image.src = url;
+          image.alt = 'Σχέδιο';
+          image.setAttribute('data-draw-json', json);
+          image.classList.add('wf-draw');
+          EditorManager.commit(id);
+        } else {
+          await InsertTools.insertImageData(id, url, { alt: 'Σχέδιο', widthPct: Util.clamp(Math.round(w / 8), 10, 100), className: 'wf-draw', attrs: { 'data-draw-json': json } });
+        }
+        Toast.show(image ? 'Το σχέδιο ενημερώθηκε' : 'Το σχέδιο εισήχθη στο φύλλο', 'success');
+        return true;
+      } catch (e) {
+        Toast.show(`Σφάλμα δημιουργίας σχεδίου: ${e.message}`, 'error', 6000);
+        return false;
+      }
+    };
+
+    Modal.open({
+      title: image ? 'Επεξεργασία σχεδίου' : 'Σχέδιο',
+      size: 'xl',
+      className: 'draw-modal',
+      body: root,
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        { label: image ? 'Ενημέρωση σχεδίου' : 'Εισαγωγή στο Φύλλο', variant: 'primary', onClick: submit }
+      ],
+      initialFocus: canvas
+    });
+    requestAnimationFrame(redraw);
+  }
+
+  return { open, clean, renderPng };
+})();
+
 
 /**
  * Εξαγωγή: εκτύπωση/PDF μέσω browser, PDF με jsPDF + html2canvas, DOCX με docx.js,
@@ -13986,6 +14680,7 @@ const UIController = (() => {
         const tool = btn.dataset.tool;
         if (tool === 'math') MathEngine.open({});
         else if (tool === 'graph') GraphEngine.open({});
+        else if (tool === 'draw') DrawEngine.open({});
         else if (tool === 'table') InsertTools.table();
         else if (tool === 'image') InsertTools.image();
         else if (tool === 'link') InsertTools.link();
