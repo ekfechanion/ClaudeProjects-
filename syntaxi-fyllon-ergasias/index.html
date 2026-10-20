@@ -1021,6 +1021,8 @@ kbd {
 .draw-stage { flex: 1; min-width: 0; max-width: 720px; aspect-ratio: 8 / 5; background: #FFFFFF; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; }
 .draw-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
 .draw-status { margin: 0; }
+.draw-stage { position: relative; }
+.draw-text-input { position: absolute; margin: 0; padding: 0; border: 1px dashed var(--primary); background: rgba(255, 255, 255, 0.85); resize: none; overflow: hidden; outline: none; min-width: 60px; box-sizing: content-box; }
 .draw-props { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
 .draw-prop { display: flex; align-items: center; gap: 8px; }
 .draw-prop-label { font-size: 13px; font-weight: 600; color: var(--text-2); }
@@ -1849,6 +1851,7 @@ const Util = (() => {
     'draw-circle': ['M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z'],
     'draw-square': ['M5 5h14v14H5z'],
     'draw-triangle': ['M12 4l9 16H3z'],
+    'draw-text': ['M5 6V4h14v2', 'M12 4v16', 'M9 20h6'],
     'draw-fill': ['M5 11l6-6 8 8-6 6z', 'M11 5L9 3', 'M19 15c1 1.5 1.5 2.5 1.5 3.5a1.5 1.5 0 0 1-3 0c0-1 .5-2 1.5-3.5z'],
     'arrow-up': ['M12 19V5', 'M6 11l6-6 6 6'],
     'arrow-down': ['M12 5v14', 'M18 13l-6 6-6-6'],
@@ -10422,15 +10425,20 @@ const DrawEngine = (() => {
   const MAX_SHAPES = 300;
   const SWATCHES = ['#111827', '#6B7280', '#DC2626', '#EA580C', '#FACC15', '#16A34A', '#2563EB', '#7C3AED', '#EC4899', '#FFFFFF'];
   const WIDTHS = [1, 2, 3, 4, 6, 8];
+  const DASHES = [['Συνεχής', 0], ['Διακεκομμένη', 1], ['Στικτή', 2]];
+  const TEXT_SIZES = [14, 18, 24, 32, 44, 60];
+  const measureCtx = document.createElement('canvas').getContext('2d');
   const TOOLS = [
     ['select', 'draw-select', 'Επιλογή και μετακίνηση', 'V'],
     ['line', 'draw-line', 'Γραμμή (Shift: ευθεία ή 45°)', 'L'],
     ['ellipse', 'draw-circle', 'Κύκλος / έλλειψη (Shift: τέλειος κύκλος)', 'O'],
     ['rect', 'draw-square', 'Τετράγωνο / ορθογώνιο (Shift: τέλειο τετράγωνο)', 'R'],
     ['triangle', 'draw-triangle', 'Τρίγωνο', 'T'],
+    ['text', 'draw-text', 'Κείμενο (κλικ στον καμβά· διπλό κλικ για αλλαγή)', 'X'],
     ['fill', 'draw-fill', 'Γέμισμα κλειστού σχήματος με το χρώμα γεμίσματος', 'F']
   ];
-  const SHAPE_NAMES = { line: 'Γραμμή', ellipse: 'Κύκλος / έλλειψη', rect: 'Τετράγωνο / ορθογώνιο', triangle: 'Τρίγωνο' };
+  const FONT_FAMILY = 'system-ui, Arial, sans-serif';
+  const SHAPE_NAMES = { line: 'Γραμμή', ellipse: 'Κύκλος / έλλειψη', rect: 'Τετράγωνο / ορθογώνιο', triangle: 'Τρίγωνο', text: 'Κείμενο' };
 
   const num = (v, min, max, fallback) => {
     const n = Number(v);
@@ -10445,13 +10453,30 @@ const DrawEngine = (() => {
    */
   function clean(data) {
     const list = data && Array.isArray(data.shapes) ? data.shapes : [];
-    return list.slice(0, MAX_SHAPES).filter(s => s && SHAPE_NAMES[s.t]).map(s => ({
-      t: s.t,
-      x1: num(s.x1, 0, W, 0), y1: num(s.y1, 0, H, 0), x2: num(s.x2, 0, W, 0), y2: num(s.y2, 0, H, 0),
-      stroke: color(s.stroke, SWATCHES[0]),
-      fill: s.t !== 'line' && s.fill ? color(s.fill, null) : null,
-      w: num(s.w, 1, 12, 2)
-    }));
+    return list.slice(0, MAX_SHAPES).filter(s => s && SHAPE_NAMES[s.t]).map(s => {
+      const shape = {
+        t: s.t,
+        x1: num(s.x1, 0, W, 0), y1: num(s.y1, 0, H, 0), x2: num(s.x2, 0, W, 0), y2: num(s.y2, 0, H, 0),
+        stroke: color(s.stroke, SWATCHES[0]),
+        fill: s.t !== 'line' && s.t !== 'text' && s.fill ? color(s.fill, null) : null,
+        w: num(s.w, 1, 12, 2),
+        d: s.t === 'text' ? 0 : Math.round(num(s.d, 0, 2, 0))
+      };
+      if (s.t === 'text') {
+        shape.text = String(s.text || '').slice(0, 300);
+        shape.size = num(s.size, 8, 96, 24);
+        fitText(shape);
+      }
+      return shape;
+    });
+  }
+
+  /** Ορίζει το πλαίσιο ενός κειμένου από το περιεχόμενο και το μέγεθός του. */
+  function fitText(s) {
+    measureCtx.font = `${s.size}px ${FONT_FAMILY}`;
+    const lines = s.text.split('\n');
+    s.x2 = Math.min(W, s.x1 + Math.max(4, ...lines.map(l => measureCtx.measureText(l).width)));
+    s.y2 = Math.min(H, s.y1 + lines.length * s.size * 1.25);
   }
 
   const bbox = s => {
@@ -10467,6 +10492,13 @@ const DrawEngine = (() => {
    */
   function paintShape(ctx, s) {
     const b = bbox(s);
+    if (s.t === 'text') {
+      ctx.fillStyle = s.stroke;
+      ctx.font = `${s.size}px ${FONT_FAMILY}`;
+      ctx.textBaseline = 'top';
+      s.text.split('\n').forEach((line, i) => ctx.fillText(line, s.x1, s.y1 + i * s.size * 1.25 + s.size * 0.08));
+      return;
+    }
     ctx.lineWidth = s.w;
     ctx.strokeStyle = s.stroke;
     ctx.lineJoin = 'round';
@@ -10489,7 +10521,9 @@ const DrawEngine = (() => {
       ctx.fillStyle = s.fill;
       ctx.fill();
     }
+    if (s.d) ctx.setLineDash(s.d === 1 ? [Math.max(8, s.w * 4), Math.max(5, s.w * 2.5)] : [0.1, s.w * 2.2]);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   const distToSegment = (px, py, ax, ay, bx, by) => {
@@ -10513,7 +10547,7 @@ const DrawEngine = (() => {
     const b = bbox(s);
     const t = tol / 2;
     if (px < b.x - t || px > b.x + b.w + t || py < b.y - t || py > b.y + b.h + t) return false;
-    if (s.t === 'rect') return true;
+    if (s.t === 'rect' || s.t === 'text') return true;
     if (s.t === 'ellipse') {
       const rx = b.w / 2 + t;
       const ry = b.h / 2 + t;
@@ -10572,6 +10606,9 @@ const DrawEngine = (() => {
     let stroke = SWATCHES[0];
     let fill = null;
     let lineW = 2;
+    let dash = 0;
+    let textSize = 24;
+    let editing = null;
     let guides = { x: [], y: [] };
     let drag = null;
     let undoStack = [];
@@ -10629,6 +10666,7 @@ const DrawEngine = (() => {
       const b = bbox(s);
       const xm = b.x + b.w / 2;
       const ym = b.y + b.h / 2;
+      if (s.t === 'text') return [['nw', b.x, b.y], ['ne', b.x + b.w, b.y], ['se', b.x + b.w, b.y + b.h], ['sw', b.x, b.y + b.h]];
       return [['nw', b.x, b.y], ['n', xm, b.y], ['ne', b.x + b.w, b.y], ['e', b.x + b.w, ym],
         ['se', b.x + b.w, b.y + b.h], ['s', xm, b.y + b.h], ['sw', b.x, b.y + b.h], ['w', b.x, ym]];
     };
@@ -10655,7 +10693,7 @@ const DrawEngine = (() => {
         for (let y = GRID; y < H; y += GRID) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
         ctx.stroke();
       }
-      shapes.forEach(s => paintShape(ctx, s));
+      shapes.forEach(s => { if (s !== editing) paintShape(ctx, s); });
       if (selected && shapes.includes(selected)) {
         ctx.save();
         ctx.strokeStyle = '#2563EB';
@@ -10691,7 +10729,11 @@ const DrawEngine = (() => {
     const swatchRows = {};
     const refreshControls = () => {
       const s = selected && shapes.includes(selected) ? selected : null;
-      if (s) { stroke = s.stroke; if (s.t !== 'line') fill = s.fill; lineW = s.w; }
+      if (s) {
+        stroke = s.stroke;
+        if (s.t === 'text') textSize = s.size;
+        else { dash = s.d; lineW = s.w; if (s.t !== 'line') fill = s.fill; }
+      }
       Object.entries(swatchRows).forEach(([kind, row]) => {
         const cur = kind === 'stroke' ? stroke : fill;
         row.querySelectorAll('.draw-swatch').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.color || '') === (cur || ''))));
@@ -10699,6 +10741,8 @@ const DrawEngine = (() => {
         if (custom && cur) custom.value = cur;
       });
       widthSelect.value = String(WIDTHS.includes(lineW) ? lineW : 2);
+      dashSelect.value = String(dash);
+      sizeSelect.value = String(TEXT_SIZES.includes(textSize) ? textSize : 24);
       toolButtons.forEach(([key, b]) => b.setAttribute('aria-pressed', String(key === tool)));
       deleteBtn.disabled = !s;
       dupBtn.disabled = !s;
@@ -10708,9 +10752,10 @@ const DrawEngine = (() => {
       redoBtn.disabled = !redoStack.length;
       status.textContent = s ? `${SHAPE_NAMES[s.t]} · Delete για διαγραφή, βέλη για μετατόπιση, Ctrl+D για αντίγραφο`
         : tool === 'select' ? 'Διάλεξε ένα εργαλείο από αριστερά και σύρε στον καμβά. Με το βέλος επιλέγεις και μετακινείς σχήματα.'
+          : tool === 'text' ? 'Κάνε κλικ στον καμβά και γράψε. Enter για τέλος, Shift+Enter για νέα γραμμή.'
           : tool === 'fill' ? 'Κάνε κλικ μέσα σε ένα κλειστό σχήμα για να το γεμίσεις με το χρώμα γεμίσματος.'
             : 'Σύρε στον καμβά για να σχεδιάσεις. Οι ροζ γραμμές δείχνουν ευθυγράμμιση.';
-      if (!drag) canvas.style.cursor = tool === 'select' ? 'default' : tool === 'fill' ? 'copy' : 'crosshair';
+      if (!drag) canvas.style.cursor = tool === 'select' ? 'default' : tool === 'fill' ? 'copy' : tool === 'text' ? 'text' : 'crosshair';
     };
     const redraw = () => { paint(); refreshControls(); };
 
@@ -10784,11 +10829,72 @@ const DrawEngine = (() => {
       return { x: Util.clamp(a.x + dx, 0, W), y: Util.clamp(a.y + dy, 0, H) };
     };
 
+    /** Επεξεργασία κειμένου επάνω στον καμβά, με ένα πλαίσιο κειμένου στη θέση του σχήματος. */
+    const editText = (s, isNew) => {
+      const r = canvas.getBoundingClientRect();
+      const k = r.width / W;
+      const area = Util.h('textarea', { class: 'draw-text-input', rows: '1', spellcheck: 'false', 'aria-label': 'Κείμενο σχεδίου', maxlength: '300' });
+      area.value = s.text;
+      Object.assign(area.style, { left: `${s.x1 * k}px`, top: `${s.y1 * k}px`, fontSize: `${s.size * k}px`, lineHeight: '1.25', color: s.stroke, fontFamily: FONT_FAMILY });
+      editing = s;
+      let done = false;
+      const fit = () => {
+        area.style.height = 'auto';
+        area.style.height = `${area.scrollHeight}px`;
+        area.style.width = `${Math.max(60, Math.min(r.width - s.x1 * k, area.scrollWidth + 8))}px`;
+      };
+      const finish = save => {
+        if (done) return;
+        done = true;
+        const text = area.value.replace(/\s+$/, '');
+        area.remove();
+        editing = null;
+        if (save && text) {
+          s.text = text;
+          fitText(s);
+        } else if (isNew || !save && !s.text) {
+          shapes = shapes.filter(x => x !== s);
+          selected = null;
+        }
+        commit();
+        redraw();
+        canvas.focus();
+      };
+      area.addEventListener('input', () => { area.style.width = '1px'; fit(); });
+      area.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finish(true); }
+        else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        e.stopPropagation();
+      });
+      area.addEventListener('blur', () => finish(true));
+      stage.append(area);
+      fit();
+      area.focus();
+      area.select();
+      redraw();
+    };
+    canvas.addEventListener('dblclick', e => {
+      const s = shapeAt(pos(e));
+      if (s && s.t === 'text') { selected = s; editText(s, false); }
+    });
+
     // --- Ποντίκι / αφή ---
     canvas.addEventListener('pointerdown', e => {
       if (e.button !== 0) return;
+      e.preventDefault();
       canvas.focus();
       const p = pos(e);
+      if (tool === 'text') {
+        if (shapes.length >= MAX_SHAPES) { Toast.show(`Έως ${MAX_SHAPES} σχήματα σε κάθε σχέδιο`, 'warning'); return; }
+        const a = snapPoint(p, null);
+        guides = { x: [], y: [] };
+        const s = { t: 'text', x1: a.x, y1: a.y, x2: a.x, y2: a.y, stroke, fill: null, w: 2, d: 0, text: '', size: textSize };
+        shapes.push(s);
+        selected = s;
+        tool = 'select';
+        editText(s, true);
+        return;
+      }
       if (tool === 'fill') {
         const s = shapeAt(p);
         if (s && s.t !== 'line') {
@@ -10817,7 +10923,7 @@ const DrawEngine = (() => {
         return;
       }
       const a = snapPoint(p, null);
-      const s = { t: tool, x1: a.x, y1: a.y, x2: a.x, y2: a.y, stroke, fill: tool === 'line' ? null : fill, w: lineW };
+      const s = { t: tool, x1: a.x, y1: a.y, x2: a.x, y2: a.y, stroke, fill: tool === 'line' ? null : fill, w: lineW, d: dash };
       shapes.push(s);
       selected = s;
       drag = { mode: 'create', anchor: a, shape: s };
@@ -10857,6 +10963,20 @@ const DrawEngine = (() => {
           const fixed = drag.handle === 'p1' ? { x: o.x2, y: o.y2 } : { x: o.x1, y: o.y1 };
           const q = snapPoint(e.shiftKey ? constrain(fixed, p, 'line') : p, s);
           if (drag.handle === 'p1') { s.x1 = q.x; s.y1 = q.y; } else { s.x2 = q.x; s.y2 = q.y; }
+        } else if (s.t === 'text') {
+          const hn = drag.handle;
+          const b = bbox(o);
+          const fx = hn.includes('w') ? b.x + b.w : b.x;
+          const fy = hn.includes('n') ? b.y + b.h : b.y;
+          const hx = hn.includes('w') ? b.x : b.x + b.w;
+          const hy = hn.includes('n') ? b.y : b.y + b.h;
+          const factor = Util.clamp(Math.hypot(p.x - fx, p.y - fy) / (Math.hypot(hx - fx, hy - fy) || 1), 0.2, 6);
+          s.size = Util.clamp(Math.round(o.size * factor), 8, 96);
+          s.x1 = o.x1; s.y1 = o.y1;
+          fitText(s);
+          if (hn.includes('w')) s.x1 = Util.clamp(fx - (s.x2 - s.x1), 0, W);
+          if (hn.includes('n')) s.y1 = Util.clamp(fy - (s.y2 - s.y1), 0, H);
+          fitText(s);
         } else {
           const b = bbox(o);
           const t = targets(s);
@@ -10950,6 +11070,18 @@ const DrawEngine = (() => {
       if (selected && shapes.includes(selected)) { selected.w = lineW; commit(); }
       redraw();
     });
+    const dashSelect = Util.h('select', { class: 'select', 'aria-label': 'Στυλ γραμμής' }, DASHES.map(([label, v]) => Util.h('option', { value: String(v), text: label })));
+    dashSelect.addEventListener('change', () => {
+      dash = Number(dashSelect.value);
+      if (selected && shapes.includes(selected) && selected.t !== 'text') { selected.d = dash; commit(); }
+      redraw();
+    });
+    const sizeSelect = Util.h('select', { class: 'select', 'aria-label': 'Μέγεθος κειμένου' }, TEXT_SIZES.map(v => Util.h('option', { value: String(v), text: `${v} px` })));
+    sizeSelect.addEventListener('change', () => {
+      textSize = Number(sizeSelect.value);
+      if (selected && shapes.includes(selected) && selected.t === 'text') { selected.size = textSize; fitText(selected); commit(); }
+      redraw();
+    });
     const guidesCheck = Util.h('input', { type: 'checkbox', checked: true });
     guidesCheck.addEventListener('change', () => { snapGuides = guidesCheck.checked; });
     const gridCheck = Util.h('input', { type: 'checkbox' });
@@ -10972,9 +11104,11 @@ const DrawEngine = (() => {
         stage),
       status,
       Util.h('div', { class: 'draw-props' },
-        Util.h('div', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Περίγραμμα' }), strokeRow),
+        Util.h('div', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Χρώμα γραμμής / κειμένου' }), strokeRow),
         fillRow,
-        Util.h('label', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Πάχος' }), widthSelect)),
+        Util.h('label', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Πάχος' }), widthSelect),
+        Util.h('label', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Γραμμή' }), dashSelect),
+        Util.h('label', { class: 'draw-prop' }, Util.h('span', { class: 'draw-prop-label', text: 'Μέγεθος κειμένου' }), sizeSelect)),
       Util.h('div', { class: 'draw-props' },
         Util.h('label', { class: 'check' }, guidesCheck, 'Οδηγοί snap (κέντρο, άκρες άλλων σχημάτων)',
           Util.tip('Όταν σύρεις ή αλλάζεις μέγεθος, το σχήμα «κολλά» στο κέντρο και στα όρια του καμβά και στις άκρες ή στο κέντρο των άλλων σχημάτων. Οι ροζ γραμμές δείχνουν την ευθυγράμμιση.')),
