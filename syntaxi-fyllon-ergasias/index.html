@@ -1006,12 +1006,11 @@ kbd {
 .embed-info { overflow-wrap: anywhere; }
 
 .doc-content .wf-embed-link {
-  margin: 0 0 12px; padding: 6px 10px; border-left: 3px solid var(--doc-accent, var(--primary)); background: rgba(37, 99, 235, 0.06);
+  margin: 0 0 12px; padding: 3px 10px; border-left: 3px solid var(--doc-accent, var(--primary)); background: rgba(37, 99, 235, 0.06);
   border-radius: 0 4px 4px 0; line-height: 1.45; break-inside: avoid;
 }
 .doc-content .wf-embed-link a { font-weight: 600; }
 .doc-content .wf-embed-mark { color: var(--doc-accent, var(--primary)); font-weight: 700; }
-.doc-content .wf-embed-url { font-size: 0.82em; color: #475569; overflow-wrap: anywhere; }
 .doc-content .wf-qr-row { display: flex; flex-wrap: wrap; gap: 2mm 6mm; margin: 1.5mm 0 3mm; break-inside: avoid; }
 .doc-content .wf-qr { display: inline-flex; flex-direction: column; align-items: center; gap: 1mm; max-width: 36mm; }
 .doc-content .wf-qr a { display: block; line-height: 0; }
@@ -9039,7 +9038,7 @@ const Embeds = (() => {
   }
 
   /**
-   * Έντυπη μορφή: σύνδεσμος με τίτλο και πλήρη διεύθυνση.
+   * Έντυπη μορφή: μόνο η λέξη «Σύνδεσμος» με εικονίδιο (η διεύθυνση φαίνεται στο QR code).
    * @param {HTMLElement} node
    * @returns {HTMLElement}
    */
@@ -9047,10 +9046,8 @@ const Embeds = (() => {
     const href = node.getAttribute('data-href') || node.getAttribute('data-src') || '';
     const title = node.getAttribute('data-title') || hostOf(href) || 'Ενσωματωμένο περιεχόμενο';
     return Util.h('p', { class: 'wf-embed-link' },
-      Util.h('span', { class: 'wf-embed-mark', text: '↗ ' }),
-      Util.h('a', { href, target: '_blank', rel: 'noopener noreferrer', text: title }),
-      Util.h('br'),
-      Util.h('span', { class: 'wf-embed-url', text: href }));
+      Util.h('span', { class: 'wf-embed-mark', text: '🔗 ' }),
+      Util.h('a', { href, target: '_blank', rel: 'noopener noreferrer', title, text: 'Σύνδεσμος' }));
   }
 
   /**
