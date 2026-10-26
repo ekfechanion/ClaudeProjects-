@@ -1028,7 +1028,7 @@ kbd {
 .doc-content .wf-quiz-print .wf-quiz-opt { margin-left: 6mm; }
 .draw-layout { display: flex; flex-direction: column; gap: 12px; }
 .draw-main { display: flex; gap: 12px; align-items: flex-start; }
-.draw-tools { display: grid; grid-template-columns: repeat(2, auto); gap: 6px; align-content: start; }
+.draw-tools { display: grid; grid-template-columns: repeat(3, auto); gap: 6px; align-content: start; }
 .draw-tools-sep { grid-column: 1 / -1; height: 1px; background: var(--border); margin: 2px 0; }
 .draw-btn { padding: 6px; justify-content: center; }
 .draw-btn[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #FFFFFF; }
@@ -1870,6 +1870,16 @@ const Util = (() => {
     'draw-arrow': ['M5 19L19 5', 'M10 5h9v9'],
     'draw-darrow': ['M5 19L19 5', 'M10 5h9v9', 'M14 19H5v-9'],
     'draw-spiral': ['M12 12a1.5 1.5 0 0 1 3 0 3 3 0 0 1-6 0 4.5 4.5 0 0 1 9 0 6 6 0 0 1-12 0'],
+    'draw-wire': ['M3 18h7V7h11', 'M3 18h.01'],
+    'draw-resistor': ['M2 12h4', 'M6 8.5h12v7H6z', 'M18 12h4'],
+    'draw-source': ['M2 12h8', 'M10 6v12', 'M14 9v6', 'M14 12h8'],
+    'draw-switch': ['M2 15h4', 'M18 15h4', 'M6 15l11-7', 'M6 15a.6.6 0 1 0 0 .01', 'M18 15a.6.6 0 1 0 0 .01'],
+    'draw-switchc': ['M2 14h4', 'M18 14h4', 'M6 14h12', 'M6 14a.6.6 0 1 0 0 .01', 'M18 14a.6.6 0 1 0 0 .01'],
+    'draw-capacitor': ['M2 12h8', 'M10 6v12', 'M14 6v12', 'M14 12h8'],
+    'draw-lamp': ['M2 12h4', 'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z', 'M7.8 7.8l8.4 8.4', 'M16.2 7.8l-8.4 8.4', 'M18 12h4'],
+    'draw-motor': ['M2 12h4', 'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z', 'M9 15v-6l3 3 3-3v6', 'M18 12h4'],
+    'draw-ammeter': ['M2 12h4', 'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z', 'M9.5 15L12 9l2.5 6', 'M10.3 13.2h3.4', 'M18 12h4'],
+    'draw-voltmeter': ['M2 12h4', 'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z', 'M9.5 9L12 15l2.5-6', 'M18 12h4'],
     'draw-boy': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 7v7.5', 'M12 9.5l-3.5 3.5', 'M12 9.5l3.5 3.5', 'M12 14.5l-3 6', 'M12 14.5l3 6'],
     'draw-girl': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 8.5l-4.5 8h9z', 'M10 16.5v4', 'M14 16.5v4', 'M10.3 11.5l-2.5 3', 'M13.7 11.5l2.5 3'],
     'draw-cart': ['M3 7h18v8H3z', 'M8 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M16 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M1.5 11h1.5', 'M21 11h1.5'],
@@ -10496,13 +10506,29 @@ const DrawEngine = (() => {
     ['girl', 'draw-girl', 'Κορίτσι', 'G'],
     ['cart', 'draw-cart', 'Εργαστηριακό αμαξίδιο', 'C'],
     ['text', 'draw-text', 'Κείμενο (κλικ στον καμβά· διπλό κλικ για αλλαγή)', 'X'],
-    ['fill', 'draw-fill', 'Γέμισμα κλειστού σχήματος με το χρώμα γεμίσματος', 'F']
+    ['fill', 'draw-fill', 'Γέμισμα κλειστού σχήματος με το χρώμα γεμίσματος', 'F'],
+    ['wire', 'draw-wire', 'Αγωγός: συνεχής γραμμή που αλλάζει κατεύθυνση με κάθε κλικ (διπλό κλικ ή Enter για τέλος· Shift: ελεύθερη γωνία)', 'W'],
+    ['resistor', 'draw-resistor', 'Αντίσταση', 'E'],
+    ['source', 'draw-source', 'Πηγή (μακριά πλάκα: θετικός πόλος)', 'P'],
+    ['switch', 'draw-switch', 'Διακόπτης ανοιχτός', 'K'],
+    ['switchc', 'draw-switchc', 'Διακόπτης κλειστός', 'J'],
+    ['capacitor', 'draw-capacitor', 'Πυκνωτής', 'U'],
+    ['lamp', 'draw-lamp', 'Λαμπτήρας', 'Y'],
+    ['motor', 'draw-motor', 'Κινητήρας', 'M'],
+    ['ammeter', 'draw-ammeter', 'Αμπερόμετρο', 'H'],
+    ['voltmeter', 'draw-voltmeter', 'Βολτόμετρο', 'Q']
   ];
+  const COMPONENTS = new Set(['resistor', 'source', 'switch', 'switchc', 'capacitor', 'lamp', 'motor', 'ammeter', 'voltmeter']);
+  const COMP_BODY = 60;
+  const MAX_PTS = 100;
+  const CIRCUIT = t => t === 'wire' || COMPONENTS.has(t);
   const FONT_FAMILY = 'system-ui, Arial, sans-serif';
   const SHAPE_NAMES = { line: 'Γραμμή', ellipse: 'Κύκλος / έλλειψη', rect: 'Τετράγωνο / ορθογώνιο', triangle: 'Τρίγωνο', text: 'Κείμενο',
-    arrow: 'Βέλος', darrow: 'Διπλό βέλος', spiral: 'Σπιράλ', boy: 'Αγόρι', girl: 'Κορίτσι', cart: 'Εργαστηριακό αμαξίδιο'
+    arrow: 'Βέλος', darrow: 'Διπλό βέλος', spiral: 'Σπιράλ', boy: 'Αγόρι', girl: 'Κορίτσι', cart: 'Εργαστηριακό αμαξίδιο',
+    wire: 'Αγωγός', resistor: 'Αντίσταση', source: 'Πηγή', switch: 'Διακόπτης (ανοιχτός)', switchc: 'Διακόπτης (κλειστός)',
+    capacitor: 'Πυκνωτής', lamp: 'Λαμπτήρας', motor: 'Κινητήρας', ammeter: 'Αμπερόμετρο', voltmeter: 'Βολτόμετρο'
   };
-  const LINEAR = t => t === 'line' || t === 'arrow' || t === 'darrow';
+  const LINEAR = t => t === 'line' || t === 'arrow' || t === 'darrow' || COMPONENTS.has(t);
   const FILLABLE = t => t === 'ellipse' || t === 'rect' || t === 'triangle';
   /** Απλά σύμβολα με γραμμές, σε δικό τους χώρο σχεδίασης (w×h): κύκλοι [cx, cy, r] και πολυγραμμές [σημεία, κλειστή;]. */
   const SYMBOLS = (() => {
@@ -10551,8 +10577,21 @@ const DrawEngine = (() => {
         shape.size = num(s.size, 8, 96, 24);
         fitText(shape);
       }
+      if (s.t === 'wire') {
+        const pts = Array.isArray(s.pts) ? s.pts.slice(0, MAX_PTS) : [];
+        shape.pts = pts.filter(q => Array.isArray(q)).map(q => [num(q[0], 0, W, 0), num(q[1], 0, H, 0)]);
+        if (shape.pts.length < 2) return null;
+        syncWire(shape);
+      }
       return shape;
-    });
+    }).filter(Boolean);
+  }
+
+  /** Ενημερώνει το πλαίσιο ενός αγωγού από τις κορυφές του. */
+  function syncWire(s) {
+    const xs = s.pts.map(q => q[0]);
+    const ys = s.pts.map(q => q[1]);
+    s.x1 = Math.min(...xs); s.x2 = Math.max(...xs); s.y1 = Math.min(...ys); s.y2 = Math.max(...ys);
   }
 
   /** Ορίζει το πλαίσιο ενός κειμένου από το περιεχόμενο και το μέγεθός του. */
@@ -10564,6 +10603,13 @@ const DrawEngine = (() => {
   }
 
   const bbox = s => {
+    if (s.pts) {
+      const xs = s.pts.map(q => q[0]);
+      const ys = s.pts.map(q => q[1]);
+      const x = Math.min(...xs);
+      const y = Math.min(...ys);
+      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+    }
     const x = Math.min(s.x1, s.x2);
     const y = Math.min(s.y1, s.y2);
     return { x, y, w: Math.abs(s.x2 - s.x1), h: Math.abs(s.y2 - s.y1) };
@@ -10583,12 +10629,15 @@ const DrawEngine = (() => {
       s.text.split('\n').forEach((line, i) => ctx.fillText(line, s.x1, s.y1 + i * s.size * 1.25 + s.size * 0.08));
       return;
     }
+    if (COMPONENTS.has(s.t)) { paintComponent(ctx, s); return; }
     ctx.lineWidth = s.w;
     ctx.strokeStyle = s.stroke;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.beginPath();
-    if (LINEAR(s.t)) {
+    if (s.t === 'wire') {
+      s.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    } else if (LINEAR(s.t)) {
       ctx.moveTo(s.x1, s.y1);
       ctx.lineTo(s.x2, s.y2);
     } else if (SYMBOLS[s.t]) {
@@ -10614,6 +10663,67 @@ const DrawEngine = (() => {
       arrowHead(ctx, s, s.x2, s.y2, s.x1, s.y1);
       if (s.t === 'darrow') arrowHead(ctx, s, s.x1, s.y1, s.x2, s.y2);
     }
+  }
+
+  /** Σύμβολο κυκλώματος ανάμεσα στα δύο άκρα του: αγωγοί στα άκρα και το σώμα του στοιχείου στη μέση. */
+  function paintComponent(ctx, s) {
+    const len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
+    if (!len) return;
+    const ang = Math.atan2(s.y2 - s.y1, s.x2 - s.x1);
+    const b = Math.min(len, COMP_BODY);
+    const a = b / 2;
+    const h = len / 2;
+    const t = s.t;
+    ctx.save();
+    ctx.translate((s.x1 + s.x2) / 2, (s.y1 + s.y2) / 2);
+    ctx.rotate(ang);
+    ctx.lineWidth = s.w;
+    ctx.strokeStyle = s.stroke;
+    ctx.fillStyle = s.stroke;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const lead = (from, to) => { ctx.moveTo(from, 0); ctx.lineTo(to, 0); };
+    if (t === 'resistor') {
+      lead(-h, -a); lead(a, h);
+      ctx.rect(-a, -b * 0.18, b, b * 0.36);
+    } else if (t === 'source') {
+      const g = b * 0.1;
+      lead(-h, -g); lead(g, h);
+      ctx.moveTo(-g, -b * 0.3); ctx.lineTo(-g, b * 0.3);
+      ctx.moveTo(g, -b * 0.17); ctx.lineTo(g, b * 0.17);
+    } else if (t === 'capacitor') {
+      const g = b * 0.1;
+      lead(-h, -g); lead(g, h);
+      ctx.moveTo(-g, -b * 0.3); ctx.lineTo(-g, b * 0.3);
+      ctx.moveTo(g, -b * 0.3); ctx.lineTo(g, b * 0.3);
+    } else if (t === 'switch' || t === 'switchc') {
+      const r = Math.max(3, s.w * 1.4);
+      lead(-h, -a - r); lead(a + r, h);
+      ctx.moveTo(-a + r, 0); ctx.arc(-a, 0, r, 0, Math.PI * 2);
+      ctx.moveTo(a + r, 0); ctx.arc(a, 0, r, 0, Math.PI * 2);
+      if (t === 'switchc') { ctx.moveTo(-a + r, 0); ctx.lineTo(a - r, 0); }
+      else { ctx.moveTo(-a + r * 0.7, -r * 0.7); ctx.lineTo(a - b * 0.1, -b * 0.4); }
+    } else {
+      const r = b * 0.4;
+      lead(-h, -r); lead(r, h);
+      ctx.moveTo(r, 0);
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      if (t === 'lamp') {
+        const q = r * 0.7071;
+        ctx.moveTo(-q, -q); ctx.lineTo(q, q);
+        ctx.moveTo(q, -q); ctx.lineTo(-q, q);
+      }
+    }
+    ctx.stroke();
+    if (t === 'motor' || t === 'ammeter' || t === 'voltmeter') {
+      ctx.rotate(-ang);
+      ctx.font = `600 ${b * 0.4}px ${FONT_FAMILY}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t === 'motor' ? 'M' : t === 'ammeter' ? 'A' : 'V', 0, b * 0.02);
+    }
+    ctx.restore();
   }
 
   /** Η αιχμή ενός βέλους στο (x, y), με κατεύθυνση από το (fx, fy). */
@@ -10662,6 +10772,10 @@ const DrawEngine = (() => {
    * @returns {boolean}
    */
   function hit(s, px, py, tol) {
+    if (s.t === 'wire') {
+      const lim = Math.max(tol, s.w / 2 + tol / 2);
+      return s.pts.some((q, i) => i && distToSegment(px, py, s.pts[i - 1][0], s.pts[i - 1][1], q[0], q[1]) <= lim);
+    }
     if (LINEAR(s.t)) return distToSegment(px, py, s.x1, s.y1, s.x2, s.y2) <= Math.max(tol, s.w / 2 + tol / 2);
     const b = bbox(s);
     const t = tol / 2;
@@ -10679,19 +10793,30 @@ const DrawEngine = (() => {
     return Math.abs(px - (b.x + b.w / 2)) <= half;
   }
 
+  /** Οι γραμμές του τετραγωνισμένου πλέγματος σε όλο τον καμβά. */
+  function gridLines(ctx, width, colorValue) {
+    ctx.strokeStyle = colorValue;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    for (let x = GRID; x < W; x += GRID) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    for (let y = GRID; y < H; y += GRID) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    ctx.stroke();
+  }
+
   /**
    * Περικοπή του καμβά στα σχήματα, με περιθώριο.
    * @param {Array} shapes
    * @returns {{url: string, w: number, h: number}}
    */
-  function renderPng(shapes) {
+  function renderPng(shapes, withGrid) {
     let x0 = W; let y0 = H; let x1 = 0; let y1 = 0;
     shapes.forEach(s => {
       const b = bbox(s);
-      const pad = s.t === 'arrow' || s.t === 'darrow' ? s.w * 2 + 12 : s.w / 2 + 6;
+      const pad = COMPONENTS.has(s.t) ? 32 : s.t === 'arrow' || s.t === 'darrow' ? s.w * 2 + 12 : s.w / 2 + 6;
       x0 = Math.min(x0, b.x - pad); y0 = Math.min(y0, b.y - pad);
       x1 = Math.max(x1, b.x + b.w + pad); y1 = Math.max(y1, b.y + b.h + pad);
     });
+    if (withGrid) { x0 = 0; y0 = 0; x1 = W; y1 = H; }
     x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0));
     x1 = Math.min(W, Math.ceil(x1)); y1 = Math.min(H, Math.ceil(y1));
     const w = Math.max(1, x1 - x0);
@@ -10703,6 +10828,11 @@ const DrawEngine = (() => {
     const ctx = canvas.getContext('2d');
     ctx.scale(k, k);
     ctx.translate(-x0, -y0);
+    if (withGrid) {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, W, H);
+      gridLines(ctx, 0.5, '#CBD5E1');
+    }
     shapes.forEach(s => paintShape(ctx, s));
     return { url: canvas.toDataURL('image/png'), w, h };
   }
@@ -10733,7 +10863,10 @@ const DrawEngine = (() => {
     let undoStack = [];
     let redoStack = [];
     let snapGuides = true;
-    let snapGrid = false;
+    let snapGrid = !!(initial && initial.grid);
+    let printGrid = !!(initial && initial.gp);
+    let gridTouched = !!initial;
+    let wire = null;
     const snapshot = () => JSON.stringify(shapes);
     let last = snapshot();
 
@@ -10781,6 +10914,7 @@ const DrawEngine = (() => {
     };
 
     const handlesOf = s => {
+      if (s.t === 'wire') return s.pts.map(([x, y], i) => [`v${i}`, x, y]);
       if (LINEAR(s.t)) return [['p1', s.x1, s.y1], ['p2', s.x2, s.y2]];
       const b = bbox(s);
       const xm = b.x + b.w / 2;
@@ -10804,16 +10938,9 @@ const DrawEngine = (() => {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, W, H);
       const k = scale();
-      if (snapGrid) {
-        ctx.strokeStyle = '#E2E8F0';
-        ctx.lineWidth = 1 * k;
-        ctx.beginPath();
-        for (let x = GRID; x < W; x += GRID) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
-        for (let y = GRID; y < H; y += GRID) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
-        ctx.stroke();
-      }
+      if (snapGrid || printGrid) gridLines(ctx, 1 * k, snapGrid ? '#D5DDE8' : '#E8EDF3');
       shapes.forEach(s => { if (s !== editing) paintShape(ctx, s); });
-      if (selected && shapes.includes(selected)) {
+      if (selected && shapes.includes(selected) && selected !== wire) {
         ctx.save();
         ctx.strokeStyle = '#2563EB';
         ctx.lineWidth = 1 * k;
@@ -10871,6 +10998,8 @@ const DrawEngine = (() => {
       redoBtn.disabled = !redoStack.length;
       status.textContent = s ? `${SHAPE_NAMES[s.t]} · Delete για διαγραφή, βέλη για μετατόπιση, Ctrl+D για αντίγραφο`
         : tool === 'select' ? 'Διάλεξε ένα εργαλείο από αριστερά και σύρε στον καμβά. Με το βέλος επιλέγεις και μετακινείς σχήματα.'
+          : tool === 'wire' ? 'Κλικ για να ξεκινήσεις και κλικ σε κάθε γωνία. Διπλό κλικ ή Enter για τέλος· Shift: ελεύθερη γωνία.'
+          : CIRCUIT(tool) ? 'Σύρε από το ένα άκρο του στοιχείου στο άλλο (Shift: ελεύθερη γωνία). Το πλέγμα βοηθά στην ευθυγράμμιση.'
           : tool === 'text' ? 'Κάνε κλικ στον καμβά και γράψε. Enter για τέλος, Shift+Enter για νέα γραμμή.'
           : tool === 'fill' ? 'Κάνε κλικ μέσα σε ένα κλειστό σχήμα για να το γεμίσεις με το χρώμα γεμίσματος.'
             : 'Σύρε στον καμβά για να σχεδιάσεις. Οι ροζ γραμμές δείχνουν ευθυγράμμιση.';
@@ -10893,10 +11022,41 @@ const DrawEngine = (() => {
       last = json;
       redraw();
     };
-    const undo = () => { if (!undoStack.length) return; redoStack.push(last); restore(undoStack.pop()); };
-    const redo = () => { if (!redoStack.length) return; undoStack.push(last); restore(redoStack.pop()); };
+    const undo = () => { finishWire(); if (!undoStack.length) return; redoStack.push(last); restore(undoStack.pop()); };
+    const redo = () => { finishWire(); if (!redoStack.length) return; undoStack.push(last); restore(redoStack.pop()); };
 
-    const setTool = t => { tool = t; if (t !== 'select') selected = null; redraw(); };
+    /** Τελειώνει τον αγωγό που σχεδιάζεται: αφαιρεί το σημείο που ακολουθεί το ποντίκι και τις διπλές κορυφές. */
+    const finishWire = () => {
+      if (!wire) return;
+      const s = wire;
+      wire = null;
+      s.pts.pop();
+      s.pts = s.pts.filter((q, i) => !i || q[0] !== s.pts[i - 1][0] || q[1] !== s.pts[i - 1][1]);
+      if (s.pts.length < 2) {
+        shapes = shapes.filter(x => x !== s);
+        selected = null;
+      } else {
+        syncWire(s);
+        selected = s;
+      }
+      tool = 'select';
+      guides = { x: [], y: [] };
+      commit();
+      redraw();
+    };
+    const setTool = t => {
+      finishWire();
+      tool = t;
+      if (t !== 'select') selected = null;
+      if (CIRCUIT(t) && !gridTouched && !snapGrid) { snapGrid = true; gridCheck.checked = true; }
+      redraw();
+    };
+    const ortho = (a, q) => (Math.abs(q.x - a.x) >= Math.abs(q.y - a.y) ? { x: q.x, y: a.y } : { x: a.x, y: q.y });
+    /** Μετακινεί ένα σχήμα (και τις κορυφές ενός αγωγού) κατά (dx, dy) από την αρχική του θέση `o`. */
+    const place = (s, o, dx, dy) => {
+      s.x1 = o.x1 + dx; s.x2 = o.x2 + dx; s.y1 = o.y1 + dy; s.y2 = o.y2 + dy;
+      if (o.pts) s.pts = o.pts.map(([x, y]) => [x + dx, y + dy]);
+    };
     const remove = () => {
       if (!selected) return;
       shapes = shapes.filter(s => s !== selected);
@@ -10909,7 +11069,7 @@ const DrawEngine = (() => {
       const copy = { ...selected };
       const dx = Math.min(20, W - Math.max(copy.x1, copy.x2));
       const dy = Math.min(20, H - Math.max(copy.y1, copy.y2));
-      copy.x1 += dx; copy.x2 += dx; copy.y1 += dy; copy.y2 += dy;
+      place(copy, selected, dx, dy);
       shapes.push(copy);
       selected = copy;
       commit();
@@ -10927,7 +11087,7 @@ const DrawEngine = (() => {
       const b = bbox(selected);
       const mx = Util.clamp(dx, -b.x, W - (b.x + b.w));
       const my = Util.clamp(dy, -b.y, H - (b.y + b.h));
-      selected.x1 += mx; selected.x2 += mx; selected.y1 += my; selected.y2 += my;
+      place(selected, { ...selected }, mx, my);
       commit();
       redraw();
     };
@@ -10993,6 +11153,7 @@ const DrawEngine = (() => {
       redraw();
     };
     canvas.addEventListener('dblclick', e => {
+      if (wire) { finishWire(); return; }
       const s = shapeAt(pos(e));
       if (s && s.t === 'text') { selected = s; editText(s, false); }
     });
@@ -11025,6 +11186,25 @@ const DrawEngine = (() => {
         }
         return;
       }
+      if (tool === 'wire') {
+        const a = snapPoint(p, wire);
+        if (!wire) {
+          if (shapes.length >= MAX_SHAPES) { Toast.show(`Έως ${MAX_SHAPES} σχήματα σε κάθε σχέδιο`, 'warning'); return; }
+          wire = { t: 'wire', x1: a.x, y1: a.y, x2: a.x, y2: a.y, pts: [[a.x, a.y], [a.x, a.y]], stroke, fill: null, w: lineW, d: dash };
+          shapes.push(wire);
+          selected = wire;
+        } else {
+          const n = wire.pts.length;
+          const [qx, qy] = wire.pts[n - 1];
+          const [px, py] = wire.pts[n - 2];
+          if (qx !== px || qy !== py) {
+            if (n >= MAX_PTS) { finishWire(); return; }
+            wire.pts.push([qx, qy]);
+          }
+        }
+        redraw();
+        return;
+      }
       canvas.setPointerCapture(e.pointerId);
       if (tool === 'select') {
         const h = selected ? handleAt(selected, p) : null;
@@ -11051,16 +11231,30 @@ const DrawEngine = (() => {
     const RESIZE_CURSORS = { nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize', p1: 'move', p2: 'move' };
     canvas.addEventListener('pointermove', e => {
       const p = pos(e);
+      if (wire) {
+        const n = wire.pts.length;
+        let q = snapPoint(p, wire);
+        if (!e.shiftKey) q = ortho({ x: wire.pts[n - 2][0], y: wire.pts[n - 2][1] }, q);
+        wire.pts[n - 1] = [q.x, q.y];
+        redraw();
+        return;
+      }
       if (!drag) {
         if (tool === 'select') {
           const h = selected ? handleAt(selected, p) : null;
-          canvas.style.cursor = h ? RESIZE_CURSORS[h[0]] : shapeAt(p) ? 'move' : 'default';
+          canvas.style.cursor = h ? RESIZE_CURSORS[h[0]] || 'move' : shapeAt(p) ? 'move' : 'default';
         }
         return;
       }
       const s = drag.shape;
       if (drag.mode === 'create') {
-        const q = snapPoint(e.shiftKey ? constrain(drag.anchor, p, s.t) : p, s);
+        let q;
+        if (COMPONENTS.has(s.t)) {
+          q = snapPoint(p, s);
+          if (!e.shiftKey) q = ortho(drag.anchor, q);
+        } else {
+          q = snapPoint(e.shiftKey ? constrain(drag.anchor, p, s.t) : p, s);
+        }
         s.x2 = q.x;
         s.y2 = q.y;
       } else if (drag.mode === 'move') {
@@ -11075,12 +11269,30 @@ const DrawEngine = (() => {
         guides = { x: sx.g === null ? [] : [sx.g], y: sy.g === null ? [] : [sy.g] };
         dx = Util.clamp(dx, -b.x, W - (b.x + b.w));
         dy = Util.clamp(dy, -b.y, H - (b.y + b.h));
-        s.x1 = o.x1 + dx; s.x2 = o.x2 + dx; s.y1 = o.y1 + dy; s.y2 = o.y2 + dy;
+        place(s, o, dx, dy);
       } else {
         const o = drag.orig;
-        if (drag.handle === 'p1' || drag.handle === 'p2') {
+        if (s.t === 'wire') {
+          const i = Number(drag.handle.slice(1));
+          const q = snapPoint(p, s);
+          const pts = o.pts.map(v => v.slice());
+          pts[i] = [q.x, q.y];
+          [i - 1, i + 1].forEach(j => {
+            if (j <= 0 || j >= pts.length - 1) return;
+            if (o.pts[j][1] === o.pts[i][1]) pts[j][1] = q.y;
+            else if (o.pts[j][0] === o.pts[i][0]) pts[j][0] = q.x;
+          });
+          s.pts = pts;
+          syncWire(s);
+        } else if (drag.handle === 'p1' || drag.handle === 'p2') {
           const fixed = drag.handle === 'p1' ? { x: o.x2, y: o.y2 } : { x: o.x1, y: o.y1 };
-          const q = snapPoint(e.shiftKey ? constrain(fixed, p, 'line') : p, s);
+          let q;
+          if (COMPONENTS.has(s.t)) {
+            q = snapPoint(p, s);
+            if (!e.shiftKey) q = ortho(fixed, q);
+          } else {
+            q = snapPoint(e.shiftKey ? constrain(fixed, p, 'line') : p, s);
+          }
           if (drag.handle === 'p1') { s.x1 = q.x; s.y1 = q.y; } else { s.x2 = q.x; s.y2 = q.y; }
         } else if (s.t === 'text') {
           const hn = drag.handle;
@@ -11203,8 +11415,10 @@ const DrawEngine = (() => {
     });
     const guidesCheck = Util.h('input', { type: 'checkbox', checked: true });
     guidesCheck.addEventListener('change', () => { snapGuides = guidesCheck.checked; });
-    const gridCheck = Util.h('input', { type: 'checkbox' });
-    gridCheck.addEventListener('change', () => { snapGrid = gridCheck.checked; redraw(); });
+    const gridCheck = Util.h('input', { type: 'checkbox', checked: snapGrid });
+    gridCheck.addEventListener('change', () => { snapGrid = gridCheck.checked; gridTouched = true; redraw(); });
+    const printCheck = Util.h('input', { type: 'checkbox', checked: printGrid });
+    printCheck.addEventListener('change', () => { printGrid = printCheck.checked; redraw(); });
     const clearBtn = Util.h('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: 'Καθαρισμός όλων' });
     clearBtn.addEventListener('click', () => {
       if (!shapes.length) return;
@@ -11217,7 +11431,7 @@ const DrawEngine = (() => {
     const root = Util.h('div', { class: 'draw-layout' },
       Util.h('div', { class: 'draw-main' },
         Util.h('div', { class: 'draw-tools', role: 'toolbar', 'aria-label': 'Εργαλεία σχεδίασης' },
-          toolButtons.map(([, b]) => b),
+          toolButtons.flatMap(([key, b]) => (key === 'wire' ? [Util.h('span', { class: 'draw-tools-sep' }), b] : [b])),
           Util.h('span', { class: 'draw-tools-sep' }), undoBtn, redoBtn, Util.h('span', { class: 'draw-tools-sep' }),
           dupBtn, frontBtn, backBtn, deleteBtn),
         stage),
@@ -11231,8 +11445,10 @@ const DrawEngine = (() => {
       Util.h('div', { class: 'draw-props' },
         Util.h('label', { class: 'check' }, guidesCheck, 'Οδηγοί snap (κέντρο, άκρες άλλων σχημάτων)',
           Util.tip('Όταν σύρεις ή αλλάζεις μέγεθος, το σχήμα «κολλά» στο κέντρο και στα όρια του καμβά και στις άκρες ή στο κέντρο των άλλων σχημάτων. Οι ροζ γραμμές δείχνουν την ευθυγράμμιση.')),
-        Util.h('label', { class: 'check' }, gridCheck, 'Πλέγμα',
-          Util.tip('Εμφανίζει πλέγμα και κολλά τα σχήματα στους κόμβους του.')),
+        Util.h('label', { class: 'check' }, gridCheck, 'Τετραγωνισμένη επιφάνεια (πλέγμα και snap)',
+          Util.tip('Εμφανίζει τετραγωνισμένο πλέγμα και κολλά τα σχήματα και τους αγωγούς στους κόμβους του. Ενεργοποιείται αυτόματα όταν διαλέξεις εργαλείο κυκλώματος.')),
+        Util.h('label', { class: 'check' }, printCheck, 'Το πλέγμα φαίνεται στο φύλλο',
+          Util.tip('Το τετραγωνισμένο φόντο μπαίνει και στην εικόνα που εισάγεται στο φύλλο, με λευκό φόντο σε όλη την επιφάνεια.')),
         clearBtn));
 
     root.addEventListener('keydown', e => {
@@ -11241,7 +11457,8 @@ const DrawEngine = (() => {
       const step = e.shiftKey ? 10 : 1;
       const hot = !mod && !e.altKey && e.target === canvas ? TOOLS.find(t => t[3].toLowerCase() === e.key.toLowerCase()) : null;
       let handled = true;
-      if (mod && e.code === 'KeyZ') { if (e.shiftKey) redo(); else undo(); }
+      if (wire && (e.key === 'Enter' || e.key === 'Escape')) finishWire();
+      else if (mod && e.code === 'KeyZ') { if (e.shiftKey) redo(); else undo(); }
       else if (mod && e.code === 'KeyY') redo();
       else if (mod && e.code === 'KeyD') duplicate();
       else if (e.key === 'Delete' || e.key === 'Backspace') remove();
@@ -11255,13 +11472,14 @@ const DrawEngine = (() => {
     });
 
     const submit = async () => {
+      finishWire();
       if (!shapes.length) {
         Toast.show('Σχεδίασε τουλάχιστον ένα σχήμα', 'warning');
         return false;
       }
       try {
-        const { url, w } = renderPng(shapes);
-        const json = JSON.stringify({ v: 1, cw: w, shapes });
+        const { url, w } = renderPng(shapes, printGrid);
+        const json = JSON.stringify({ v: 1, cw: w, grid: snapGrid ? 1 : 0, gp: printGrid ? 1 : 0, shapes });
         if (image && document.contains(image)) {
           const before = initial && Number(initial.cw);
           const pct = parseFloat(image.style.width);
