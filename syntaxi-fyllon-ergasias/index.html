@@ -1028,8 +1028,8 @@ kbd {
 .doc-content .wf-quiz-print .wf-quiz-opt { margin-left: 6mm; }
 .draw-layout { display: flex; flex-direction: column; gap: 12px; }
 .draw-main { display: flex; gap: 12px; align-items: flex-start; }
-.draw-tools { display: flex; flex-direction: column; gap: 6px; }
-.draw-tools-sep { height: 1px; background: var(--border); margin: 2px 0; }
+.draw-tools { display: grid; grid-template-columns: repeat(2, auto); gap: 6px; align-content: start; }
+.draw-tools-sep { grid-column: 1 / -1; height: 1px; background: var(--border); margin: 2px 0; }
 .draw-btn { padding: 6px; justify-content: center; }
 .draw-btn[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #FFFFFF; }
 .draw-btn:disabled { opacity: 0.4; cursor: default; }
@@ -1867,6 +1867,12 @@ const Util = (() => {
     'draw-circle': ['M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z'],
     'draw-square': ['M5 5h14v14H5z'],
     'draw-triangle': ['M12 4l9 16H3z'],
+    'draw-arrow': ['M5 19L19 5', 'M10 5h9v9'],
+    'draw-darrow': ['M5 19L19 5', 'M10 5h9v9', 'M14 19H5v-9'],
+    'draw-spiral': ['M12 12a1.5 1.5 0 0 1 3 0 3 3 0 0 1-6 0 4.5 4.5 0 0 1 9 0 6 6 0 0 1-12 0'],
+    'draw-boy': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 7v7.5', 'M12 9.5l-3.5 3.5', 'M12 9.5l3.5 3.5', 'M12 14.5l-3 6', 'M12 14.5l3 6'],
+    'draw-girl': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 8.5l-4.5 8h9z', 'M10 16.5v4', 'M14 16.5v4', 'M10.3 11.5l-2.5 3', 'M13.7 11.5l2.5 3'],
+    'draw-cart': ['M3 7h18v8H3z', 'M8 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M16 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M1.5 11h1.5', 'M21 11h1.5'],
     quiz: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7', 'M12 17h.01'],
     'draw-text': ['M5 6V4h14v2', 'M12 4v16', 'M9 20h6'],
     'draw-fill': ['M5 11l6-6 8 8-6 6z', 'M11 5L9 3', 'M19 15c1 1.5 1.5 2.5 1.5 3.5a1.5 1.5 0 0 1-3 0c0-1 .5-2 1.5-3.5z'],
@@ -10483,11 +10489,40 @@ const DrawEngine = (() => {
     ['ellipse', 'draw-circle', 'Κύκλος / έλλειψη (Shift: τέλειος κύκλος)', 'O'],
     ['rect', 'draw-square', 'Τετράγωνο / ορθογώνιο (Shift: τέλειο τετράγωνο)', 'R'],
     ['triangle', 'draw-triangle', 'Τρίγωνο', 'T'],
+    ['arrow', 'draw-arrow', 'Βέλος (Shift: ευθεία ή 45°)', 'A'],
+    ['darrow', 'draw-darrow', 'Διπλό βέλος (Shift: ευθεία ή 45°)', 'D'],
+    ['spiral', 'draw-spiral', 'Σπιράλ', 'S'],
+    ['boy', 'draw-boy', 'Αγόρι', 'B'],
+    ['girl', 'draw-girl', 'Κορίτσι', 'G'],
+    ['cart', 'draw-cart', 'Εργαστηριακό αμαξίδιο', 'C'],
     ['text', 'draw-text', 'Κείμενο (κλικ στον καμβά· διπλό κλικ για αλλαγή)', 'X'],
     ['fill', 'draw-fill', 'Γέμισμα κλειστού σχήματος με το χρώμα γεμίσματος', 'F']
   ];
   const FONT_FAMILY = 'system-ui, Arial, sans-serif';
-  const SHAPE_NAMES = { line: 'Γραμμή', ellipse: 'Κύκλος / έλλειψη', rect: 'Τετράγωνο / ορθογώνιο', triangle: 'Τρίγωνο', text: 'Κείμενο' };
+  const SHAPE_NAMES = { line: 'Γραμμή', ellipse: 'Κύκλος / έλλειψη', rect: 'Τετράγωνο / ορθογώνιο', triangle: 'Τρίγωνο', text: 'Κείμενο',
+    arrow: 'Βέλος', darrow: 'Διπλό βέλος', spiral: 'Σπιράλ', boy: 'Αγόρι', girl: 'Κορίτσι', cart: 'Εργαστηριακό αμαξίδιο'
+  };
+  const LINEAR = t => t === 'line' || t === 'arrow' || t === 'darrow';
+  const FILLABLE = t => t === 'ellipse' || t === 'rect' || t === 'triangle';
+  /** Απλά σύμβολα με γραμμές, σε δικό τους χώρο σχεδίασης (w×h): κύκλοι [cx, cy, r] και πολυγραμμές [σημεία, κλειστή;]. */
+  const SYMBOLS = (() => {
+    const spiral = [];
+    for (let i = 0; i <= 160; i++) {
+      const th = i / 160 * Math.PI * 4;
+      const r = th / (Math.PI * 4) * 48;
+      spiral.push([+(50 + r * Math.cos(th)).toFixed(1), +(50 + r * Math.sin(th)).toFixed(1)]);
+    }
+    return {
+      spiral: { w: 100, h: 100, c: [], p: [[spiral]] },
+      boy: { w: 100, h: 200, c: [[50, 25, 18]], p: [[[[50, 43], [50, 115]]], [[[50, 62], [22, 102]]], [[[50, 62], [78, 102]]], [[[50, 115], [32, 185]]], [[[50, 115], [68, 185]]]] },
+      girl: {
+        w: 100, h: 200, c: [[50, 25, 18]],
+        p: [[[[32, 20], [24, 40]]], [[[68, 20], [76, 40]]], [[[50, 45], [22, 125], [78, 125]], true], [[[40, 62], [20, 102]]], [[[60, 62], [80, 102]]], [[[40, 125], [40, 185]]], [[[60, 125], [60, 185]]]]
+      },
+      cart: { w: 160, h: 80, c: [[42, 66, 10], [118, 66, 10]], p: [[[[12, 18], [148, 18], [148, 56], [12, 56]], true], [[[2, 37], [12, 37]]], [[[148, 37], [158, 37]]]] }
+    };
+  })();
+
 
   const num = (v, min, max, fallback) => {
     const n = Number(v);
@@ -10507,7 +10542,7 @@ const DrawEngine = (() => {
         t: s.t,
         x1: num(s.x1, 0, W, 0), y1: num(s.y1, 0, H, 0), x2: num(s.x2, 0, W, 0), y2: num(s.y2, 0, H, 0),
         stroke: color(s.stroke, SWATCHES[0]),
-        fill: s.t !== 'line' && s.t !== 'text' && s.fill ? color(s.fill, null) : null,
+        fill: FILLABLE(s.t) && s.fill ? color(s.fill, null) : null,
         w: num(s.w, 1, 12, 2),
         d: s.t === 'text' ? 0 : Math.round(num(s.d, 0, 2, 0))
       };
@@ -10553,9 +10588,11 @@ const DrawEngine = (() => {
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.beginPath();
-    if (s.t === 'line') {
+    if (LINEAR(s.t)) {
       ctx.moveTo(s.x1, s.y1);
       ctx.lineTo(s.x2, s.y2);
+    } else if (SYMBOLS[s.t]) {
+      symbolPath(ctx, b, SYMBOLS[s.t]);
     } else if (s.t === 'ellipse') {
       ctx.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, b.h / 2, 0, 0, Math.PI * 2);
     } else if (s.t === 'rect') {
@@ -10573,6 +10610,39 @@ const DrawEngine = (() => {
     if (s.d) ctx.setLineDash(s.d === 1 ? [Math.max(8, s.w * 4), Math.max(5, s.w * 2.5)] : [0.1, s.w * 2.2]);
     ctx.stroke();
     ctx.setLineDash([]);
+    if (s.t === 'arrow' || s.t === 'darrow') {
+      arrowHead(ctx, s, s.x2, s.y2, s.x1, s.y1);
+      if (s.t === 'darrow') arrowHead(ctx, s, s.x1, s.y1, s.x2, s.y2);
+    }
+  }
+
+  /** Η αιχμή ενός βέλους στο (x, y), με κατεύθυνση από το (fx, fy). */
+  function arrowHead(ctx, s, x, y, fx, fy) {
+    const len = Math.hypot(x - fx, y - fy);
+    if (!len) return;
+    const head = Math.min(10 + s.w * 3, len * 0.6);
+    const ang = Math.atan2(y - fy, x - fx);
+    ctx.beginPath();
+    [-1, 1].forEach(side => {
+      ctx.moveTo(x - head * Math.cos(ang + side * 0.5), y - head * Math.sin(ang + side * 0.5));
+      ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  /** Ζωγραφίζει ένα σύμβολο μέσα στο πλαίσιο `b`, χωρίς να παραμορφώνεται (κεντραρισμένο). */
+  function symbolPath(ctx, b, sym) {
+    const k = Math.min(b.w / sym.w, b.h / sym.h);
+    const ox = b.x + (b.w - sym.w * k) / 2;
+    const oy = b.y + (b.h - sym.h * k) / 2;
+    sym.c.forEach(([cx, cy, r]) => {
+      ctx.moveTo(ox + (cx + r) * k, oy + cy * k);
+      ctx.arc(ox + cx * k, oy + cy * k, r * k, 0, Math.PI * 2);
+    });
+    sym.p.forEach(([pts, closed]) => {
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(ox + x * k, oy + y * k) : ctx.moveTo(ox + x * k, oy + y * k)));
+      if (closed) ctx.closePath();
+    });
   }
 
   const distToSegment = (px, py, ax, ay, bx, by) => {
@@ -10592,11 +10662,11 @@ const DrawEngine = (() => {
    * @returns {boolean}
    */
   function hit(s, px, py, tol) {
-    if (s.t === 'line') return distToSegment(px, py, s.x1, s.y1, s.x2, s.y2) <= Math.max(tol, s.w / 2 + tol / 2);
+    if (LINEAR(s.t)) return distToSegment(px, py, s.x1, s.y1, s.x2, s.y2) <= Math.max(tol, s.w / 2 + tol / 2);
     const b = bbox(s);
     const t = tol / 2;
     if (px < b.x - t || px > b.x + b.w + t || py < b.y - t || py > b.y + b.h + t) return false;
-    if (s.t === 'rect' || s.t === 'text') return true;
+    if (s.t !== 'ellipse' && s.t !== 'triangle') return true;
     if (s.t === 'ellipse') {
       const rx = b.w / 2 + t;
       const ry = b.h / 2 + t;
@@ -10618,7 +10688,7 @@ const DrawEngine = (() => {
     let x0 = W; let y0 = H; let x1 = 0; let y1 = 0;
     shapes.forEach(s => {
       const b = bbox(s);
-      const pad = s.w / 2 + 6;
+      const pad = s.t === 'arrow' || s.t === 'darrow' ? s.w * 2 + 12 : s.w / 2 + 6;
       x0 = Math.min(x0, b.x - pad); y0 = Math.min(y0, b.y - pad);
       x1 = Math.max(x1, b.x + b.w + pad); y1 = Math.max(y1, b.y + b.h + pad);
     });
@@ -10711,7 +10781,7 @@ const DrawEngine = (() => {
     };
 
     const handlesOf = s => {
-      if (s.t === 'line') return [['p1', s.x1, s.y1], ['p2', s.x2, s.y2]];
+      if (LINEAR(s.t)) return [['p1', s.x1, s.y1], ['p2', s.x2, s.y2]];
       const b = bbox(s);
       const xm = b.x + b.w / 2;
       const ym = b.y + b.h / 2;
@@ -10747,7 +10817,7 @@ const DrawEngine = (() => {
         ctx.save();
         ctx.strokeStyle = '#2563EB';
         ctx.lineWidth = 1 * k;
-        if (selected.t !== 'line') {
+        if (!LINEAR(selected.t)) {
           const b = bbox(selected);
           ctx.setLineDash([5 * k, 4 * k]);
           ctx.strokeRect(b.x, b.y, b.w, b.h);
@@ -10781,7 +10851,7 @@ const DrawEngine = (() => {
       if (s) {
         stroke = s.stroke;
         if (s.t === 'text') textSize = s.size;
-        else { dash = s.d; lineW = s.w; if (s.t !== 'line') fill = s.fill; }
+        else { dash = s.d; lineW = s.w; if (FILLABLE(s.t)) fill = s.fill; }
       }
       Object.entries(swatchRows).forEach(([kind, row]) => {
         const cur = kind === 'stroke' ? stroke : fill;
@@ -10865,7 +10935,7 @@ const DrawEngine = (() => {
     const constrain = (a, p, t) => {
       let dx = p.x - a.x;
       let dy = p.y - a.y;
-      if (t === 'line') {
+      if (LINEAR(t)) {
         const ang = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
         const len = Math.hypot(dx, dy);
         dx = Math.cos(ang) * len;
@@ -10946,7 +11016,7 @@ const DrawEngine = (() => {
       }
       if (tool === 'fill') {
         const s = shapeAt(p);
-        if (s && s.t !== 'line') {
+        if (s && FILLABLE(s.t)) {
           s.fill = fill;
           commit();
           redraw();
@@ -10972,7 +11042,7 @@ const DrawEngine = (() => {
         return;
       }
       const a = snapPoint(p, null);
-      const s = { t: tool, x1: a.x, y1: a.y, x2: a.x, y2: a.y, stroke, fill: tool === 'line' ? null : fill, w: lineW, d: dash };
+      const s = { t: tool, x1: a.x, y1: a.y, x2: a.x, y2: a.y, stroke, fill: FILLABLE(tool) ? fill : null, w: lineW, d: dash };
       shapes.push(s);
       selected = s;
       drag = { mode: 'create', anchor: a, shape: s };
@@ -11052,7 +11122,7 @@ const DrawEngine = (() => {
       const s = drag.shape;
       if (drag.mode === 'create') {
         const b = bbox(s);
-        const tiny = s.t === 'line' ? Math.hypot(b.w, b.h) < 3 : b.w < 3 && b.h < 3;
+        const tiny = LINEAR(s.t) ? Math.hypot(b.w, b.h) < 3 : b.w < 3 && b.h < 3;
         if (tiny) {
           shapes = shapes.filter(x => x !== s);
           selected = null;
@@ -11088,7 +11158,7 @@ const DrawEngine = (() => {
       const apply = value => {
         if (kind === 'stroke') stroke = value; else fill = value;
         const s = selected && shapes.includes(selected) ? selected : null;
-        if (s && (kind === 'stroke' || s.t !== 'line')) {
+        if (s && (kind === 'stroke' || FILLABLE(s.t))) {
           if (kind === 'stroke') s.stroke = value; else s.fill = value;
           commit();
         }
