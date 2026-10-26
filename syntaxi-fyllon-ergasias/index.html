@@ -5421,6 +5421,14 @@ const EditorManager = (() => {
       MathEngine.open({ sectionId: block.id, node: math });
       return;
     }
+    const embedBar = e.target.closest && e.target.closest('.wf-embed-bar');
+    const embed = embedBar && embedBar.closest('.wf-embed');
+    if (embed && block.content.contains(embed)) {
+      e.preventDefault();
+      InsertTools.hideOverlays();
+      Embeds.open({ sectionId: block.id, node: embed });
+      return;
+    }
     const quiz = e.target.closest && e.target.closest('.wf-quiz');
     if (quiz && block.content.contains(quiz)) {
       e.preventDefault();
@@ -9051,6 +9059,23 @@ const Embeds = (() => {
     }
   }
 
+  /** Ο κώδικας iframe μιας ενσωμάτωσης, όπως επεξεργάζεται στον διάλογο. */
+  function codeOf(node) {
+    const attr = v => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const src = node.getAttribute('data-src') || '';
+    const title = node.getAttribute('data-title') || '';
+    return `<iframe src="${attr(src)}" title="${attr(title)}" width="100%" height="${Number(node.getAttribute('data-height')) || 360}"></iframe>`;
+  }
+
+  /** Το ύψος και ο τίτλος που δίνει ένας κώδικας iframe (αν είναι κώδικας iframe). */
+  function frameAttrs(raw) {
+    if (!/<iframe/i.test(raw || '')) return null;
+    const frame = new DOMParser().parseFromString(raw, 'text/html').querySelector('iframe');
+    if (!frame) return null;
+    const height = parseInt(frame.getAttribute('height'), 10);
+    return { height: Number.isFinite(height) ? Util.clamp(height, 120, 1200) : null, title: (frame.getAttribute('title') || '').trim() };
+  }
+
   /**
    * Μετατρέπει χρόνο YouTube (π.χ. 90, 1m30s) σε δευτερόλεπτα.
    * @param {string|null} t
@@ -9144,7 +9169,7 @@ const Embeds = (() => {
     const href = node.getAttribute('data-href') || src;
     const title = node.getAttribute('data-title') || hostOf(href) || 'Ενσωματωμένο περιεχόμενο';
     const height = Number(node.getAttribute('data-height')) || 360;
-    const bar = Util.h('div', { class: 'wf-embed-bar', title: 'Κλικ για επιλογή: μέγεθος, θέση, επεξεργασία' },
+    const bar = Util.h('div', { class: 'wf-embed-bar', title: 'Κλικ για επιλογή: μέγεθος, θέση, επεξεργασία · Διπλό κλικ: επεξεργασία κώδικα iframe' },
       Util.icon('embed', 16), Util.h('span', { class: 'wf-embed-title', text: title }), Util.h('span', { class: 'wf-embed-host', text: hostOf(href) }));
     let body;
     if (Util.inArtifact()) {
@@ -9215,15 +9240,22 @@ const Embeds = (() => {
     const editing = o.node || null;
     const id = editing ? o.sectionId : InsertTools.target(o.sectionId);
     if (!id) return;
-    const urlInput = Util.h('input', { class: 'input', type: 'text', placeholder: 'π.χ. https://phet.colorado.edu/el/simulations/projectile-motion', value: editing ? editing.getAttribute('data-href') || '' : '' });
+    const initialRaw = editing ? codeOf(editing) : '';
+    const urlInput = Util.h('textarea', { class: 'input', rows: editing ? '3' : '2', spellcheck: 'false', placeholder: 'π.χ. https://phet.colorado.edu/el/simulations/projectile-motion ή <iframe src="…"></iframe>' });
+    urlInput.value = initialRaw;
     const titleInput = Util.h('input', { class: 'input', type: 'text', maxlength: '200', placeholder: 'Τίτλος (εμφανίζεται και στην έντυπη μορφή)', value: editing ? editing.getAttribute('data-title') || '' : '' });
     const heightSelect = Util.h('select', { class: 'input' }, HEIGHTS.map(hgt => Util.h('option', { value: String(hgt), text: `${hgt} px` })));
-    heightSelect.value = editing ? editing.getAttribute('data-height') : '360';
-    if (!heightSelect.value) heightSelect.value = '360';
+    const setHeight = v => {
+      if (!Array.from(heightSelect.options).some(o => o.value === String(v))) heightSelect.append(Util.h('option', { value: String(v), text: `${v} px` }));
+      heightSelect.value = String(v);
+    };
+    setHeight(editing ? Number(editing.getAttribute('data-height')) || 360 : 360);
     const info = Util.h('p', { class: 'hint embed-info' });
     const frameHost = Util.h('div', { class: 'embed-preview' });
     let current = null;
     let autoTitle = null;
+    let lastFrameHeight = null;
+    let lastFrameTitle = null;
     const update = Util.debounce(() => {
       const href = extractUrl(urlInput.value);
       if (!href) {
@@ -9234,9 +9266,12 @@ const Embeds = (() => {
       }
       const r = resolve(href);
       const changed = !current || current.src !== r.src;
+      const attrs = urlInput.value.trim() !== initialRaw ? frameAttrs(urlInput.value) : null;
+      if (attrs && attrs.height && attrs.height !== lastFrameHeight) { lastFrameHeight = attrs.height; setHeight(attrs.height); }
+      if (attrs && attrs.title && attrs.title !== lastFrameTitle) { lastFrameTitle = attrs.title; titleInput.value = attrs.title; autoTitle = attrs.title; }
       current = { ...r, href };
       info.textContent = r.src === href ? `Θα ενσωματωθεί όπως είναι: ${hostOf(href)}` : `Αναγνωρίστηκε: ${r.provider} · ${r.src}`;
-      if (!titleInput.value.trim() || titleInput.value === autoTitle) {
+      if (!(attrs && attrs.title) && (!titleInput.value.trim() || titleInput.value === autoTitle)) {
         titleInput.value = r.title;
         autoTitle = r.title;
       }
@@ -9256,7 +9291,7 @@ const Embeds = (() => {
     Modal.open({
       title: editing ? 'Επεξεργασία ενσωμάτωσης' : 'Ενσωμάτωση περιεχομένου (iframe)', size: 'md',
       body: Util.h('div', { class: 'stack' },
-        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Σύνδεσμος' }), urlInput),
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Σύνδεσμος ή κώδικας iframe' }), urlInput),
         info,
         Util.h('div', { class: 'grid-2' },
           Util.h('label', { class: 'field' }, Util.h('span', { text: 'Τίτλος' }), titleInput),
@@ -9274,8 +9309,10 @@ const Embeds = (() => {
             }
             const data = { src: current.src, href: current.href, title: titleInput.value.trim() || current.title, height: Number(heightSelect.value) };
             if (editing) {
-              editing.setAttribute('data-src', data.src);
-              editing.setAttribute('data-href', data.href);
+              if (urlInput.value.trim() !== initialRaw) {
+                editing.setAttribute('data-src', data.src);
+                editing.setAttribute('data-href', data.href);
+              }
               editing.setAttribute('data-title', data.title.slice(0, 200));
               editing.setAttribute('data-height', String(data.height));
               render(editing);
