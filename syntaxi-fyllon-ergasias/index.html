@@ -1892,6 +1892,17 @@ const Util = (() => {
     'draw-voltmeter': ['M2 12h4', 'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z', 'M9.5 9L12 15l2.5-6', 'M18 12h4'],
     'draw-ruler': ['M3 8h18v8H3z', 'M7 8v3', 'M11 8v4.5', 'M15 8v3', 'M19 8v4.5'],
     'draw-protractor': ['M3 18a9 9 0 0 1 18 0z', 'M12 18v-2.5', 'M5.6 12.6l1.4 1', 'M18.4 12.6L17 13.6', 'M9 9.8l.7 1.2', 'M15 9.8l-.7 1.2'],
+    'draw-spring': ['M2 12h3', 'M5 12c0-7 3-7 3 0s2 7 3 0 2-7 3 0 2 7 3 0', 'M17 12h5'],
+    'draw-group': ['M3 3h8v8H3z', 'M13 13h8v8h-8z', 'M11 7h4v6', 'M7 11v4h6'],
+    'draw-ungroup': ['M3 3h8v8H3z', 'M13 13h8v8h-8z', 'M14 4l6 6', 'M20 4l-6 6'],
+    'align-left': ['M4 3v18', 'M8 6h12v4H8z', 'M8 14h7v4H8z'],
+    'align-hcenter': ['M12 3v18', 'M5 6h14v4H5z', 'M8 14h8v4H8z'],
+    'align-right': ['M20 3v18', 'M4 6h12v4H4z', 'M9 14h7v4H9z'],
+    'align-top': ['M3 4h18', 'M6 8h4v12H6z', 'M14 8h4v7h-4z'],
+    'align-vcenter': ['M3 12h18', 'M6 5h4v14H6z', 'M14 8h4v8h-4z'],
+    'align-bottom': ['M3 20h18', 'M6 4h4v12H6z', 'M14 9h4v7h-4z'],
+    'dist-h': ['M3 4v16', 'M21 4v16', 'M9 7h6v10H9z'],
+    'dist-v': ['M4 3h16', 'M4 21h16', 'M7 9h10v6H7z'],
     'draw-boy': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 7v7.5', 'M12 9.5l-3.5 3.5', 'M12 9.5l3.5 3.5', 'M12 14.5l-3 6', 'M12 14.5l3 6'],
     'draw-girl': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 8.5l-4.5 8h9z', 'M10 16.5v4', 'M14 16.5v4', 'M10.3 11.5l-2.5 3', 'M13.7 11.5l2.5 3'],
     'draw-cart': ['M3 7h18v8H3z', 'M8 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M16 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M1.5 11h1.5', 'M21 11h1.5'],
@@ -10556,6 +10567,7 @@ const DrawEngine = (() => {
     ['cart', 'draw-cart', 'Εργαστηριακό αμαξίδιο', 'C'],
     ['text', 'draw-text', 'Κείμενο (κλικ στον καμβά· διπλό κλικ για αλλαγή)', 'X'],
     ['fill', 'draw-fill', 'Γέμισμα κλειστής περιοχής (σχήμα ή γραμμές που κλείνουν περιοχή) με το χρώμα γεμίσματος', 'F'],
+    ['spring', 'draw-spring', 'Ελατήριο (σύρε από το ένα άκρο στο άλλο· Shift: ευθεία ή 45°)', 'I'],
     ['ruler', 'draw-ruler', 'Χάρακας (σύρε κατά μήκος του· Shift: ευθεία ή 45°)', 'Z'],
     ['protractor', 'draw-protractor', 'Μοιρογνωμόνιο (κέντρο και άκρο της βάσης· Shift: ευθεία ή 45°)', 'N'],
     ['wire', 'draw-wire', 'Αγωγός: συνεχής γραμμή που αλλάζει κατεύθυνση με κάθε κλικ (διπλό κλικ ή Enter για τέλος· Shift: ελεύθερη γωνία)', 'W'],
@@ -10578,11 +10590,11 @@ const DrawEngine = (() => {
   const FONT_FAMILY = 'system-ui, Arial, sans-serif';
   const SHAPE_NAMES = { line: 'Γραμμή', ellipse: 'Κύκλος / έλλειψη', rect: 'Τετράγωνο / ορθογώνιο', triangle: 'Τρίγωνο', text: 'Κείμενο',
     arrow: 'Βέλος', darrow: 'Διπλό βέλος', spiral: 'Σπιράλ', boy: 'Αγόρι', girl: 'Κορίτσι', cart: 'Εργαστηριακό αμαξίδιο',
-    flood: 'Γέμισμα', ruler: 'Χάρακας', protractor: 'Μοιρογνωμόνιο',
+    spring: 'Ελατήριο', flood: 'Γέμισμα', ruler: 'Χάρακας', protractor: 'Μοιρογνωμόνιο',
     wire: 'Αγωγός', resistor: 'Αντίσταση', source: 'Πηγή', switch: 'Διακόπτης (ανοιχτός)', switchc: 'Διακόπτης (κλειστός)',
     capacitor: 'Πυκνωτής', lamp: 'Λαμπτήρας', motor: 'Κινητήρας', ammeter: 'Αμπερόμετρο', voltmeter: 'Βολτόμετρο'
   };
-  const LINEAR = t => t === 'line' || t === 'arrow' || t === 'darrow' || COMPONENTS.has(t) || INSTRUMENTS.has(t);
+  const LINEAR = t => t === 'line' || t === 'arrow' || t === 'darrow' || COMPONENTS.has(t) || INSTRUMENTS.has(t) || t === 'spring';
   const FILLABLE = t => t === 'ellipse' || t === 'rect' || t === 'triangle';
   /** Απλά σύμβολα με γραμμές, σε δικό τους χώρο σχεδίασης (w×h): κύκλοι [cx, cy, r] και πολυγραμμές [σημεία, κλειστή;]. */
   const SYMBOLS = (() => {
@@ -10631,6 +10643,7 @@ const DrawEngine = (() => {
         shape.size = num(s.size, 8, 96, 24);
         fitText(shape);
       }
+      if (typeof s.g === 'string' && s.t !== 'flood') shape.g = s.g.slice(0, 12);
       if (s.t === 'flood') {
         if (!shape.fill) return null;
         shape.x2 = shape.x1;
@@ -10697,6 +10710,8 @@ const DrawEngine = (() => {
     ctx.beginPath();
     if (s.t === 'wire') {
       s.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    } else if (s.t === 'spring') {
+      springPath(ctx, s);
     } else if (LINEAR(s.t)) {
       ctx.moveTo(s.x1, s.y1);
       ctx.lineTo(s.x2, s.y2);
@@ -10723,6 +10738,72 @@ const DrawEngine = (() => {
       arrowHead(ctx, s, s.x2, s.y2, s.x1, s.y1);
       if (s.t === 'darrow') arrowHead(ctx, s, s.x1, s.y1, s.x2, s.y2);
     }
+  }
+
+  /** Το μισό πλάτος του ελατηρίου. */
+  const springHalf = len => Util.clamp(len * 0.06, 6, 14);
+
+  /** Ελατήριο: αγωγοί στα άκρα και σπείρες ανάμεσά τους, από το p1 προς το p2. */
+  function springPath(ctx, s) {
+    const dx = s.x2 - s.x1;
+    const dy = s.y2 - s.y1;
+    const len = Math.hypot(dx, dy);
+    const ux = dx / (len || 1);
+    const uy = dy / (len || 1);
+    const at = (lx, ly) => [s.x1 + lx * ux - ly * uy, s.y1 + lx * uy + ly * ux];
+    const go = (lx, ly, first) => { const [x, y] = at(lx, ly); if (first) ctx.moveTo(x, y); else ctx.lineTo(x, y); };
+    go(0, 0, true);
+    const b = springHalf(len);
+    const lead = Math.min(len * 0.12, 24);
+    const span = len - 2 * lead;
+    if (span < 6) { go(len, 0); return; }
+    const turns = Math.max(3, Math.round(span / (b * 1.5)));
+    const c = span / turns * 0.4;
+    go(lead, 0);
+    const steps = turns * 24;
+    for (let i = 1; i <= steps; i++) {
+      const th = i / steps * turns * Math.PI * 2;
+      go(lead + span * i / steps + c * (1 - Math.cos(th)), b * Math.sin(th));
+    }
+    go(len, 0);
+  }
+
+  /**
+   * Το πραγματικό πλαίσιο ενός σχήματος, μαζί με το σώμα συμβόλων, οργάνων και ελατηρίων που ξεπερνούν τη γραμμή των δύο άκρων.
+   * @returns {{x: number, y: number, w: number, h: number}}
+   */
+  function extent(s) {
+    const special = INSTRUMENTS.has(s.t) || COMPONENTS.has(s.t) || s.t === 'spring';
+    if (!special) return bbox(s);
+    const dx = s.x2 - s.x1;
+    const dy = s.y2 - s.y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const pts = [];
+    const add = (lx, ly) => pts.push([s.x1 + lx * ux - ly * uy, s.y1 + lx * uy + ly * ux]);
+    if (s.t === 'ruler') {
+      add(0, 0); add(len, 0); add(len, RULER_H); add(0, RULER_H);
+    } else if (s.t === 'protractor') {
+      for (let d = 0; d <= 180; d += 10) add(len * Math.cos(d * Math.PI / 180), -len * Math.sin(d * Math.PI / 180));
+      add(0, 0);
+    } else {
+      const b = Math.min(len, COMP_BODY);
+      const half = s.t === 'spring' ? springHalf(len) : /^(lamp|motor|ammeter|voltmeter|switch|switchc)$/.test(s.t) ? b * 0.4 : b * 0.3;
+      add(0, -half); add(len, half); add(0, half); add(len, -half);
+    }
+    const xs = pts.map(q => q[0]);
+    const ys = pts.map(q => q[1]);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+  }
+
+  /** Το ελάχιστο πλαίσιο που περιέχει όλα τα πλαίσια της λίστας. */
+  function unionOf(boxes) {
+    const x = Math.min(...boxes.map(b => b.x));
+    const y = Math.min(...boxes.map(b => b.y));
+    return { x, y, w: Math.max(...boxes.map(b => b.x + b.w)) - x, h: Math.max(...boxes.map(b => b.y + b.h)) - y };
   }
 
   /** Σύμβολο κυκλώματος ανάμεσα στα δύο άκρα του: αγωγοί στα άκρα και το σώμα του στοιχείου στη μέση. */
@@ -10914,7 +10995,10 @@ const DrawEngine = (() => {
       const lim = Math.max(tol, s.w / 2 + tol / 2);
       return s.pts.some((q, i) => i && distToSegment(px, py, s.pts[i - 1][0], s.pts[i - 1][1], q[0], q[1]) <= lim);
     }
-    if (LINEAR(s.t)) return distToSegment(px, py, s.x1, s.y1, s.x2, s.y2) <= Math.max(tol, s.w / 2 + tol / 2);
+    if (LINEAR(s.t)) {
+      const reach = s.t === 'spring' ? springHalf(Math.hypot(s.x2 - s.x1, s.y2 - s.y1)) : 0;
+      return distToSegment(px, py, s.x1, s.y1, s.x2, s.y2) <= Math.max(tol, s.w / 2 + tol / 2, reach);
+    }
     const b = bbox(s);
     const t = tol / 2;
     if (px < b.x - t || px > b.x + b.w + t || py < b.y - t || py > b.y + b.h + t) return false;
@@ -11037,7 +11121,7 @@ const DrawEngine = (() => {
     shapes.forEach(s => {
       if (s.t === 'flood') return;
       const b = bbox(s);
-      const pad = s.t === 'ruler' ? RULER_H + 6 : s.t === 'protractor' ? Math.hypot(s.x2 - s.x1, s.y2 - s.y1) + 6 : COMPONENTS.has(s.t) ? 32 : s.t === 'arrow' || s.t === 'darrow' ? s.w * 2 + 12 : s.w / 2 + 6;
+      const pad = s.t === 'spring' ? 20 : s.t === 'ruler' ? RULER_H + 6 : s.t === 'protractor' ? Math.hypot(s.x2 - s.x1, s.y2 - s.y1) + 6 : COMPONENTS.has(s.t) ? 32 : s.t === 'arrow' || s.t === 'darrow' ? s.w * 2 + 12 : s.w / 2 + 6;
       x0 = Math.min(x0, b.x - pad); y0 = Math.min(y0, b.y - pad);
       x1 = Math.max(x1, b.x + b.w + pad); y1 = Math.max(y1, b.y + b.h + pad);
     });
@@ -11086,6 +11170,7 @@ const DrawEngine = (() => {
     let shapes = clean(initial);
     let tool = 'select';
     let selected = null;
+    let multi = [];
     let stroke = SWATCHES[0];
     let fill = null;
     let lineW = 2;
@@ -11122,7 +11207,7 @@ const DrawEngine = (() => {
       const xs = [0, W / 2, W];
       const ys = [0, H / 2, H];
       shapes.forEach(s => {
-        if (s === exclude || s.t === 'flood') return;
+        if (s === exclude || (Array.isArray(exclude) && exclude.includes(s)) || s.t === 'flood') return;
         const b = bbox(s);
         xs.push(b.x, b.x + b.w / 2, b.x + b.w);
         ys.push(b.y, b.y + b.h / 2, b.y + b.h);
@@ -11169,6 +11254,31 @@ const DrawEngine = (() => {
       return null;
     };
 
+    const groupHandles = B => {
+      const xm = B.x + B.w / 2;
+      const ym = B.y + B.h / 2;
+      return [['nw', B.x, B.y], ['n', xm, B.y], ['ne', B.x + B.w, B.y], ['e', B.x + B.w, ym],
+        ['se', B.x + B.w, B.y + B.h], ['s', xm, B.y + B.h], ['sw', B.x, B.y + B.h], ['w', B.x, ym]];
+    };
+    const groupHandleAt = p => {
+      const list = current();
+      if (list.length < 2) return null;
+      const tol = 9 * scale();
+      const h = groupHandles(unionOf(list.map(extent))).find(([, x, y]) => Math.abs(p.x - x) <= tol && Math.abs(p.y - y) <= tol);
+      return h ? h[0] : null;
+    };
+
+    /** Η τρέχουσα επιλογή: ένα σχήμα ή η ομάδα επιλεγμένων σχημάτων. */
+    const current = () => {
+      if (multi.length > 1) return multi.filter(m => shapes.includes(m));
+      return selected && shapes.includes(selected) ? [selected] : [];
+    };
+    const selectOnly = list => {
+      const unique = list.filter((m, i) => shapes.includes(m) && list.indexOf(m) === i);
+      selected = unique.length === 1 ? unique[0] : null;
+      multi = unique.length > 1 ? unique : [];
+    };
+
     /** Η κλειστή περιοχή γύρω από το σημείο p, όπως φαίνεται από τα σχήματα (χωρίς τα γεμίσματα περιοχών). */
     const regionAt = p => {
       const c = document.createElement('canvas');
@@ -11209,6 +11319,40 @@ const DrawEngine = (() => {
         });
         ctx.restore();
       }
+      if (multi.length > 1) {
+        const list = current();
+        ctx.save();
+        ctx.strokeStyle = '#2563EB';
+        ctx.lineWidth = 1 * k;
+        ctx.globalAlpha = 0.45;
+        ctx.setLineDash([3 * k, 3 * k]);
+        list.forEach(m => { const b = extent(m); ctx.strokeRect(b.x, b.y, b.w, b.h); });
+        ctx.globalAlpha = 1;
+        const B = unionOf(list.map(extent));
+        ctx.setLineDash([5 * k, 4 * k]);
+        ctx.strokeRect(B.x, B.y, B.w, B.h);
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#FFFFFF';
+        groupHandles(B).forEach(([, x, y]) => {
+          ctx.beginPath();
+          ctx.rect(x - 4 * k, y - 4 * k, 8 * k, 8 * k);
+          ctx.fill();
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+      if (drag && drag.mode === 'marquee') {
+        ctx.save();
+        ctx.strokeStyle = '#2563EB';
+        ctx.fillStyle = 'rgba(37, 99, 235, 0.08)';
+        ctx.lineWidth = 1 * k;
+        ctx.setLineDash([4 * k, 3 * k]);
+        const x0 = Math.min(drag.start.x, drag.cur.x);
+        const y0 = Math.min(drag.start.y, drag.cur.y);
+        ctx.fillRect(x0, y0, Math.abs(drag.cur.x - drag.start.x), Math.abs(drag.cur.y - drag.start.y));
+        ctx.strokeRect(x0, y0, Math.abs(drag.cur.x - drag.start.x), Math.abs(drag.cur.y - drag.start.y));
+        ctx.restore();
+      }
       if (guides.x.length || guides.y.length) {
         ctx.save();
         ctx.strokeStyle = '#EC4899';
@@ -11224,7 +11368,8 @@ const DrawEngine = (() => {
     // Προβολή των τρεχόντων χρωμάτων στα στοιχεία ελέγχου.
     const swatchRows = {};
     const refreshControls = () => {
-      const s = selected && shapes.includes(selected) ? selected : null;
+      const cur = current();
+      const s = cur.length === 1 ? cur[0] : null;
       if (s) {
         stroke = s.stroke;
         if (s.t === 'text') textSize = s.size;
@@ -11240,14 +11385,19 @@ const DrawEngine = (() => {
       dashSelect.value = String(dash);
       sizeSelect.value = String(TEXT_SIZES.includes(textSize) ? textSize : 24);
       toolButtons.forEach(([key, b]) => b.setAttribute('aria-pressed', String(key === tool)));
-      deleteBtn.disabled = !s;
-      dupBtn.disabled = !s;
-      frontBtn.disabled = !s;
-      backBtn.disabled = !s;
+      deleteBtn.disabled = !cur.length;
+      dupBtn.disabled = !cur.length;
+      frontBtn.disabled = !cur.length;
+      backBtn.disabled = !cur.length;
+      groupBtn.disabled = cur.length < 2;
+      ungroupBtn.disabled = !cur.some(m => m.g);
+      alignBtns.forEach(b => { b.disabled = !cur.length; });
+      distBtns.forEach(b => { b.disabled = unitsOf(cur).length < 3; });
       undoBtn.disabled = !undoStack.length;
       redoBtn.disabled = !redoStack.length;
-      status.textContent = s ? `${SHAPE_NAMES[s.t]} · Delete για διαγραφή, βέλη για μετατόπιση, Ctrl+D για αντίγραφο`
-        : tool === 'select' ? 'Διάλεξε ένα εργαλείο από αριστερά και σύρε στον καμβά. Με το βέλος επιλέγεις και μετακινείς σχήματα.'
+      status.textContent = cur.length > 1 ? `${cur.length} σχήματα επιλεγμένα · Ctrl+G ομαδοποίηση, Ctrl+Shift+G αποομαδοποίηση, κουμπιά στοίχισης, σύρσιμο για μετακίνηση ή αλλαγή μεγέθους`
+        : s ? `${SHAPE_NAMES[s.t]} · Delete για διαγραφή, βέλη για μετατόπιση, Ctrl+D για αντίγραφο· Shift+κλικ για πολλαπλή επιλογή`
+        : tool === 'select' ? 'Διάλεξε ένα εργαλείο από αριστερά και σύρε στον καμβά. Με το βέλος επιλέγεις και μετακινείς σχήματα· σύρε σε κενό χώρο ή Shift+κλικ για πολλά.'
           : tool === 'wire' ? 'Κλικ για να ξεκινήσεις και κλικ σε κάθε γωνία. Διπλό κλικ ή Enter για τέλος· Shift: ελεύθερη γωνία.'
           : tool === 'ruler' || tool === 'protractor' ? 'Σύρε από το ένα άκρο στο άλλο: ο χάρακας τεντώνεται κατά μήκος· στο μοιρογνωμόνιο το κέντρο είναι το πρώτο σημείο και η βάση φτάνει ως το δεύτερο.'
           : CIRCUIT(tool) ? 'Σύρε από το ένα άκρο του στοιχείου στο άλλο (Shift: ελεύθερη γωνία). Το πλέγμα βοηθά στην ευθυγράμμιση.'
@@ -11267,9 +11417,9 @@ const DrawEngine = (() => {
       last = now;
     };
     const restore = json => {
-      const keep = selected ? shapes.indexOf(selected) : -1;
+      const keep = current().map(m => shapes.indexOf(m));
       shapes = clean({ shapes: JSON.parse(json) });
-      selected = keep >= 0 ? shapes[keep] || null : null;
+      selectOnly(keep.filter(i => i >= 0).map(i => shapes[i]).filter(Boolean));
       last = json;
       redraw();
     };
@@ -11289,6 +11439,7 @@ const DrawEngine = (() => {
       } else {
         syncWire(s);
         selected = s;
+        multi = [];
       }
       tool = 'select';
       guides = { x: [], y: [] };
@@ -11298,7 +11449,7 @@ const DrawEngine = (() => {
     const setTool = t => {
       finishWire();
       tool = t;
-      if (t !== 'select') selected = null;
+      if (t !== 'select') { selected = null; multi = []; }
       if (CIRCUIT(t) && !gridTouched && !snapGrid) { snapGrid = true; gridCheck.checked = true; }
       redraw();
     };
@@ -11309,36 +11460,109 @@ const DrawEngine = (() => {
       if (o.pts) s.pts = o.pts.map(([x, y]) => [x + dx, y + dy]);
     };
     const remove = () => {
-      if (!selected) return;
-      shapes = shapes.filter(s => s !== selected);
-      selected = null;
+      const cur = current();
+      if (!cur.length) return;
+      shapes = shapes.filter(m => !cur.includes(m));
+      selectOnly([]);
       commit();
       redraw();
     };
     const duplicate = () => {
-      if (!selected || shapes.length >= MAX_SHAPES) return;
-      const copy = { ...selected };
-      const dx = Math.min(20, W - Math.max(copy.x1, copy.x2));
-      const dy = Math.min(20, H - Math.max(copy.y1, copy.y2));
-      place(copy, selected, dx, dy);
-      shapes.push(copy);
-      selected = copy;
+      const cur = current();
+      if (!cur.length || shapes.length + cur.length > MAX_SHAPES) return;
+      const boxes = cur.map(extent);
+      const U = unionOf(boxes);
+      const dx = Math.min(20, W - (U.x + U.w));
+      const dy = Math.min(20, H - (U.y + U.h));
+      const ids = {};
+      const copies = cur.map(m => {
+        const copy = { ...m };
+        place(copy, m, dx, dy);
+        if (m.g) copy.g = ids[m.g] || (ids[m.g] = `g${Math.random().toString(36).slice(2, 8)}`);
+        return copy;
+      });
+      shapes.push(...copies);
+      selectOnly(copies);
       commit();
       redraw();
     };
     const reorder = front => {
-      if (!selected) return;
-      shapes = shapes.filter(s => s !== selected);
-      if (front) shapes.push(selected); else shapes.unshift(selected);
+      const cur = current();
+      if (!cur.length) return;
+      const rest = shapes.filter(m => !cur.includes(m));
+      const moved = shapes.filter(m => cur.includes(m));
+      shapes = front ? [...rest, ...moved] : [...moved, ...rest];
       commit();
       redraw();
     };
     const nudge = (dx, dy) => {
-      if (!selected) return;
-      const b = bbox(selected);
-      const mx = Util.clamp(dx, -b.x, W - (b.x + b.w));
-      const my = Util.clamp(dy, -b.y, H - (b.y + b.h));
-      place(selected, { ...selected }, mx, my);
+      const cur = current();
+      if (!cur.length) return;
+      const U = unionOf(cur.map(extent));
+      const mx = Util.clamp(dx, -U.x, W - (U.x + U.w));
+      const my = Util.clamp(dy, -U.y, H - (U.y + U.h));
+      cur.forEach(m => place(m, { ...m }, mx, my));
+      commit();
+      redraw();
+    };
+    const group = () => {
+      const cur = current();
+      if (cur.length < 2) return;
+      const id = `g${Math.random().toString(36).slice(2, 8)}`;
+      cur.forEach(m => { m.g = id; });
+      commit();
+      redraw();
+    };
+    const ungroup = () => {
+      const cur = current();
+      if (!cur.some(m => m.g)) return;
+      cur.forEach(m => { delete m.g; });
+      commit();
+      redraw();
+    };
+    /** Οι «μονάδες» της επιλογής: κάθε ομάδα μετράει ως ένα σχήμα. */
+    const unitsOf = list => {
+      const map = new Map();
+      list.forEach(m => {
+        const key = m.g || m;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(m);
+      });
+      return [...map.values()];
+    };
+    /** Στοίχιση: με πολλά σχήματα ως προς το κοινό τους πλαίσιο, με ένα ως προς τον καμβά. Κατανομή: ίσα κενά ανάμεσα σε τρία ή περισσότερα. */
+    const align = mode => {
+      const cur = current();
+      if (!cur.length) return;
+      const units = unitsOf(cur).map(list => ({ list, box: unionOf(list.map(extent)) }));
+      const move = (u, dx, dy) => u.list.forEach(m => place(m, { ...m }, dx, dy));
+      if (mode === 'dh' || mode === 'dv') {
+        if (units.length < 3) return;
+        const horiz = mode === 'dh';
+        const key = horiz ? 'x' : 'y';
+        const size = horiz ? 'w' : 'h';
+        const sorted = [...units].sort((a, b) => (a.box[key] + a.box[size] / 2) - (b.box[key] + b.box[size] / 2));
+        const first = sorted[0].box;
+        const last = sorted[sorted.length - 1].box;
+        const gap = (last[key] + last[size] - first[key] - sorted.reduce((t, u) => t + u.box[size], 0)) / (sorted.length - 1);
+        let at = first[key];
+        sorted.forEach(u => {
+          const d = at - u.box[key];
+          move(u, horiz ? d : 0, horiz ? 0 : d);
+          at += u.box[size] + gap;
+        });
+      } else {
+        const U = units.length > 1 ? unionOf(units.map(u => u.box)) : { x: 0, y: 0, w: W, h: H };
+        units.forEach(u => {
+          const b = u.box;
+          if (mode === 'left') move(u, U.x - b.x, 0);
+          else if (mode === 'hcenter') move(u, U.x + U.w / 2 - (b.x + b.w / 2), 0);
+          else if (mode === 'right') move(u, U.x + U.w - (b.x + b.w), 0);
+          else if (mode === 'top') move(u, 0, U.y - b.y);
+          else if (mode === 'vcenter') move(u, 0, U.y + U.h / 2 - (b.y + b.h / 2));
+          else if (mode === 'bottom') move(u, 0, U.y + U.h - (b.y + b.h));
+        });
+      }
       commit();
       redraw();
     };
@@ -11406,7 +11630,7 @@ const DrawEngine = (() => {
     canvas.addEventListener('dblclick', e => {
       if (wire) { finishWire(); return; }
       const s = shapeAt(pos(e));
-      if (s && s.t === 'text') { selected = s; editText(s, false); }
+      if (s && s.t === 'text') { selectOnly([s]); editText(s, false); }
     });
 
     // --- Ποντίκι / αφή ---
@@ -11422,6 +11646,7 @@ const DrawEngine = (() => {
         const s = { t: 'text', x1: a.x, y1: a.y, x2: a.x, y2: a.y, stroke, fill: null, w: 2, d: 0, text: '', size: textSize };
         shapes.push(s);
         selected = s;
+        multi = [];
         tool = 'select';
         editText(s, true);
         return;
@@ -11465,6 +11690,7 @@ const DrawEngine = (() => {
           wire = { t: 'wire', x1: a.x, y1: a.y, x2: a.x, y2: a.y, pts: [[a.x, a.y], [a.x, a.y]], stroke, fill: null, w: lineW, d: dash };
           shapes.push(wire);
           selected = wire;
+          multi = [];
         } else {
           const n = wire.pts.length;
           const [qx, qy] = wire.pts[n - 1];
@@ -11479,12 +11705,30 @@ const DrawEngine = (() => {
       }
       canvas.setPointerCapture(e.pointerId);
       if (tool === 'select') {
+        const mh = multi.length > 1 ? groupHandleAt(p) : null;
+        if (mh) {
+          const list = current();
+          drag = { mode: 'gresize', handle: mh, box: unionOf(list.map(extent)), list, origs: list.map(m => JSON.parse(JSON.stringify(m))), shape: list[0] };
+          redraw();
+          return;
+        }
         const h = selected ? handleAt(selected, p) : null;
         if (h) {
           drag = { mode: 'resize', handle: h[0], orig: { ...selected }, shape: selected };
         } else {
-          selected = shapeAt(p);
-          if (selected) drag = { mode: 'move', start: p, orig: { ...selected }, shape: selected };
+          const hitShape = shapeAt(p);
+          const cur = current();
+          const members = hitShape ? (hitShape.g ? shapes.filter(x => x.g === hitShape.g) : [hitShape]) : [];
+          if (e.shiftKey && hitShape) {
+            selectOnly(cur.includes(hitShape) ? cur.filter(x => !members.includes(x)) : [...cur, ...members.filter(x => !cur.includes(x))]);
+          } else if (hitShape && !cur.includes(hitShape)) {
+            selectOnly(members);
+          } else if (!hitShape) {
+            drag = { mode: 'marquee', start: p, cur: p, base: e.shiftKey ? cur : [] };
+            if (!e.shiftKey) selectOnly([]);
+          }
+          const now = current();
+          if (hitShape && !e.shiftKey && now.includes(hitShape)) drag = { mode: 'move', start: p, shape: hitShape, list: now, origs: now.map(x => ({ ...x })) };
         }
         redraw();
         return;
@@ -11497,6 +11741,7 @@ const DrawEngine = (() => {
       const s = { t: tool, x1: a.x, y1: a.y, x2: a.x, y2: a.y, stroke, fill: FILLABLE(tool) ? fill : null, w: lineW, d: dash };
       shapes.push(s);
       selected = s;
+      multi = [];
       drag = { mode: 'create', anchor: a, shape: s };
       redraw();
     });
@@ -11514,11 +11759,49 @@ const DrawEngine = (() => {
       if (!drag) {
         if (tool === 'select') {
           const h = selected ? handleAt(selected, p) : null;
-          canvas.style.cursor = h ? RESIZE_CURSORS[h[0]] || 'move' : shapeAt(p) ? 'move' : 'default';
+          const mh = multi.length > 1 ? groupHandleAt(p) : null;
+          canvas.style.cursor = mh ? RESIZE_CURSORS[mh] : h ? RESIZE_CURSORS[h[0]] || 'move' : shapeAt(p) ? 'move' : 'default';
         }
         return;
       }
       const s = drag.shape;
+      if (drag.mode === 'marquee') {
+        drag.cur = p;
+        redraw();
+        return;
+      }
+      if (drag.mode === 'gresize') {
+        const B = drag.box;
+        const t = targets(drag.list);
+        const hn = drag.handle;
+        let l = B.x;
+        let tp = B.y;
+        let r = B.x + B.w;
+        let bt = B.y + B.h;
+        const gx = [];
+        const gy = [];
+        const MIN = 8;
+        if (hn.includes('w')) { const sn = snapAxis([p.x], t.xs); l = Math.min(p.x + sn.d, r - MIN); if (sn.g !== null) gx.push(sn.g); }
+        if (hn.includes('e')) { const sn = snapAxis([p.x], t.xs); r = Math.max(p.x + sn.d, l + MIN); if (sn.g !== null) gx.push(sn.g); }
+        if (hn.includes('n')) { const sn = snapAxis([p.y], t.ys); tp = Math.min(p.y + sn.d, bt - MIN); if (sn.g !== null) gy.push(sn.g); }
+        if (hn.includes('s')) { const sn = snapAxis([p.y], t.ys); bt = Math.max(p.y + sn.d, tp + MIN); if (sn.g !== null) gy.push(sn.g); }
+        guides = { x: gx, y: gy };
+        const kx = B.w ? (r - l) / B.w : 1;
+        const ky = B.h ? (bt - tp) / B.h : 1;
+        const mx = x => Util.clamp(l + (x - B.x) * kx, 0, W);
+        const my = y => Util.clamp(tp + (y - B.y) * ky, 0, H);
+        drag.list.forEach((m, i) => {
+          const o = drag.origs[i];
+          m.x1 = mx(o.x1); m.x2 = mx(o.x2); m.y1 = my(o.y1); m.y2 = my(o.y2);
+          if (o.pts) m.pts = o.pts.map(([x, y]) => [mx(x), my(y)]);
+          if (m.t === 'text') {
+            m.size = Util.clamp(Math.round(o.size * (Math.abs(kx) + Math.abs(ky)) / 2), 8, 96);
+            fitText(m);
+          }
+        });
+        redraw();
+        return;
+      }
       if (drag.mode === 'create') {
         let q;
         if (COMPONENTS.has(s.t)) {
@@ -11530,18 +11813,17 @@ const DrawEngine = (() => {
         s.x2 = q.x;
         s.y2 = q.y;
       } else if (drag.mode === 'move') {
-        const o = drag.orig;
-        const b = bbox(o);
+        const b = unionOf(drag.origs.map(extent));
         let dx = p.x - drag.start.x;
         let dy = p.y - drag.start.y;
-        const t = targets(s);
+        const t = targets(drag.list);
         const sx = snapAxis([b.x + dx, b.x + dx + b.w / 2, b.x + dx + b.w], t.xs);
         const sy = snapAxis([b.y + dy, b.y + dy + b.h / 2, b.y + dy + b.h], t.ys);
         dx += sx.d; dy += sy.d;
         guides = { x: sx.g === null ? [] : [sx.g], y: sy.g === null ? [] : [sy.g] };
         dx = Util.clamp(dx, -b.x, W - (b.x + b.w));
         dy = Util.clamp(dy, -b.y, H - (b.y + b.h));
-        place(s, o, dx, dy);
+        drag.list.forEach((m, i) => place(m, drag.origs[i], dx, dy));
       } else {
         const o = drag.orig;
         if (s.t === 'wire') {
@@ -11603,6 +11885,25 @@ const DrawEngine = (() => {
     });
     const endDrag = () => {
       if (!drag) return;
+      if (drag.mode === 'marquee') {
+        const { start, cur, base } = drag;
+        drag = null;
+        const x0 = Math.min(start.x, cur.x);
+        const x1 = Math.max(start.x, cur.x);
+        const y0 = Math.min(start.y, cur.y);
+        const y1 = Math.max(start.y, cur.y);
+        if (x1 - x0 > 3 || y1 - y0 > 3) {
+          const hits = shapes.filter(m => {
+            if (m.t === 'flood') return false;
+            const b = extent(m);
+            return b.x <= x1 && b.x + b.w >= x0 && b.y <= y1 && b.y + b.h >= y0;
+          });
+          const groups = new Set(hits.map(m => m.g).filter(Boolean));
+          selectOnly([...base, ...shapes.filter(m => hits.includes(m) || (m.g && groups.has(m.g)))]);
+        }
+        redraw();
+        return;
+      }
       const s = drag.shape;
       if (drag.mode === 'create') {
         const b = bbox(s);
@@ -11636,14 +11937,22 @@ const DrawEngine = (() => {
     const backBtn = iconBtn('arrow-down', 'Πίσω από τα άλλα σχήματα', () => reorder(false));
     const deleteBtn = iconBtn('trash', 'Διαγραφή επιλεγμένου σχήματος (Delete)', remove);
     deleteBtn.classList.add('is-danger');
+    const groupBtn = iconBtn('draw-group', 'Ομαδοποίηση επιλεγμένων σχημάτων (Ctrl+G)', group);
+    const ungroupBtn = iconBtn('draw-ungroup', 'Αποομαδοποίηση (Ctrl+Shift+G)', ungroup);
+    const alignBtns = [
+      ['align-left', 'Στοίχιση αριστερά', 'left'], ['align-hcenter', 'Στοίχιση στο κέντρο (οριζόντια)', 'hcenter'], ['align-right', 'Στοίχιση δεξιά', 'right'],
+      ['align-top', 'Στοίχιση επάνω', 'top'], ['align-vcenter', 'Στοίχιση στη μέση (κάθετα)', 'vcenter'], ['align-bottom', 'Στοίχιση κάτω', 'bottom']
+    ].map(([icon, title, mode]) => iconBtn(icon, `${title} (ένα σχήμα: ως προς τον καμβά)`, () => align(mode)));
+    const distBtns = [['dist-h', 'Ίσα κενά οριζόντια (τρία σχήματα ή περισσότερα)', 'dh'], ['dist-v', 'Ίσα κενά κάθετα (τρία σχήματα ή περισσότερα)', 'dv']]
+      .map(([icon, title, mode]) => iconBtn(icon, title, () => align(mode)));
 
     const swatchRow = (kind, withNone) => {
       const row = Util.h('div', { class: 'draw-swatches' });
       const apply = value => {
         if (kind === 'stroke') stroke = value; else fill = value;
-        const s = selected && shapes.includes(selected) ? selected : null;
-        if (s && (kind === 'stroke' || FILLABLE(s.t))) {
-          if (kind === 'stroke') s.stroke = value; else s.fill = value;
+        const list = current().filter(m => kind === 'stroke' || FILLABLE(m.t));
+        if (list.length) {
+          list.forEach(m => { if (kind === 'stroke') m.stroke = value; else m.fill = value; });
           commit();
         }
         redraw();
@@ -11670,19 +11979,22 @@ const DrawEngine = (() => {
     const widthSelect = Util.h('select', { class: 'select', 'aria-label': 'Πάχος γραμμής' }, WIDTHS.map(w => Util.h('option', { value: String(w), text: `${w} px` })));
     widthSelect.addEventListener('change', () => {
       lineW = Number(widthSelect.value);
-      if (selected && shapes.includes(selected)) { selected.w = lineW; commit(); }
+      const list = current();
+      if (list.length) { list.forEach(m => { m.w = lineW; }); commit(); }
       redraw();
     });
     const dashSelect = Util.h('select', { class: 'select', 'aria-label': 'Στυλ γραμμής' }, DASHES.map(([label, v]) => Util.h('option', { value: String(v), text: label })));
     dashSelect.addEventListener('change', () => {
       dash = Number(dashSelect.value);
-      if (selected && shapes.includes(selected) && selected.t !== 'text') { selected.d = dash; commit(); }
+      const list = current().filter(m => m.t !== 'text');
+      if (list.length) { list.forEach(m => { m.d = dash; }); commit(); }
       redraw();
     });
     const sizeSelect = Util.h('select', { class: 'select', 'aria-label': 'Μέγεθος κειμένου' }, TEXT_SIZES.map(v => Util.h('option', { value: String(v), text: `${v} px` })));
     sizeSelect.addEventListener('change', () => {
       textSize = Number(sizeSelect.value);
-      if (selected && shapes.includes(selected) && selected.t === 'text') { selected.size = textSize; fitText(selected); commit(); }
+      const list = current().filter(m => m.t === 'text');
+      if (list.length) { list.forEach(m => { m.size = textSize; fitText(m); }); commit(); }
       redraw();
     });
     const guidesCheck = Util.h('input', { type: 'checkbox', checked: true });
@@ -11695,7 +12007,7 @@ const DrawEngine = (() => {
     clearBtn.addEventListener('click', () => {
       if (!shapes.length) return;
       shapes = [];
-      selected = null;
+      selectOnly([]);
       commit();
       redraw();
     });
@@ -11705,7 +12017,9 @@ const DrawEngine = (() => {
         Util.h('div', { class: 'draw-tools', role: 'toolbar', 'aria-label': 'Εργαλεία σχεδίασης' },
           toolButtons.flatMap(([key, b]) => (key === 'wire' ? [Util.h('span', { class: 'draw-tools-sep' }), b] : [b])),
           Util.h('span', { class: 'draw-tools-sep' }), undoBtn, redoBtn, Util.h('span', { class: 'draw-tools-sep' }),
-          dupBtn, frontBtn, backBtn, deleteBtn),
+          dupBtn, frontBtn, backBtn, deleteBtn,
+          Util.h('span', { class: 'draw-tools-sep' }), groupBtn, ungroupBtn, Util.h('span'),
+          alignBtns, distBtns),
         stage),
       status,
       Util.h('div', { class: 'draw-props' },
@@ -11733,6 +12047,8 @@ const DrawEngine = (() => {
       else if (mod && e.code === 'KeyZ') { if (e.shiftKey) redo(); else undo(); }
       else if (mod && e.code === 'KeyY') redo();
       else if (mod && e.code === 'KeyD') duplicate();
+      else if (mod && e.code === 'KeyG') { if (e.shiftKey) ungroup(); else group(); }
+      else if (mod && e.code === 'KeyA') { setTool('select'); selectOnly(shapes.filter(m => m.t !== 'flood')); redraw(); }
       else if (e.key === 'Delete' || e.key === 'Backspace') remove();
       else if (e.key === 'ArrowLeft') nudge(-step, 0);
       else if (e.key === 'ArrowRight') nudge(step, 0);
