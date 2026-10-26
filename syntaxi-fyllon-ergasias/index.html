@@ -1011,6 +1011,21 @@ kbd {
 }
 .doc-content .wf-embed-link a { font-weight: 600; }
 .doc-content .wf-embed-mark { color: var(--doc-accent, var(--primary)); font-weight: 700; }
+.editor-content .wf-quiz { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--border-strong); border-left: 4px solid var(--primary); border-radius: 6px; background: var(--surface-2); cursor: pointer; }
+.editor-content .wf-quiz.is-selected { outline: 2px solid var(--primary); outline-offset: 2px; }
+.editor-content .wf-quiz-tag { font: 600 11px var(--font-ui); color: var(--primary); text-transform: uppercase; letter-spacing: 0.03em; }
+.editor-content .wf-quiz-q { margin: 4px 0 6px; font-weight: 700; }
+.editor-content .wf-quiz-opt { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin: 0 0 3px 6px; }
+.editor-content .wf-quiz-opt.is-key { color: #15803D; font-weight: 600; }
+.editor-content .wf-quiz-keytag { font: 600 11px var(--font-ui); color: #15803D; }
+.editor-content .wf-quiz-fbtext { flex-basis: 100%; margin-left: 22px; font: italic 12px var(--font-ui); color: #B91C1C; }
+.quiz-options { display: flex; flex-direction: column; gap: 8px; }
+.quiz-option { display: flex; gap: 8px; align-items: flex-start; }
+.quiz-correct { flex: none; padding-top: 8px; }
+.quiz-option-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.doc-content .wf-quiz-print { margin: 0 0 4mm; break-inside: avoid; }
+.doc-content .wf-quiz-print p { margin: 0 0 1.2mm; }
+.doc-content .wf-quiz-print .wf-quiz-opt { margin-left: 6mm; }
 .draw-layout { display: flex; flex-direction: column; gap: 12px; }
 .draw-main { display: flex; gap: 12px; align-items: flex-start; }
 .draw-tools { display: flex; flex-direction: column; gap: 6px; }
@@ -1261,6 +1276,7 @@ kbd {
             <button class="tool-btn" type="button" data-tool="math"><span class="tool-glyph">∑</span>Μαθηματικά</button>
             <button class="tool-btn" type="button" data-tool="graph"><span data-icon="chart"></span>Γραφική παράσταση</button>
             <button class="tool-btn" type="button" data-tool="draw"><span data-icon="shapes"></span>Σχέδιο</button>
+            <button class="tool-btn" type="button" data-tool="quiz"><span data-icon="quiz"></span>Ερώτηση</button>
             <button class="tool-btn" type="button" data-tool="table"><span data-icon="table"></span>Πίνακας</button>
             <button class="tool-btn" type="button" data-tool="image"><span data-icon="photo"></span>Εικόνα</button>
             <button class="tool-btn" type="button" data-tool="link"><span data-icon="link"></span>Σύνδεσμος</button>
@@ -1851,6 +1867,7 @@ const Util = (() => {
     'draw-circle': ['M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z'],
     'draw-square': ['M5 5h14v14H5z'],
     'draw-triangle': ['M12 4l9 16H3z'],
+    quiz: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7', 'M12 17h.01'],
     'draw-text': ['M5 6V4h14v2', 'M12 4v16', 'M9 20h6'],
     'draw-fill': ['M5 11l6-6 8 8-6 6z', 'M11 5L9 3', 'M19 15c1 1.5 1.5 2.5 1.5 3.5a1.5 1.5 0 0 1-3 0c0-1 .5-2 1.5-3.5z'],
     'arrow-up': ['M12 19V5', 'M6 11l6-6 6 6'],
@@ -2593,6 +2610,10 @@ const Sanitizer = (() => {
     }
     if (el.classList.contains('wf-field')) {
       cleanField(el);
+      return;
+    }
+    if (el.classList.contains('wf-quiz')) {
+      Quiz.clean(el);
       return;
     }
     if (el.classList.contains('wf-pagebreak')) {
@@ -4104,12 +4125,12 @@ const EditorManager = (() => {
   };
 
   const TYPE_TOOLS = {
-    text: ['block', 'inline', 'list', 'align', 'image', 'draw', 'math', 'card', 'link', 'embed', 'field', 'hr'],
+    text: ['block', 'inline', 'list', 'align', 'image', 'draw', 'math', 'card', 'link', 'embed', 'field', 'quiz', 'hr'],
     table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'draw', 'math', 'card', 'embed', 'field'],
     image: ['inlineBasic', 'align', 'image', 'caption', 'math', 'embed'],
     math: ['inlineBasic', 'list', 'align', 'math', 'image'],
     graph: ['inline', 'align', 'graph', 'draw', 'image', 'caption', 'math'],
-    mixed: ['block', 'inline', 'list', 'align', 'image', 'draw', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'field', 'hr', 'pagebreak']
+    mixed: ['block', 'inline', 'list', 'align', 'image', 'draw', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'field', 'quiz', 'hr', 'pagebreak']
   };
 
   const BUTTONS = {
@@ -4134,6 +4155,7 @@ const EditorManager = (() => {
     table: { icon: 'table', title: 'Εισαγωγή πίνακα (Ctrl+Alt+T)', run: id => InsertTools.table(id) },
     math: { glyph: '∑', label: 'Μαθηματικά', title: 'Εισαγωγή μαθηματικής έκφρασης (Ctrl+M)', run: id => MathEngine.open({ sectionId: id }) },
     graph: { icon: 'chart', title: 'Γραφική παράσταση (Ctrl+Alt+G)', run: id => GraphEngine.open({ sectionId: id }) },
+    quiz: { icon: 'quiz', title: 'Ερώτηση πολλαπλής επιλογής ή Σωστό / Λάθος, με έλεγχο στο HTML (Ctrl+Alt+Q)', run: id => Quiz.open({ sectionId: id }) },
     draw: { icon: 'shapes', title: 'Σχέδιο: γραμμές και σχήματα (Ctrl+Alt+D)', run: id => DrawEngine.open({ sectionId: id }) },
     link: { icon: 'link', title: 'Εισαγωγή συνδέσμου (Ctrl+K)', run: id => InsertTools.link(id) },
     embed: { icon: 'embed', title: 'Ενσωμάτωση από σύνδεσμο: βίντεο, προσομοίωση, εφαρμογή (Ctrl+Alt+E)', run: id => Embeds.open({ sectionId: id }) },
@@ -4399,7 +4421,7 @@ const EditorManager = (() => {
     else if (tools.has('inlineBasic')) groups.push(['bold', 'italic', 'underline', 'sup', 'sub'].map(k => toolButton(block, k)));
     if (tools.has('list')) groups.push(['ul', 'ol', 'check', 'indent', 'outdent'].map(k => toolButton(block, k)));
     if (tools.has('align')) groups.push(['left', 'center', 'right', 'justify'].map(k => toolButton(block, k)));
-    const inserts = ['math', 'graph', 'draw', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'field', 'hr', 'pagebreak'].filter(k => tools.has(k));
+    const inserts = ['math', 'graph', 'draw', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'field', 'quiz', 'hr', 'pagebreak'].filter(k => tools.has(k));
     if (inserts.length) groups.push(inserts.map(k => toolButton(block, k)));
     groups.push((Dictation.supported() ? ['mic', 'undo', 'redo', 'clear'] : ['undo', 'redo', 'clear']).map(k => toolButton(block, k)));
     groups.forEach((group, i) => {
@@ -5169,6 +5191,7 @@ const EditorManager = (() => {
       if (code === 'KeyT') return run(() => InsertTools.table(block.id));
       if (code === 'KeyG') return run(() => GraphEngine.open({ sectionId: block.id }));
       if (code === 'KeyD') return run(() => DrawEngine.open({ sectionId: block.id }));
+      if (code === 'KeyQ') return run(() => Quiz.open({ sectionId: block.id }));
       if (code === 'KeyE') return run(() => Embeds.open({ sectionId: block.id }));
       if (code === 'KeyH') return run(() => InsertTools.horizontalRule(block.id));
       if (code === 'KeyA') return run(() => InsertTools.answerField(block.id));
@@ -5368,6 +5391,12 @@ const EditorManager = (() => {
     if (math && block.content.contains(math)) {
       e.preventDefault();
       MathEngine.open({ sectionId: block.id, node: math });
+      return;
+    }
+    const quiz = e.target.closest && e.target.closest('.wf-quiz');
+    if (quiz && block.content.contains(quiz)) {
+      e.preventDefault();
+      Quiz.open({ sectionId: block.id, node: quiz });
       return;
     }
     const field = e.target.closest && e.target.closest('.wf-field');
@@ -6278,10 +6307,10 @@ const InsertTools = (() => {
   // Τα αντικείμενα (εικόνα, γράφημα, εξίσωση, ενσωμάτωση, πλαίσιο, πίνακας…) αντιγράφονται αυτούσια:
   // το πρόχειρο του συστήματος παίρνει HTML με ένα σημάδι, και η επικόλληση στην εφαρμογή
   // χρησιμοποιεί το πλήρες αντίγραφο που κρατιέται εδώ, χωρίς τον καθαρισμό της κοινής επικόλλησης.
-  const OBJECT_SELECTOR = 'img, .wf-embed, .math-node, .wf-field, hr, .wf-pagebreak, .wf-card';
+  const OBJECT_SELECTOR = 'img, .wf-embed, .math-node, .wf-field, .wf-quiz, hr, .wf-pagebreak, .wf-card';
   const OBJECT_NAMES = [
     ['img.wf-graph', 'γραφήματος'], ['img.wf-draw', 'σχεδίου'], ['img', 'εικόνας'], ['.wf-embed', 'ενσωμάτωσης'], ['.math-node', 'εξίσωσης'],
-    ['.wf-field', 'πεδίου απάντησης'], ['hr', 'γραμμής'], ['.wf-pagebreak', 'αλλαγής σελίδας'], ['.wf-card', 'πλαισίου'], ['table', 'πίνακα']
+    ['.wf-field', 'πεδίου απάντησης'], ['.wf-quiz', 'ερώτησης'], ['hr', 'γραμμής'], ['.wf-pagebreak', 'αλλαγής σελίδας'], ['.wf-card', 'πλαισίου'], ['table', 'πίνακα']
   ];
   let clip = null;
   let pendingCopy = null;
@@ -11200,6 +11229,227 @@ const DrawEngine = (() => {
   return { open, clean, renderPng };
 })();
 
+/**
+ * Ερωτήσεις αυτοαξιολόγησης: πολλαπλής επιλογής και Σωστό / Λάθος.
+ * Ο εκπαιδευτικός ορίζει τις σωστές απαντήσεις και, προαιρετικά, κείμενο ανατροφοδότησης για τις λανθασμένες.
+ * Στο διαδραστικό HTML ο μαθητής απαντά και βλέπει αμέσως αν είναι σωστά (πράσινο) ή λάθος (κόκκινο, με το κείμενο ανατροφοδότησης).
+ * Στην εκτύπωση, στο PDF της εφαρμογής και στο DOCX η ερώτηση βγαίνει χωρίς τις σωστές απαντήσεις.
+ * Στο PDF του μαθητή (από το διαδραστικό HTML) κάθε απάντηση φαίνεται πράσινη ή κόκκινη.
+ * Τα δεδομένα κρατιούνται στο `data-quiz` (JSON)· ο καθαρισμός HTML ξαναχτίζει το στοιχείο από αυτά.
+ * @namespace Quiz
+ */
+const Quiz = (() => {
+  const MAX_OPTIONS = 8;
+  const TF_LABELS = ['Σωστό', 'Λάθος'];
+  const clip = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+
+  /**
+   * Επικυρώνει τα δεδομένα μιας ερώτησης.
+   * @param {*} raw
+   * @returns {{type: 'mc'|'tf', q: string, opts?: Array<{t: string, c: boolean, f: string}>, answer?: boolean, fb?: string}|null}
+   */
+  function normalize(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const q = clip(raw.q, 500);
+    if (!q) return null;
+    if (raw.type === 'tf') return { type: 'tf', q, answer: !(raw.answer === false || raw.answer === 'false'), fb: clip(raw.fb, 500) };
+    const opts = (Array.isArray(raw.opts) ? raw.opts : []).slice(0, MAX_OPTIONS)
+      .map(o => ({ t: clip(o && o.t, 300), c: !!(o && o.c), f: clip(o && o.f, 500) })).filter(o => o.t);
+    if (opts.length < 2 || !opts.some(o => o.c)) return null;
+    opts.forEach(o => { if (o.c) o.f = ''; });
+    return { type: 'mc', q, opts };
+  }
+
+  /** @param {Element} node @returns {Object|null} */
+  function parse(node) {
+    try {
+      return normalize(JSON.parse(node.getAttribute('data-quiz') || 'null'));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Οι επιλογές με το ποιες είναι σωστές (το Σωστό / Λάθος γίνεται ερώτηση δύο επιλογών).
+   * @param {Object} data
+   * @returns {Array<{t: string, c: boolean, f: string}>}
+   */
+  function options(data) {
+    if (data.type === 'tf') return [{ t: TF_LABELS[0], c: data.answer, f: data.answer ? '' : data.fb }, { t: TF_LABELS[1], c: !data.answer, f: data.answer ? data.fb : '' }];
+    return data.opts;
+  }
+
+  const isMulti = data => options(data).filter(o => o.c).length > 1;
+
+  /**
+   * Στοιχείο για τον επεξεργαστή: φαίνονται οι σωστές απαντήσεις και η ανατροφοδότηση.
+   * @param {Object} data
+   * @returns {HTMLElement}
+   */
+  function build(data) {
+    const multi = isMulti(data);
+    const tag = data.type === 'tf' ? 'Ερώτηση Σωστό / Λάθος' : `Ερώτηση πολλαπλής επιλογής${multi ? ' (περισσότερες από μία σωστές)' : ''}`;
+    return Util.h('div', { class: 'wf-quiz', contenteditable: 'false', 'data-quiz': JSON.stringify(data) },
+      Util.h('div', { class: 'wf-quiz-tag', text: `${tag} · διαδραστική στο HTML` }),
+      Util.h('p', { class: 'wf-quiz-q', text: data.q }),
+      options(data).map(o => Util.h('div', { class: `wf-quiz-opt${o.c ? ' is-key' : ''}` },
+        Util.h('span', { class: 'wf-quiz-mark', text: o.c ? '✓' : (multi ? '☐' : '○') }),
+        Util.h('span', { class: 'wf-quiz-text', text: o.t }),
+        o.c ? Util.h('span', { class: 'wf-quiz-keytag', text: 'σωστή' }) : null,
+        !o.c && o.f ? Util.h('span', { class: 'wf-quiz-fbtext', text: `Ανατροφοδότηση: ${o.f}` }) : null)));
+  }
+
+  /** Καθαρισμός HTML: ξαναχτίζει την ερώτηση από τα δεδομένα της ή την αφαιρεί αν δεν είναι έγκυρη. @param {Element} el */
+  function clean(el) {
+    const data = parse(el);
+    if (data) el.replaceWith(build(data));
+    else el.remove();
+  }
+
+  /** Έντυπη μορφή: χωρίς τις σωστές απαντήσεις. */
+  function printable(data) {
+    const multi = isMulti(data);
+    return Util.h('div', { class: 'wf-quiz-print' },
+      Util.h('p', { class: 'wf-quiz-q' }, Util.h('b', { text: data.q })),
+      options(data).map(o => Util.h('p', { class: 'wf-quiz-opt', text: `${multi ? '☐' : '○'} ${o.t}` })));
+  }
+
+  /** Διαδραστική μορφή για το εξαγόμενο HTML (εδώ μπαίνουν και οι σωστές απαντήσεις, για τον έλεγχο στη σελίδα). */
+  function live(data) {
+    const multi = isMulti(data);
+    return Util.h('div', { class: 'wf-quiz-live', 'data-multi': multi ? '1' : '0' },
+      Util.h('p', { class: 'wf-quiz-q' }, Util.h('b', { text: data.q }), multi ? Util.h('span', { class: 'wf-quiz-hint', text: ' (διάλεξε όλες τις σωστές)' }) : null),
+      Util.h('div', { class: 'wf-quiz-opts', role: multi ? 'group' : 'radiogroup', 'aria-label': data.q },
+        options(data).map(o => Util.h('div', {
+          class: 'wf-quiz-opt', role: multi ? 'checkbox' : 'radio', tabindex: '0', 'aria-checked': 'false',
+          'data-correct': o.c ? '1' : '0', 'data-fb': o.f
+        }, Util.h('span', { class: 'wf-quiz-mark', 'aria-hidden': 'true', text: multi ? '☐' : '○' }), Util.h('span', { class: 'wf-quiz-text', text: o.t })))),
+      multi ? Util.h('button', { type: 'button', class: 'wf-quiz-check', text: 'Έλεγχος απάντησης' }) : null,
+      Util.h('div', { class: 'wf-quiz-fb', 'aria-live': 'polite' }));
+  }
+
+  /**
+   * Αντικαθιστά τις ερωτήσεις ενός περιεχομένου με την έντυπη ή τη διαδραστική μορφή τους.
+   * @param {ParentNode} root
+   * @param {boolean} [keepLive=false]
+   */
+  function toOutput(root, keepLive = false) {
+    root.querySelectorAll('.wf-quiz').forEach(node => {
+      const data = parse(node);
+      if (data) node.replaceWith(keepLive ? live(data) : printable(data));
+      else node.remove();
+    });
+  }
+
+  /**
+   * Διάλογος δημιουργίας ή επεξεργασίας ερώτησης.
+   * @param {{sectionId?: string, node?: HTMLElement}} [o]
+   */
+  function open(o = {}) {
+    const editing = o.node || null;
+    const id = editing ? editing.closest('.editor-block')?.dataset.sectionId : InsertTools.target(o.sectionId);
+    if (!id) return;
+    InsertTools.hideOverlays();
+    const initial = editing ? parse(editing) : null;
+
+    const type = Util.h('select', { class: 'select', 'aria-label': 'Είδος ερώτησης' },
+      Util.h('option', { value: 'mc', text: 'Πολλαπλής επιλογής' }),
+      Util.h('option', { value: 'tf', text: 'Σωστό / Λάθος' }));
+    type.value = initial ? initial.type : 'mc';
+    const question = Util.h('textarea', { class: 'textarea', rows: '2', maxlength: '500', placeholder: 'π.χ. Ποια μονάδα μετρά τη δύναμη στο SI;', 'aria-label': 'Ερώτηση' });
+    question.value = initial ? initial.q : '';
+
+    // Πολλαπλής επιλογής.
+    const rows = [];
+    const list = Util.h('div', { class: 'quiz-options' });
+    const addBtn = Util.h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: '+ Προσθήκη επιλογής' });
+    const addRow = (opt = { t: '', c: false, f: '' }) => {
+      const correct = Util.h('input', { type: 'checkbox', 'aria-label': 'Σωστή απάντηση', checked: opt.c });
+      const text = Util.h('input', { class: 'input', type: 'text', maxlength: '300', placeholder: 'Απάντηση', 'aria-label': 'Κείμενο απάντησης', value: opt.t });
+      const fb = Util.h('input', { class: 'input', type: 'text', maxlength: '500', placeholder: 'Ανατροφοδότηση αν επιλεγεί (προαιρετικά)', 'aria-label': 'Ανατροφοδότηση για λανθασμένη επιλογή', value: opt.f });
+      const del = Util.h('button', { class: 'btn-icon btn-sm is-danger', type: 'button', title: 'Αφαίρεση επιλογής', 'aria-label': 'Αφαίρεση επιλογής' }, Util.icon('trash', 16));
+      const el = Util.h('div', { class: 'quiz-option' },
+        Util.h('label', { class: 'check quiz-correct', title: 'Σωστή απάντηση' }, correct, 'Σωστή'),
+        Util.h('div', { class: 'quiz-option-fields' }, text, fb), del);
+      const row = { el, correct, text, fb };
+      const sync = () => { fb.disabled = correct.checked; fb.placeholder = correct.checked ? 'Δεν χρειάζεται (είναι σωστή)' : 'Ανατροφοδότηση αν επιλεγεί (προαιρετικά)'; };
+      correct.addEventListener('change', sync);
+      del.addEventListener('click', () => {
+        if (rows.length <= 2) { Toast.show('Χρειάζονται τουλάχιστον δύο επιλογές', 'warning'); return; }
+        rows.splice(rows.indexOf(row), 1);
+        el.remove();
+        addBtn.disabled = false;
+      });
+      sync();
+      rows.push(row);
+      list.append(el);
+      addBtn.disabled = rows.length >= MAX_OPTIONS;
+    };
+    addBtn.addEventListener('click', () => { if (rows.length < MAX_OPTIONS) { addRow(); rows[rows.length - 1].text.focus(); } });
+    const startOpts = initial && initial.type === 'mc' ? initial.opts : [{ t: '', c: true, f: '' }, { t: '', c: false, f: '' }, { t: '', c: false, f: '' }, { t: '', c: false, f: '' }];
+    startOpts.forEach(addRow);
+    const mcPanel = Util.h('div', { class: 'stack' }, list, Util.h('div', null, addBtn),
+      Util.h('p', { class: 'hint', text: 'Τσέκαρε τη σωστή απάντηση, ή περισσότερες από μία. Στις λανθασμένες γράψε προαιρετικά κείμενο που θα δει ο μαθητής όταν τις επιλέξει.' }));
+
+    // Σωστό / Λάθος.
+    const answer = Util.h('select', { class: 'select', 'aria-label': 'Σωστή απάντηση' },
+      Util.h('option', { value: 'true', text: 'Σωστό' }), Util.h('option', { value: 'false', text: 'Λάθος' }));
+    answer.value = initial && initial.type === 'tf' && !initial.answer ? 'false' : 'true';
+    const tfFeedback = Util.h('textarea', { class: 'textarea', rows: '2', maxlength: '500', placeholder: 'π.χ. Θυμήσου ότι η μάζα δεν αλλάζει με τον τόπο.', 'aria-label': 'Ανατροφοδότηση' });
+    tfFeedback.value = initial && initial.type === 'tf' ? initial.fb : '';
+    const tfPanel = Util.h('div', { class: 'stack' },
+      Util.h('label', { class: 'field' }, Util.h('span', { text: 'Η σωστή απάντηση είναι' }), answer),
+      Util.h('label', { class: 'field' }, Util.h('span', { text: 'Ανατροφοδότηση όταν η απάντηση είναι λανθασμένη (προαιρετικά)' }), tfFeedback));
+
+    const sync = () => {
+      mcPanel.hidden = type.value !== 'mc';
+      tfPanel.hidden = type.value !== 'tf';
+    };
+    type.addEventListener('change', sync);
+    sync();
+
+    const submit = () => {
+      const q = clip(question.value, 500);
+      if (!q) { Toast.show('Γράψε την ερώτηση', 'warning'); question.focus(); return false; }
+      let data;
+      if (type.value === 'tf') {
+        data = normalize({ type: 'tf', q, answer: answer.value === 'true', fb: tfFeedback.value });
+      } else {
+        const filled = rows.filter(r => r.text.value.trim());
+        if (filled.length < 2) { Toast.show('Γράψε τουλάχιστον δύο απαντήσεις', 'warning'); return false; }
+        if (!filled.some(r => r.correct.checked)) { Toast.show('Τσέκαρε τουλάχιστον μία σωστή απάντηση', 'warning'); return false; }
+        data = normalize({ type: 'mc', q, opts: filled.map(r => ({ t: r.text.value, c: r.correct.checked, f: r.fb.value })) });
+      }
+      if (!data) { Toast.show('Η ερώτηση δεν είναι πλήρης', 'warning'); return false; }
+      const node = build(data);
+      if (editing && document.contains(editing)) {
+        editing.replaceWith(node);
+        EditorManager.commit(id);
+      } else {
+        EditorManager.insertBlock(id, [node]);
+      }
+      return true;
+    };
+
+    Modal.open({
+      title: editing ? 'Επεξεργασία ερώτησης' : 'Ερώτηση αυτοαξιολόγησης',
+      size: 'lg',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Είδος' }), type),
+        Util.h('label', { class: 'field' }, Util.h('span', { text: 'Ερώτηση' }), question),
+        mcPanel, tfPanel,
+        Util.h('p', { class: 'hint', text: 'Στο διαδραστικό HTML ο μαθητής απαντά και βλέπει αμέσως αν είναι σωστά (πράσινο) ή λάθος (κόκκινο, μαζί με την ανατροφοδότηση). Στο PDF που κατεβάζει φαίνεται η απάντησή του με το ίδιο χρώμα. Στην εκτύπωση, στο PDF και στο DOCX της εφαρμογής η ερώτηση βγαίνει χωρίς τις σωστές απαντήσεις. Προσοχή: οι σωστές απαντήσεις υπάρχουν μέσα στο αρχείο HTML.' })),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        { label: editing ? 'Ενημέρωση' : 'Εισαγωγή', variant: 'primary', onClick: submit }
+      ],
+      initialFocus: question
+    });
+  }
+
+  return { open, clean, parse, build, normalize, toOutput };
+})();
+
 
 /**
  * Εξαγωγή: εκτύπωση/PDF μέσω browser, PDF με jsPDF + html2canvas, DOCX με docx.js,
@@ -11367,6 +11617,7 @@ const ExportManager = (() => {
       const tpl = document.createElement('template');
       tpl.innerHTML = EditorManager.getRenderedHTML(s.id);
       Embeds.toOutput(tpl.content, !!opts.liveEmbeds);
+      Quiz.toOutput(tpl.content, !!opts.liveEmbeds);
       const blank = !tpl.content.querySelector('img, table, .math-node, ul, ol, .wf-pagebreak, hr') && !tpl.content.textContent.replace(/[\u00A0\u200B]/g, ' ').trim();
       if (blank) {
         if (opts.answerLines) content.append(Util.h('div', { class: 'wf-answer-lines' }, Array.from({ length: 5 }, () => Util.h('div'))));
@@ -12578,6 +12829,23 @@ body.wf-export #print-root { display: block; }
 .wf-field-inline[contenteditable="true"] { height: auto; min-height: 1.3em; padding: 0 3px; background: #FAFDFF; border-bottom: 1px solid #2563EB; white-space: pre-wrap; outline: none; cursor: text; }
 .wf-pdf .wf-field-inline { background: transparent; border-bottom-color: #000000; }
 td.wf-fill { background: #FAFDFF; cursor: text; white-space: pre-wrap; }
+.wf-quiz-live { margin: 3mm 0 4mm; break-inside: avoid; }
+.wf-quiz-live .wf-quiz-q { margin: 0 0 2mm; }
+.wf-quiz-live .wf-quiz-hint { font-weight: 400; color: #64748B; }
+.wf-quiz-live .wf-quiz-opt { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 1.5mm; padding: 1.5mm 3mm; border: 1px solid #CBD5E1; border-radius: 2mm; cursor: pointer; }
+.wf-quiz-live .wf-quiz-opt:hover { background: #F1F5F9; }
+.wf-quiz-live .wf-quiz-opt:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
+.wf-quiz-live .wf-quiz-opt[aria-checked="true"] { border-color: #2563EB; background: #EFF6FF; }
+.wf-quiz-live .wf-quiz-opt.is-right { border-color: #16A34A; background: #DCFCE7; color: #14532D; }
+.wf-quiz-live .wf-quiz-opt.is-wrong { border-color: #DC2626; background: #FEE2E2; color: #7F1D1D; }
+.wf-quiz-live .wf-quiz-opt.is-right .wf-quiz-mark { color: #15803D; }
+.wf-quiz-live .wf-quiz-opt.is-wrong .wf-quiz-mark { color: #B91C1C; }
+.wf-quiz-live .wf-quiz-mark { flex: none; width: 1.3em; text-align: center; font-weight: 700; }
+.wf-quiz-live .wf-quiz-check { height: 32px; padding: 0 12px; border: 1px solid #CBD5E1; border-radius: 6px; background: #F8FAFC; color: #0F172A; font: 600 14px 'Segoe UI', Arial, sans-serif; cursor: pointer; }
+.wf-quiz-live .wf-quiz-fb { margin-top: 1.5mm; font-weight: 600; }
+.wf-quiz-live[data-state="right"] .wf-quiz-fb { color: #15803D; }
+.wf-quiz-live[data-state="wrong"] .wf-quiz-fb { color: #B91C1C; }
+.wf-pdf .wf-quiz-live .wf-quiz-opt { cursor: default; }
 [contenteditable="true"]:focus { outline: 2px solid #2563EB; outline-offset: -2px; }
 .wf-student .line[contenteditable="true"] { padding: 0 2pt; white-space: nowrap; overflow: hidden; }
 ul.wf-checklist > li { cursor: pointer; }
@@ -12632,9 +12900,50 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
     const KEY = `wf-answers:${CFG && CFG.id ? CFG.id : document.title}`;
     const fields = () => Array.from(document.querySelectorAll('#print-root [contenteditable="true"]'));
     const items = () => Array.from(document.querySelectorAll('#print-root ul.wf-checklist > li'));
+    const quizzes = () => Array.from(document.querySelectorAll('#print-root .wf-quiz-live'));
+    const quizOpts = qz => Array.from(qz.querySelectorAll('.wf-quiz-opt'));
+    const isOn = o => o.getAttribute('aria-checked') === 'true';
+    // Ερωτήσεις αυτοαξιολόγησης: πράσινο για σωστή επιλογή, κόκκινο για λανθασμένη (με το κείμενο ανατροφοδότησης).
+    const quizRefresh = qz => {
+      const multi = qz.getAttribute('data-multi') === '1';
+      const opts = quizOpts(qz);
+      const sel = opts.filter(isOn);
+      const done = qz.getAttribute('data-submitted') === '1' && sel.length > 0;
+      const fb = qz.querySelector('.wf-quiz-fb');
+      qz.removeAttribute('data-state');
+      fb.textContent = '';
+      opts.forEach(o => {
+        const right = o.getAttribute('data-correct') === '1';
+        o.classList.toggle('is-right', done && isOn(o) && right);
+        o.classList.toggle('is-wrong', done && isOn(o) && !right);
+        o.querySelector('.wf-quiz-mark').textContent = done && isOn(o) ? (right ? '✓' : '✗') : (multi ? (isOn(o) ? '■' : '☐') : (isOn(o) ? '●' : '○'));
+      });
+      if (!done) return;
+      const total = opts.filter(o => o.getAttribute('data-correct') === '1').length;
+      const wrong = sel.filter(o => o.getAttribute('data-correct') !== '1');
+      const ok = !wrong.length && sel.length === total;
+      const notes = wrong.map(o => o.getAttribute('data-fb')).filter(Boolean);
+      qz.setAttribute('data-state', ok ? 'right' : 'wrong');
+      fb.textContent = ok ? '✓ Σωστή απάντηση' : `✗ ${wrong.length ? 'Λανθασμένη απάντηση' : 'Η απάντηση δεν είναι πλήρης'}${notes.length ? `. ${notes.join(' ')}` : ''}`;
+    };
+    const quizPick = opt => {
+      const qz = opt.closest('.wf-quiz-live');
+      if (qz.getAttribute('data-multi') === '1') {
+        opt.setAttribute('aria-checked', String(!isOn(opt)));
+        qz.removeAttribute('data-submitted');
+      } else {
+        quizOpts(qz).forEach(o => o.setAttribute('aria-checked', String(o === opt)));
+        qz.setAttribute('data-submitted', '1');
+      }
+      quizRefresh(qz);
+      save();
+    };
     const save = () => {
       try {
-        localStorage.setItem(KEY, JSON.stringify({ f: fields().map(f => f.innerText), c: items().map(li => li.getAttribute('data-checked')) }));
+        localStorage.setItem(KEY, JSON.stringify({
+          f: fields().map(f => f.innerText), c: items().map(li => li.getAttribute('data-checked')),
+          q: quizzes().map(qz => ({ s: quizOpts(qz).map(o => (isOn(o) ? 1 : 0)), d: qz.getAttribute('data-submitted') === '1' }))
+        }));
       } catch (e) {
         return;
       }
@@ -12668,15 +12977,38 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       if (d) {
         fields().forEach((f, i) => { if (typeof d.f[i] === 'string' && d.f[i]) f.textContent = d.f[i]; });
         items().forEach((li, i) => { if (d.c[i] === 'true' || d.c[i] === 'false') setItem(li, d.c[i]); });
+        quizzes().forEach((qz, i) => {
+          const q = d.q && d.q[i];
+          if (!q || !Array.isArray(q.s)) return;
+          quizOpts(qz).forEach((o, j) => o.setAttribute('aria-checked', String(q.s[j] === 1)));
+          if (q.d) qz.setAttribute('data-submitted', '1');
+        });
       }
     } catch (e) {
       d = null;
     }
+    quizzes().forEach(quizRefresh);
     document.addEventListener('click', e => {
+      const opt = e.target.closest && e.target.closest('.wf-quiz-live .wf-quiz-opt');
+      if (opt) { quizPick(opt); return; }
+      const check = e.target.closest && e.target.closest('.wf-quiz-check');
+      if (check) {
+        const qz = check.closest('.wf-quiz-live');
+        qz.setAttribute('data-submitted', '1');
+        quizRefresh(qz);
+        save();
+        return;
+      }
       const li = e.target.closest && e.target.closest('ul.wf-checklist > li');
       if (li && !e.target.closest('[contenteditable="true"]')) toggle(li);
     });
     document.addEventListener('keydown', e => {
+      const opt = e.target.closest && e.target.closest('.wf-quiz-live .wf-quiz-opt');
+      if (opt && (e.key === ' ' || e.key === 'Enter')) {
+        e.preventDefault();
+        quizPick(opt);
+        return;
+      }
       const li = e.target.closest && e.target.closest('ul.wf-checklist > li');
       if (li && (e.key === ' ' || e.key === 'Enter')) {
         e.preventDefault();
@@ -12692,6 +13024,11 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       if (!window.confirm('Να διαγραφούν όλες οι απαντήσεις;')) return;
       fields().forEach(f => { f.textContent = ''; });
       items().forEach(li => setItem(li, 'false'));
+      quizzes().forEach(qz => {
+        quizOpts(qz).forEach(o => o.setAttribute('aria-checked', 'false'));
+        qz.removeAttribute('data-submitted');
+        quizRefresh(qz);
+      });
       recalc();
       save();
     });
@@ -12747,6 +13084,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         box.textContent = checked ? '✓' : '';
         li.prepend(box);
       });
+      copy.querySelectorAll('.wf-quiz-check').forEach(b => b.remove());
       copy.querySelectorAll('.wf-embed-live').forEach(el => {
         const link = el.querySelector('.wf-embed-link');
         if (link) el.replaceWith(link);
@@ -14835,6 +15173,7 @@ const UIController = (() => {
         if (tool === 'math') MathEngine.open({});
         else if (tool === 'graph') GraphEngine.open({});
         else if (tool === 'draw') DrawEngine.open({});
+        else if (tool === 'quiz') Quiz.open({});
         else if (tool === 'table') InsertTools.table();
         else if (tool === 'image') InsertTools.image();
         else if (tool === 'link') InsertTools.link();
