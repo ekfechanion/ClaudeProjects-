@@ -553,6 +553,29 @@ body.is-panel-resizing .left-panel { transition: none; }
   border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--bg);
   font-size: 18px; overflow-x: auto;
 }
+.chem-layout { gap: 12px; }
+.chem-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
+.chem-grid-arrow { grid-template-columns: 160px 1fr 1fr; }
+.chem-checks { gap: 16px; flex-wrap: wrap; }
+.chem-checks .checkbox { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.chem-preview { font-size: 22px; }
+.chem-status { margin: 6px 0 0; font: 600 12px var(--font-ui); }
+.chem-status.is-ok { color: #15803D; }
+.chem-status.is-bad { color: var(--danger); }
+.chem-note { margin: 0; font-size: 13px; color: var(--text-muted); }
+.chem-note.is-warn { color: #B45309; }
+.chem-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.chem-table th { text-align: left; font: 600 11px var(--font-ui); color: var(--text-muted); padding: 2px 6px; }
+.chem-table td { padding: 3px 6px; border-top: 1px solid var(--border); vertical-align: middle; }
+.chem-table .chem-side { color: var(--text-muted); font-size: 12px; width: 96px; }
+.chem-table .chem-bad { color: var(--danger); }
+.chem-table input.chem-coef { width: 70px; }
+.chem-ions { gap: 8px; align-items: center; flex-wrap: wrap; }
+.chem-ions select { width: 110px; flex: none; }
+.chem-ion-formula { min-width: 70px; font-size: 18px; }
+.chem-examples { display: flex; flex-wrap: wrap; gap: 4px; }
+@media (max-width: 720px) { .chem-grid, .chem-grid-arrow { grid-template-columns: 1fr; } }
+
 .math-error { color: var(--danger); font-size: 12px; font-family: var(--font-mono); margin: 0; white-space: pre-wrap; }
 .snippet-grid { display: flex; flex-wrap: wrap; gap: 4px; }
 .snippet-btn {
@@ -1283,6 +1306,7 @@ kbd {
           <p class="active-target" id="active-target">Ενεργή ενότητα: <strong>—</strong></p>
           <div class="tool-grid">
             <button class="tool-btn" type="button" data-tool="math"><span class="tool-glyph">∑</span>Μαθηματικά</button>
+            <button class="tool-btn" type="button" data-tool="chem"><span data-icon="flask"></span>Χημική εξίσωση</button>
             <button class="tool-btn" type="button" data-tool="graph"><span data-icon="chart"></span>Γραφική παράσταση</button>
             <button class="tool-btn" type="button" data-tool="draw"><span data-icon="shapes"></span>Σχέδιο</button>
             <button class="tool-btn" type="button" data-tool="quiz"><span data-icon="quiz"></span>Ερώτηση</button>
@@ -1906,6 +1930,7 @@ const Util = (() => {
     'draw-boy': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 7v7.5', 'M12 9.5l-3.5 3.5', 'M12 9.5l3.5 3.5', 'M12 14.5l-3 6', 'M12 14.5l3 6'],
     'draw-girl': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 8.5l-4.5 8h9z', 'M10 16.5v4', 'M14 16.5v4', 'M10.3 11.5l-2.5 3', 'M13.7 11.5l2.5 3'],
     'draw-cart': ['M3 7h18v8H3z', 'M8 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M16 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M1.5 11h1.5', 'M21 11h1.5'],
+    flask: ['M9 3h6', 'M10 3v6.2L4.6 19a1.6 1.6 0 0 0 1.4 2.4h12a1.6 1.6 0 0 0 1.4-2.4L14 9.2V3', 'M7.5 15h9'],
     quiz: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7', 'M12 17h.01'],
     'draw-text': ['M5 6V4h14v2', 'M12 4v16', 'M9 20h6'],
     'draw-fill': ['M5 11l6-6 8 8-6 6z', 'M11 5L9 3', 'M19 15c1 1.5 1.5 2.5 1.5 3.5a1.5 1.5 0 0 1-3 0c0-1 .5-2 1.5-3.5z'],
@@ -2776,6 +2801,13 @@ const Sanitizer = (() => {
     span.setAttribute('data-latex', latex);
     span.setAttribute('data-display', display ? '1' : '0');
     span.setAttribute('contenteditable', 'false');
+    const chem = (el.getAttribute('data-chem') || '').slice(0, 2000);
+    if (chem) {
+      try {
+        const o = JSON.parse(chem);
+        if (o && o.v === 1) span.setAttribute('data-chem', chem);
+      } catch (e) { /* αγνοείται: η εξίσωση μένει ως απλό LaTeX */ }
+    }
     el.replaceWith(span);
   }
 
@@ -4164,12 +4196,12 @@ const EditorManager = (() => {
   };
 
   const TYPE_TOOLS = {
-    text: ['block', 'inline', 'list', 'align', 'image', 'draw', 'math', 'card', 'link', 'embed', 'field', 'quiz', 'hr'],
-    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'draw', 'math', 'card', 'embed', 'field'],
+    text: ['block', 'inline', 'list', 'align', 'image', 'draw', 'math', 'chem', 'card', 'link', 'embed', 'field', 'quiz', 'hr'],
+    table: ['inline', 'list', 'align', 'table', 'columns', 'image', 'draw', 'math', 'chem', 'card', 'embed', 'field'],
     image: ['inlineBasic', 'align', 'image', 'caption', 'math', 'embed'],
-    math: ['inlineBasic', 'list', 'align', 'math', 'image'],
-    graph: ['inline', 'align', 'graph', 'draw', 'image', 'caption', 'math'],
-    mixed: ['block', 'inline', 'list', 'align', 'image', 'draw', 'table', 'columns', 'card', 'math', 'graph', 'link', 'embed', 'field', 'quiz', 'hr', 'pagebreak']
+    math: ['inlineBasic', 'list', 'align', 'math', 'chem', 'image'],
+    graph: ['inline', 'align', 'graph', 'draw', 'image', 'caption', 'math', 'chem'],
+    mixed: ['block', 'inline', 'list', 'align', 'image', 'draw', 'table', 'columns', 'card', 'math', 'chem', 'graph', 'link', 'embed', 'field', 'quiz', 'hr', 'pagebreak']
   };
 
   const BUTTONS = {
@@ -4194,6 +4226,7 @@ const EditorManager = (() => {
     table: { icon: 'table', title: 'Εισαγωγή πίνακα (Ctrl+Alt+T)', run: id => InsertTools.table(id) },
     math: { glyph: '∑', label: 'Μαθηματικά', title: 'Εισαγωγή μαθηματικής έκφρασης (Ctrl+M)', run: id => MathEngine.open({ sectionId: id }) },
     graph: { icon: 'chart', title: 'Γραφική παράσταση (Ctrl+Alt+G)', run: id => GraphEngine.open({ sectionId: id }) },
+    chem: { icon: 'flask', title: 'Χημική εξίσωση: πρόβλεψη προϊόντων, δείκτες, συντελεστές (Ctrl+Alt+C)', run: id => ChemEngine.open({ sectionId: id }) },
     quiz: { icon: 'quiz', title: 'Ερώτηση πολλαπλής επιλογής ή Σωστό / Λάθος, με έλεγχο στο HTML (Ctrl+Alt+Q)', run: id => Quiz.open({ sectionId: id }) },
     draw: { icon: 'shapes', title: 'Σχέδιο: γραμμές και σχήματα (Ctrl+Alt+D)', run: id => DrawEngine.open({ sectionId: id }) },
     link: { icon: 'link', title: 'Εισαγωγή συνδέσμου (Ctrl+K)', run: id => InsertTools.link(id) },
@@ -4460,7 +4493,7 @@ const EditorManager = (() => {
     else if (tools.has('inlineBasic')) groups.push(['bold', 'italic', 'underline', 'sup', 'sub'].map(k => toolButton(block, k)));
     if (tools.has('list')) groups.push(['ul', 'ol', 'check', 'indent', 'outdent'].map(k => toolButton(block, k)));
     if (tools.has('align')) groups.push(['left', 'center', 'right', 'justify'].map(k => toolButton(block, k)));
-    const inserts = ['math', 'graph', 'draw', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'field', 'quiz', 'hr', 'pagebreak'].filter(k => tools.has(k));
+    const inserts = ['math', 'chem', 'graph', 'draw', 'image', 'caption', 'table', 'columns', 'card', 'link', 'embed', 'field', 'quiz', 'hr', 'pagebreak'].filter(k => tools.has(k));
     if (inserts.length) groups.push(inserts.map(k => toolButton(block, k)));
     groups.push((Dictation.supported() ? ['mic', 'undo', 'redo', 'clear'] : ['undo', 'redo', 'clear']).map(k => toolButton(block, k)));
     groups.forEach((group, i) => {
@@ -5231,6 +5264,7 @@ const EditorManager = (() => {
       if (code === 'KeyG') return run(() => GraphEngine.open({ sectionId: block.id }));
       if (code === 'KeyD') return run(() => DrawEngine.open({ sectionId: block.id }));
       if (code === 'KeyQ') return run(() => Quiz.open({ sectionId: block.id }));
+      if (code === 'KeyC') return run(() => ChemEngine.open({ sectionId: block.id }));
       if (code === 'KeyE') return run(() => Embeds.open({ sectionId: block.id }));
       if (code === 'KeyH') return run(() => InsertTools.horizontalRule(block.id));
       if (code === 'KeyA') return run(() => InsertTools.answerField(block.id));
@@ -5429,7 +5463,8 @@ const EditorManager = (() => {
     const math = e.target.closest && e.target.closest('.math-node');
     if (math && block.content.contains(math)) {
       e.preventDefault();
-      MathEngine.open({ sectionId: block.id, node: math });
+      if (math.hasAttribute('data-chem')) ChemEngine.open({ sectionId: block.id, node: math });
+      else MathEngine.open({ sectionId: block.id, node: math });
       return;
     }
     const embedBar = e.target.closest && e.target.closest('.wf-embed-bar');
@@ -9691,6 +9726,930 @@ const MathEngine = (() => {
   }
 
   return { SYMBOLS, render, renderInto, hydrate, createNode, insert, open, favorites, removeFavorite, miniPreview, fit };
+})();
+
+
+/**
+ * Χημικές εξισώσεις: πρόβλεψη προϊόντων από τα αντιδρώντα, δείκτες από σθένη ιόντων,
+ * αυτόματη εξισορρόπηση (συντελεστές), βέλη αντίδρασης, ↑ (αέριο) και ↓ (ίζημα),
+ * με δυνατότητα χειροκίνητης εισαγωγής ή διόρθωσης. Το αποτέλεσμα είναι κόμβος math-node (LaTeX),
+ * οπότε εκτυπώνεται και εξάγεται όπως οι μαθηματικές εκφράσεις· ο κόμβος κρατά και την αναπαράσταση
+ * στο data-chem ώστε να επεξεργάζεται ξανά με διπλό κλικ.
+ * @namespace ChemEngine
+ */
+const ChemEngine = (() => {
+  const MAX_SPECIES = 8;
+  const MAX_STATE = 1800;
+  const ELEMENTS = new Set(('H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr').split(' '));
+  const NONMETALS = new Set(['H', 'He', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Si', 'P', 'S', 'Cl', 'Ar', 'Se', 'Br', 'Kr', 'I', 'Xe', 'As', 'Te', 'At']);
+  /** Σειρά δραστικότητας μετάλλων (από το δραστικότερο). Το H δείχνει τη θέση του υδρογόνου. */
+  const ACTIVITY = ['K', 'Ba', 'Sr', 'Ca', 'Na', 'Li', 'Mg', 'Al', 'Mn', 'Zn', 'Cr', 'Fe', 'Co', 'Ni', 'Sn', 'Pb', 'H', 'Cu', 'Hg', 'Ag', 'Au'];
+  const ALKALI_LIKE = new Set(['Li', 'Na', 'K', 'Ca', 'Ba', 'Sr']);
+  const GROUP1 = new Set(['Li', 'Na', 'K']);
+
+  /** Κατιόντα: [σύμβολο, φορτίο, ετικέτα]. */
+  const CATIONS = [
+    ['H', 1], ['Na', 1], ['K', 1], ['Li', 1], ['NH4', 1], ['Ag', 1], ['Mg', 2], ['Ca', 2], ['Ba', 2], ['Sr', 2],
+    ['Zn', 2], ['Fe', 2], ['Fe', 3], ['Cu', 2], ['Pb', 2], ['Hg', 2], ['Ni', 2], ['Mn', 2], ['Sn', 2], ['Co', 2], ['Al', 3], ['Cr', 3]
+  ].map(([sym, q]) => ({ sym, q, poly: sym === 'NH4', key: `${sym}${q > 1 ? q : ''}+`, base: sym.replace(/\d+/g, '') }));
+  /** Ανιόντα: [σύμβολο, φορτίο]. */
+  const ANIONS = [
+    ['F', 1], ['Cl', 1], ['Br', 1], ['I', 1], ['OH', 1], ['NO3', 1], ['HCO3', 1], ['CH3COO', 1], ['ClO3', 1], ['MnO4', 1],
+    ['O', 2], ['S', 2], ['SO4', 2], ['SO3', 2], ['CO3', 2], ['PO4', 3]
+  ].map(([sym, q]) => ({ sym, q, poly: /[A-Z][a-z]?\d|[A-Z].*[A-Z]/.test(sym) && sym !== 'Cl' && sym !== 'Br', key: `${sym}${q > 1 ? q : ''}-` }));
+
+  const GAS = new Set(['H2', 'O2', 'N2', 'Cl2', 'F2', 'CO2', 'SO2', 'H2S', 'NH3', 'NO', 'NO2', 'CH4', 'HCl', 'CO', 'C2H2', 'C2H4']);
+  const ORGANIC_EXCLUDE = new Set(['CO', 'CO2', 'H2CO3']);
+
+  /** Τύπος ένωσης από κατιόν και ανιόν, με δείκτες από σθένος (σταυρωτά). */
+  function ionFormula(c, a) {
+    if (c.sym === 'H' && a.sym === 'OH') return 'H2O';
+    if (c.sym === 'H' && a.sym === 'O') return 'H2O';
+    if (c.sym === 'H' && a.sym === 'CH3COO') return 'CH3COOH';
+    if (c.sym === 'H' && a.sym === 'HCO3') return 'H2CO3';
+    const gcd = (x, y) => (y ? gcd(y, x % y) : x);
+    const g = gcd(c.q, a.q);
+    const nc = a.q / g;
+    const na = c.q / g;
+    const part = (ion, n) => (n === 1 ? ion.sym : (ion.poly ? `(${ion.sym})${n}` : `${ion.sym}${n}`));
+    return part(c, nc) + part(a, na);
+  }
+
+  const LOOKUP = new Map();
+  CATIONS.forEach(c => ANIONS.forEach(a => {
+    const f = ionFormula(c, a);
+    if (!LOOKUP.has(f)) LOOKUP.set(f, { c, a });
+  }));
+  LOOKUP.set('NH4OH', { c: CATIONS.find(c => c.sym === 'NH4'), a: ANIONS.find(a => a.sym === 'OH') });
+
+  /**
+   * Αναλύει έναν χημικό τύπο σε άτομα και φορτίο. Δέχεται παρενθέσεις, ένυδρα (CuSO4.5H2O) και φορτίο (Fe^3+).
+   * @param {string} raw
+   * @returns {{counts: Object<string, number>, charge: number}}
+   */
+  function parseFormula(raw) {
+    let s = String(raw || '').replace(/\s+/g, '').replace(/[·*]/g, '.').replace(/[₀-₉]/g, ch => String(ch.charCodeAt(0) - 0x2080));
+    let charge = 0;
+    const cm = s.match(/\^(\d*)([+-])$/);
+    if (cm) {
+      charge = (cm[1] ? Number(cm[1]) : 1) * (cm[2] === '+' ? 1 : -1);
+      s = s.slice(0, cm.index);
+    }
+    if (!s) throw new Error('κενός τύπος');
+    const total = {};
+    s.split('.').forEach((part, idx) => {
+      let mult = 1;
+      if (idx > 0) {
+        const mm = part.match(/^(\d+)/);
+        if (mm) { mult = Number(mm[1]); part = part.slice(mm[1].length); }
+      }
+      if (!part) throw new Error('ελλιπής τύπος');
+      const stack = [{}];
+      let i = 0;
+      while (i < part.length) {
+        const ch = part[i];
+        if (ch === '(' || ch === '[') {
+          stack.push({});
+          i++;
+        } else if (ch === ')' || ch === ']') {
+          if (stack.length < 2) throw new Error('μη ταιριαστή παρένθεση');
+          i++;
+          let num = '';
+          while (i < part.length && /\d/.test(part[i])) num += part[i++];
+          const top = stack.pop();
+          const n = num ? Number(num) : 1;
+          Object.keys(top).forEach(k => { stack[stack.length - 1][k] = (stack[stack.length - 1][k] || 0) + top[k] * n; });
+        } else if (/[A-Z]/.test(ch)) {
+          let el = ch;
+          i++;
+          if (i < part.length && /[a-z]/.test(part[i])) el += part[i++];
+          if (!ELEMENTS.has(el)) throw new Error(`άγνωστο στοιχείο «${el}»`);
+          let num = '';
+          while (i < part.length && /\d/.test(part[i])) num += part[i++];
+          const top = stack[stack.length - 1];
+          top[el] = (top[el] || 0) + (num ? Number(num) : 1);
+        } else {
+          throw new Error(`μη έγκυρος χαρακτήρας «${ch}»`);
+        }
+      }
+      if (stack.length !== 1) throw new Error('μη ταιριαστή παρένθεση');
+      Object.keys(stack[0]).forEach(k => { total[k] = (total[k] || 0) + stack[0][k] * mult; });
+    });
+    return { counts: total, charge };
+  }
+
+  /** Κανονικοποιεί έναν τύπο για αναζήτηση (χωρίς κενά και φορτία). */
+  function canon(f) {
+    return String(f || '').replace(/\s+/g, '').replace(/\^\d*[+-]$/, '').replace(/[₀-₉]/g, ch => String(ch.charCodeAt(0) - 0x2080));
+  }
+
+  /**
+   * Μετατρέπει τύπο σε LaTeX (δείκτες, φορτία, ένυδρα).
+   * @param {string} f
+   * @returns {string}
+   */
+  function formulaTex(f) {
+    let s = canon(f).replace(/[·*]/g, '.');
+    const raw = String(f).replace(/\s+/g, '');
+    const cm = raw.match(/\^(\d*)([+-])$/);
+    const chargeTex = cm ? `^{${cm[1] || ''}${cm[2]}}` : '';
+    const out = s.split('.').map((part, idx) => {
+      let lead = '';
+      if (idx > 0) {
+        const mm = part.match(/^(\d+)/);
+        if (mm) { lead = mm[1]; part = part.slice(mm[1].length); }
+      }
+      const body = part.replace(/([A-Za-z)\]])(\d+)/g, '$1_{$2}');
+      return (idx > 0 ? `\\cdot ${lead}` : '') + body;
+    }).join('');
+    return out + chargeTex;
+  }
+
+  /** @returns {{kind: string, ion?: {c: Object, a: Object}, el?: string}} κατηγορία ουσίας για την πρόβλεψη */
+  function classify(f) {
+    const key = canon(f);
+    if (key === 'H2O') return { kind: 'water' };
+    if (key === 'H2O2') return { kind: 'peroxide' };
+    if (key === 'NH3') return { kind: 'ammonia' };
+    let parsed;
+    try { parsed = parseFormula(key); } catch (e) { return { kind: 'other' }; }
+    const els = Object.keys(parsed.counts);
+    if (els.length === 1) {
+      const el = els[0];
+      return { kind: NONMETALS.has(el) ? 'nonmetal' : 'metal', el };
+    }
+    const ion = LOOKUP.get(key);
+    if (ion) {
+      if (ion.c.sym === 'H') return { kind: 'acid', ion };
+      if (ion.a.sym === 'OH') return { kind: 'base', ion };
+      if (ion.a.sym === 'O') return { kind: 'moxide', ion };
+      return { kind: 'salt', ion };
+    }
+    if (['CO2', 'SO2', 'SO3', 'N2O5', 'P2O5', 'P4O10', 'NO2', 'CO', 'NO'].includes(key)) return { kind: 'nmoxide' };
+    if (els.every(e => ['C', 'H', 'O'].includes(e)) && parsed.counts.C && parsed.counts.H && !ORGANIC_EXCLUDE.has(key)) return { kind: 'organic' };
+    return { kind: 'other' };
+  }
+
+  /** Διαλυτότητα (σχολικοί κανόνες). true: ίζημα. */
+  function isPrecipitate(c, a) {
+    if (c.sym === 'NH4' || GROUP1.has(c.sym)) return false;
+    if (a.sym === 'NO3' || a.sym === 'CH3COO' || a.sym === 'ClO3' || a.sym === 'MnO4') return false;
+    if (['Cl', 'Br', 'I'].includes(a.sym)) return ['Ag', 'Pb', 'Hg'].includes(c.sym) && c.q === (c.sym === 'Ag' ? 1 : 2);
+    if (a.sym === 'F') return ['Ca', 'Mg', 'Ba', 'Pb', 'Sr'].includes(c.sym);
+    if (a.sym === 'SO4') return ['Ba', 'Pb', 'Sr', 'Ca'].includes(c.sym);
+    if (a.sym === 'OH') return !['Ba', 'Ca', 'Sr'].includes(c.sym);
+    if (a.sym === 'S') return !['Ba', 'Ca', 'Sr', 'Mg'].includes(c.sym);
+    if (a.sym === 'CO3' || a.sym === 'PO4' || a.sym === 'SO3' || a.sym === 'HCO3') return a.sym !== 'HCO3';
+    return false;
+  }
+
+  /** Ελέγχει αν ένα προϊόν είναι ίζημα (άλας ή βάση που δεν διαλύεται). */
+  function precipitateOf(f) {
+    const k = classify(f);
+    return !!(k.ion && (k.kind === 'salt' || k.kind === 'base') && isPrecipitate(k.ion.c, k.ion.a));
+  }
+
+  /** Ποιες ουσίες θεωρούνται αντιδράσεις «σε διάλυμα/ιοντικές» ώστε να σημειώνονται αυτόματα ↑ και ↓. */
+  function solutionLike(reactants) {
+    return reactants.some(f => ['acid', 'base', 'salt', 'moxide', 'water', 'peroxide', 'ammonia'].includes(classify(f).kind));
+  }
+
+  /**
+   * Προτεινόμενη επισήμανση: 'u' αέριο, 'd' ίζημα, '' τίποτα.
+   * @param {string} f προϊόν
+   * @param {string[]} reactants
+   * @returns {string}
+   */
+  function autoFlag(f, reactants) {
+    if (!solutionLike(reactants)) return '';
+    const key = canon(f);
+    if (GAS.has(key) && key !== 'HCl' && key !== 'CH4' && !reactants.map(canon).includes(key)) return 'u';
+    if (key === 'HCl' && reactants.some(r => classify(r).kind === 'salt' && /^NH4/.test(canon(r)))) return 'u';
+    if (precipitateOf(f)) return 'd';
+    return '';
+  }
+
+  // ---------------------------------------------------------------- εξισορρόπηση
+
+  const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+  const lcm = (a, b) => Math.abs(a * b) / gcd(a, b);
+
+  /**
+   * Βρίσκει τους μικρότερους ακέραιους θετικούς συντελεστές.
+   * @param {Array<{counts: Object, charge: number}>} left
+   * @param {Array<{counts: Object, charge: number}>} right
+   * @returns {{coeffs?: number[], error?: string}}
+   */
+  function balance(left, right) {
+    const species = [...left, ...right];
+    const n = species.length;
+    const elements = Array.from(new Set(species.flatMap(s => Object.keys(s.counts))));
+    const rows = elements.map(el => species.map((s, i) => (s.counts[el] || 0) * (i < left.length ? 1 : -1)));
+    if (species.some(s => s.charge)) rows.push(species.map((s, i) => s.charge * (i < left.length ? 1 : -1)));
+    // Απαλοιφή Gauss με κλάσματα [αριθμητής, παρονομαστής].
+    const fr = rows.map(r => r.map(v => [v, 1]));
+    const norm = ([p, q]) => { if (q < 0) { p = -p; q = -q; } const g = gcd(p, q) || 1; return [p / g, q / g]; };
+    const sub = (a, b) => norm([a[0] * b[1] - b[0] * a[1], a[1] * b[1]]);
+    const mul = (a, b) => norm([a[0] * b[0], a[1] * b[1]]);
+    const div = (a, b) => norm([a[0] * b[1], a[1] * b[0]]);
+    const pivots = [];
+    let r = 0;
+    for (let c = 0; c < n && r < fr.length; c++) {
+      let p = r;
+      while (p < fr.length && fr[p][c][0] === 0) p++;
+      if (p === fr.length) continue;
+      [fr[r], fr[p]] = [fr[p], fr[r]];
+      const pv = fr[r][c];
+      fr[r] = fr[r].map(v => div(v, pv));
+      for (let k = 0; k < fr.length; k++) {
+        if (k !== r && fr[k][c][0] !== 0) {
+          const f = fr[k][c];
+          fr[k] = fr[k].map((v, j) => sub(v, mul(f, fr[r][j])));
+        }
+      }
+      pivots.push(c);
+      r++;
+    }
+    const free = [];
+    for (let c = 0; c < n; c++) if (!pivots.includes(c)) free.push(c);
+    if (!free.length) return { error: 'Δεν μπορεί να εξισορροπηθεί: τα στοιχεία των δύο μελών δεν ταιριάζουν.' };
+    if (free.length > 1) return { error: 'Υπάρχουν πολλές λύσεις· γράψε χειροκίνητα κάποιους συντελεστές.' };
+    const fc = free[0];
+    const vec = new Array(n).fill(null).map(() => [0, 1]);
+    vec[fc] = [1, 1];
+    pivots.forEach((pc, row) => { vec[pc] = norm([-fr[row][fc][0], fr[row][fc][1]]); });
+    let L = 1;
+    vec.forEach(v => { L = lcm(L, v[1]); });
+    let ints = vec.map(v => (v[0] * L) / v[1]);
+    if (ints.every(v => v <= 0)) ints = ints.map(v => -v);
+    if (ints.some(v => v <= 0)) return { error: 'Δεν υπάρχει λύση με θετικούς συντελεστές· έλεγξε τους τύπους.' };
+    const g = ints.reduce((a, b) => gcd(a, b));
+    return { coeffs: ints.map(v => v / g) };
+  }
+
+  /** Συγκρίνει άτομα και φορτίο των δύο μελών με συγκεκριμένους συντελεστές. */
+  function mismatch(left, right, cl, cr) {
+    const tally = (list, cs) => {
+      const t = { '+/-': 0 };
+      list.forEach((s, i) => {
+        Object.keys(s.counts).forEach(k => { t[k] = (t[k] || 0) + s.counts[k] * cs[i]; });
+        t['+/-'] += s.charge * cs[i];
+      });
+      return t;
+    };
+    const a = tally(left, cl);
+    const b = tally(right, cr);
+    const bad = Array.from(new Set([...Object.keys(a), ...Object.keys(b)])).filter(k => (a[k] || 0) !== (b[k] || 0));
+    return bad.map(k => (k === '+/-' ? 'φορτίο' : k));
+  }
+
+  // ---------------------------------------------------------------- πρόβλεψη προϊόντων
+
+  const ionOf = (sym, q) => CATIONS.find(c => c.sym === sym && c.q === q);
+  const anionOf = sym => ANIONS.find(a => a.sym === sym);
+  const defaultCation = el => {
+    const opts = CATIONS.filter(c => c.sym === el);
+    return opts.length ? opts[0] : null;
+  };
+  const NM_ANION = { O: 'O', S: 'S', Cl: 'Cl', Br: 'Br', I: 'I', F: 'F' };
+  const NMOXIDE_ANION = { CO2: 'CO3', SO2: 'SO3', SO3: 'SO4', N2O5: 'NO3', P2O5: 'PO4', P4O10: 'PO4' };
+  const NMOXIDE_ACID = { CO2: 'H2CO3', SO2: 'H2SO3', SO3: 'H2SO4', N2O5: 'HNO3', P2O5: 'H3PO4', P4O10: 'H3PO4' };
+  const HALOGEN_ORDER = ['F', 'Cl', 'Br', 'I'];
+
+  const elementName = k => { try { return Object.keys(parseFormula(canon(k)).counts)[0]; } catch (e) { return ''; } };
+
+  /** Διάσπαση προϊόντων που δεν υπάρχουν ως ελεύθερες ουσίες (H2CO3, H2SO3, NH4OH). */
+  function expandProduct(f) {
+    if (f === 'H2CO3') return ['H2O', 'CO2'];
+    if (f === 'H2SO3') return ['H2O', 'SO2'];
+    if (f === 'NH4OH') return ['NH3', 'H2O'];
+    return [f];
+  }
+
+  /**
+   * Προτείνει προϊόντα από τα αντιδρώντα.
+   * @param {string[]} reactants τύποι
+   * @returns {{products?: string[], type?: string, note?: string, arrow?: string, cond?: string}}
+   */
+  function predict(reactants) {
+    const rs = reactants.map(canon).filter(Boolean);
+    if (!rs.length) return { note: 'Γράψε πρώτα τα αντιδρώντα.' };
+    if (rs.length > 2) return { note: 'Η πρόβλεψη δουλεύει για 1 ή 2 αντιδρώντα· συμπλήρωσε τα προϊόντα χειροκίνητα.' };
+    const k = rs.map(classify);
+    if (k.some(x => x.kind === 'other')) return { note: 'Δεν αναγνωρίζω κάποιον από τους τύπους· συμπλήρωσε τα προϊόντα χειροκίνητα.' };
+
+    if (rs.length === 1) return predictOne(rs[0], k[0]);
+
+    let [a, b] = [0, 1];
+    const has = kind => k.findIndex(x => x.kind === kind);
+    const both = (x, y) => { const i = has(x); const j = has(y); return i >= 0 && j >= 0 && i !== j ? [i, j] : null; };
+    const pair = (...kinds) => kinds.map(kd => has(kd));
+    void a; void b;
+
+    // μέταλλο + μη μέταλλο
+    let m = both('metal', 'nonmetal');
+    if (m) {
+      const metal = k[m[0]].el;
+      const nm = k[m[1]].el;
+      const an = anionOf(NM_ANION[nm]);
+      if (an) {
+        if (metal === 'Fe' && nm === 'O') return { products: ['Fe3O4'], type: 'Σύνθεση (καύση μετάλλου)', note: 'Ο σίδηρος καίγεται σε Fe3O4.' };
+        let cat = defaultCation(metal);
+        if (metal === 'Fe' && ['Cl', 'Br', 'F'].includes(nm)) cat = ionOf('Fe', 3);
+        if (cat) return { products: [ionFormula(cat, an)], type: 'Σύνθεση (μέταλλο + αμέταλλο → ιοντική ένωση)', note: 'Οι δείκτες προκύπτουν από τα σθένη των ιόντων.' };
+      }
+    }
+    // αμέταλλο + αμέταλλο
+    m = both('nonmetal', 'nonmetal');
+    if (!m && k.length === 2 && k.every(x => x.kind === 'nonmetal') && k[0].el !== k[1].el) m = [0, 1];
+    if (m) {
+      const e = [k[0].el, k[1].el].sort().join('+');
+      const table = {
+        'H+O': 'H2O', 'Cl+H': 'HCl', 'H+N': 'NH3', 'C+O': 'CO2', 'O+S': 'SO2', 'N+O': 'NO', 'O+P': 'P2O5',
+        'H+S': 'H2S', 'Br+H': 'HBr', 'H+I': 'HI', 'F+H': 'HF', 'C+S': 'CS2'
+      };
+      if (table[e]) {
+        const cond = { 'N+O': 'ηλεκτρικό τόξο', 'H+N': 'Fe, 450°C, υψηλή πίεση', 'H+O': 'σπινθήρας' }[e] || '';
+        return { products: [table[e]], type: 'Σύνθεση', cond, note: 'Σύνθεση από στοιχεία.' };
+      }
+    }
+    // μονοξείδιο/διοξείδιο
+    const idx = (kind, pred) => k.findIndex((x, i) => x.kind === kind && (!pred || pred(rs[i])));
+    const co = rs.indexOf('CO');
+    if (co >= 0 && rs[1 - co] === 'O2') return { products: ['CO2'], type: 'Καύση', note: 'Καύση μονοξειδίου του άνθρακα.' };
+    if (rs.includes('SO2') && rs.includes('O2')) return { products: ['SO3'], type: 'Σύνθεση', cond: 'V2O5, 450°C', arrow: 'eq', note: 'Οξείδωση του SO2 (αμφίδρομη).' };
+    if (rs.includes('NH3') && rs.includes('O2')) return { products: ['NO', 'H2O'], type: 'Καταλυτική οξείδωση της αμμωνίας', cond: 'Pt', note: 'Διαδικασία Ostwald.' };
+
+    // υδρογονάνθρακας / οργανική ένωση + O2
+    const org = idx('organic');
+    if (org >= 0 && rs.includes('O2')) return { products: ['CO2', 'H2O'], type: 'Καύση οργανικής ένωσης', note: 'Πλήρης καύση: CO2 και H2O.' };
+    if (rs.some(r => r === 'C') && rs.includes('O2')) return { products: ['CO2'], type: 'Καύση άνθρακα', note: 'Με περίσσεια οξυγόνου.' };
+
+    // μέταλλο + νερό
+    m = both('metal', 'water');
+    if (m) {
+      const metal = k[m[0]].el;
+      if (ALKALI_LIKE.has(metal)) {
+        const cat = defaultCation(metal);
+        return { products: [ionFormula(cat, anionOf('OH')), 'H2'], type: 'Μέταλλο + νερό → βάση + H2', note: 'Δραστικά μέταλλα αντιδρούν με νερό σε θερμοκρασία δωματίου.' };
+      }
+      const oxides = { Mg: 'MgO', Al: 'Al2O3', Zn: 'ZnO', Fe: 'Fe3O4' };
+      if (oxides[metal]) return { products: [oxides[metal], 'H2'], type: 'Μέταλλο + υδρατμοί → οξείδιο + H2', cond: 'Δ', note: 'Αντιδρούν μόνο με υδρατμούς σε υψηλή θερμοκρασία.' };
+      return { note: `Το ${metal} δεν αντιδρά με νερό.` };
+    }
+    // μέταλλο + οξύ
+    m = both('metal', 'acid');
+    if (m) {
+      const metal = k[m[0]].el;
+      const acid = k[m[1]];
+      if (['NO3'].includes(acid.ion.a.sym) || (acid.ion.a.sym === 'SO4' && false)) return { note: 'Το HNO3 είναι οξειδωτικό και δεν δίνει H2· συμπλήρωσε χειροκίνητα.' };
+      const ai = ACTIVITY.indexOf(metal);
+      if (ai < 0 || ai > ACTIVITY.indexOf('H')) return { note: `Το ${metal} είναι κάτω από το υδρογόνο στη σειρά δραστικότητας και δεν εκτοπίζει H2 από το οξύ.` };
+      const cat = metal === 'Fe' ? ionOf('Fe', 2) : defaultCation(metal);
+      return { products: [ionFormula(cat, acid.ion.a), 'H2'], type: 'Απλή αντικατάσταση: μέταλλο + οξύ → άλας + H2', note: 'Το μέταλλο βρίσκεται πάνω από το υδρογόνο στη σειρά δραστικότητας.' };
+    }
+    // μέταλλο + άλας (απλή αντικατάσταση)
+    m = both('metal', 'salt');
+    if (m) {
+      const metal = k[m[0]].el;
+      const salt = k[m[1]].ion;
+      const target = salt.c.sym;
+      const ai = ACTIVITY.indexOf(metal);
+      const ti = ACTIVITY.indexOf(target);
+      if (ai < 0 || ti < 0) return { note: 'Δεν γνωρίζω τη σειρά δραστικότητας γι’ αυτά τα μέταλλα.' };
+      if (ALKALI_LIKE.has(metal)) return { note: `Το ${metal} αντιδρά πρώτα με το νερό του διαλύματος.` };
+      if (ai >= ti) return { note: `Το ${metal} είναι λιγότερο δραστικό από το ${target}· δεν γίνεται αντίδραση.` };
+      const cat = metal === 'Fe' ? ionOf('Fe', 2) : defaultCation(metal);
+      return { products: [ionFormula(cat, salt.a), target], type: 'Απλή αντικατάσταση: δραστικότερο μέταλλο εκτοπίζει το λιγότερο δραστικό', note: 'Σειρά δραστικότητας: K, Ba, Ca, Na, Mg, Al, Zn, Fe, Ni, Sn, Pb, H, Cu, Hg, Ag, Au.' };
+    }
+    // αλογόνο + άλας αλογονιδίου
+    m = both('nonmetal', 'salt');
+    if (m && ['Cl', 'Br', 'I'].includes(k[m[0]].el) && HALOGEN_ORDER.includes(k[m[1]].ion.a.sym)) {
+      const hal = k[m[0]].el;
+      const salt = k[m[1]].ion;
+      if (HALOGEN_ORDER.indexOf(hal) < HALOGEN_ORDER.indexOf(salt.a.sym)) {
+        return { products: [ionFormula(salt.c, anionOf(hal)), `${salt.a.sym}2`], type: 'Εκτόπιση αλογόνου', note: 'Το δραστικότερο αλογόνο εκτοπίζει το λιγότερο δραστικό.' };
+      }
+      return { note: 'Το αλογόνο δεν είναι δραστικότερο από το αλογόνο του άλατος.' };
+    }
+    // αναγωγή οξειδίου με H2, C ή CO
+    m = both('moxide', 'nonmetal');
+    const reductant = m ? k[m[1]].el : (both('moxide', 'nmoxide') && rs.includes('CO') ? 'CO' : null);
+    if (m && (reductant === 'H' || reductant === 'C')) {
+      const ox = k[m[0]].ion;
+      const ai = ACTIVITY.indexOf(ox.c.sym);
+      if (ai < ACTIVITY.indexOf('Mn')) return { note: 'Το οξείδιο αυτού του μετάλλου δεν ανάγεται εύκολα με H2 ή C.' };
+      return { products: [ox.c.sym, reductant === 'H' ? 'H2O' : 'CO2'], type: 'Αναγωγή οξειδίου', cond: 'Δ', note: reductant === 'H' ? 'Το υδρογόνο αφαιρεί το οξυγόνο του οξειδίου.' : 'Ο άνθρακας αφαιρεί το οξυγόνο του οξειδίου.' };
+    }
+    if (rs.includes('CO') && k.some(x => x.kind === 'moxide')) {
+      const ox = k.find(x => x.kind === 'moxide').ion;
+      return { products: [ox.c.sym, 'CO2'], type: 'Αναγωγή οξειδίου', cond: 'Δ', note: 'Το CO ανάγει το οξείδιο του μετάλλου.' };
+    }
+    // αμμωνία + οξύ
+    m = both('ammonia', 'acid');
+    if (m) {
+      const acid = k[m[1]].ion;
+      return { products: [ionFormula(ionOf('NH4', 1), acid.a)], type: 'Σχηματισμός άλατος αμμωνίου', note: 'NH3 + οξύ → άλας αμμωνίου.' };
+    }
+    // νερό με οξείδια
+    m = both('moxide', 'water');
+    if (m) {
+      const ox = k[m[0]].ion;
+      if (ALKALI_LIKE.has(ox.c.sym)) return { products: [ionFormula(ox.c, anionOf('OH'))], type: 'Οξείδιο μετάλλου + νερό → βάση', note: 'Τα οξείδια των δραστικών μετάλλων δίνουν βάσεις.' };
+      return { note: 'Αυτό το οξείδιο δεν αντιδρά με νερό.' };
+    }
+    m = both('nmoxide', 'water');
+    if (m) {
+      const key = rs[m[0]];
+      if (NMOXIDE_ACID[key]) return { products: [NMOXIDE_ACID[key]], type: 'Οξείδιο αμετάλλου + νερό → οξύ', arrow: key === 'CO2' || key === 'SO2' ? 'eq' : 'to', note: 'Τα οξείδια των αμετάλλων είναι όξινα οξείδια.' };
+    }
+    // βάση ή οξείδιο μετάλλου + οξείδιο αμετάλλου
+    m = both('base', 'nmoxide');
+    if (m && NMOXIDE_ANION[rs[m[1]]]) {
+      const base = k[m[0]].ion;
+      const an = anionOf(NMOXIDE_ANION[rs[m[1]]]);
+      return { products: [ionFormula(base.c, an), 'H2O'], type: 'Βάση + οξείδιο αμετάλλου → άλας + νερό', note: 'Εξουδετέρωση με όξινο οξείδιο.' };
+    }
+    m = both('moxide', 'nmoxide');
+    if (m && NMOXIDE_ANION[rs[m[1]]]) {
+      const ox = k[m[0]].ion;
+      return { products: [ionFormula(ox.c, anionOf(NMOXIDE_ANION[rs[m[1]]]))], type: 'Βασικό οξείδιο + όξινο οξείδιο → άλας', note: 'Σύνθεση άλατος.' };
+    }
+    // διπλή αντικατάσταση για ιοντικές ουσίες
+    const ionic = ['acid', 'base', 'salt', 'moxide'];
+    if (k.every(x => ionic.includes(x.kind))) return doubleDisplacement(k[0], k[1]);
+    void pair;
+    return { note: 'Δεν βρήκα γνωστό τύπο αντίδρασης για αυτό το ζεύγος· συμπλήρωσε τα προϊόντα χειροκίνητα.' };
+  }
+
+  /** Διπλή αντικατάσταση ιοντικών ενώσεων (εξουδετέρωση, ανταλλαγή αλάτων, οξύ + ανθρακικό κ.λπ.). */
+  function doubleDisplacement(x, y) {
+    const A = x.ion;
+    const B = y.ion;
+    if (A.c.sym === 'H' && B.c.sym === 'H') return { note: 'Δύο οξέα δεν αντιδρούν μεταξύ τους.' };
+    if (A.a.sym === B.a.sym && A.a.q === B.a.q) return { note: 'Τα δύο αντιδρώντα έχουν το ίδιο ανιόν· δεν γίνεται ανταλλαγή.' };
+    const left = ionFormula(A.c, B.a);
+    const right = ionFormula(B.c, A.a);
+    let prods = [];
+    [left, right].forEach(f => { prods.push(...expandProduct(f)); });
+    // ίδια ένωση που ξαναβγαίνει = καμία αντίδραση
+    const gets = prods.map(canon);
+    const water = gets.includes('H2O');
+    const gas = gets.some(f => ['CO2', 'SO2', 'H2S', 'NH3'].includes(f));
+    const ppt = prods.some(f => precipitateOf(f));
+    const kind = A.c.sym === 'H' || B.c.sym === 'H' ? ((A.a.sym === 'OH' || B.a.sym === 'OH' || A.a.sym === 'O' || B.a.sym === 'O') ? 'Εξουδετέρωση: οξύ + βάση (ή οξείδιο) → άλας + νερό' : 'Αντίδραση οξέος και άλατος') : 'Διπλή αντικατάσταση (ανταλλαγή ιόντων)';
+    const reasons = [];
+    if (ppt) reasons.push('σχηματίζεται ίζημα (↓)');
+    if (gas) reasons.push('εκλύεται αέριο (↑)');
+    if (water) reasons.push('σχηματίζεται νερό');
+    // Διατάξεις προϊόντων: άλας, μετά αέριο, μετά νερό
+    prods.sort((p, q) => rank(p) - rank(q));
+    prods = Array.from(new Set(prods));
+    if (!reasons.length) return { products: prods, type: kind, warn: true, note: 'Προσοχή: δεν σχηματίζεται ίζημα, αέριο ή νερό, άρα συνήθως δεν γίνεται αντίδραση.' };
+    return { products: prods, type: kind, note: `Η αντίδραση γίνεται γιατί ${reasons.join(' και ')}.` };
+  }
+  const rank = f => { const c = classify(f).kind; return c === 'salt' || c === 'base' ? 0 : (canon(f) === 'H2O' ? 2 : 1); };
+
+  function predictOne(f, c) {
+    const key = canon(f);
+    if (key === 'H2O') return { products: ['H2', 'O2'], type: 'Ηλεκτρόλυση νερού', cond: 'ρεύμα', note: 'Διάσπαση του νερού με ηλεκτρικό ρεύμα.' };
+    if (key === 'H2O2') return { products: ['H2O', 'O2'], type: 'Διάσπαση', cond: 'MnO2', note: 'Διάσπαση του υπεροξειδίου του υδρογόνου.' };
+    if (key === 'H2CO3') return { products: ['H2O', 'CO2'], type: 'Διάσπαση', arrow: 'eq', note: 'Το ανθρακικό οξύ είναι ασταθές.' };
+    if (key === 'H2SO3') return { products: ['H2O', 'SO2'], type: 'Διάσπαση', arrow: 'eq', note: 'Το θειώδες οξύ είναι ασταθές.' };
+    if (key === 'KMnO4') return { products: ['K2MnO4', 'MnO2', 'O2'], type: 'Θερμική διάσπαση', cond: 'Δ', note: 'Θερμική διάσπαση του υπερμαγγανικού καλίου.' };
+    if (key === 'NH4Cl' || key === 'NH4Br' || key === 'NH4I') return { products: ['NH3', `H${key.slice(3)}`], type: 'Θερμική διάσπαση άλατος αμμωνίου', cond: 'Δ', arrow: 'eq', note: 'Αμφίδρομη διάσπαση.' };
+    if (key === '(NH4)2CO3') return { products: ['NH3', 'H2O', 'CO2'], type: 'Θερμική διάσπαση', cond: 'Δ', note: 'Διάσπαση του ανθρακικού αμμωνίου.' };
+    if (key === 'NaHCO3' || key === 'KHCO3') return { products: [`${key[0] === 'N' ? 'Na' : 'K'}2CO3`, 'H2O', 'CO2'], type: 'Θερμική διάσπαση όξινου ανθρακικού', cond: 'Δ', note: 'Διάσπαση του όξινου ανθρακικού άλατος.' };
+    if (!c.ion) return { note: 'Δεν γνωρίζω διάσπαση για αυτή την ουσία· συμπλήρωσε τα προϊόντα χειροκίνητα.' };
+    const { c: cat, a: an } = c.ion;
+    if (c.kind === 'moxide' && ['Hg', 'Ag'].includes(cat.sym)) return { products: [cat.sym, 'O2'], type: 'Θερμική διάσπαση οξειδίου', cond: 'Δ', note: 'Τα οξείδια ευγενών μετάλλων διασπώνται με θέρμανση.' };
+    if (an.sym === 'CO3' && !GROUP1.has(cat.sym)) return { products: [ionFormula(cat, anionOf('O')), 'CO2'], type: 'Θερμική διάσπαση ανθρακικού', cond: 'Δ', note: 'Ανθρακικό άλας → οξείδιο + CO2.' };
+    if (an.sym === 'OH' && !GROUP1.has(cat.sym) && cat.sym !== 'NH4') return { products: [ionFormula(cat, anionOf('O')), 'H2O'], type: 'Θερμική διάσπαση υδροξειδίου', cond: 'Δ', note: 'Αδιάλυτη βάση → οξείδιο + νερό.' };
+    if (an.sym === 'ClO3') return { products: [ionFormula(cat, anionOf('Cl')), 'O2'], type: 'Θερμική διάσπαση χλωρικού', cond: 'MnO2, Δ', note: 'Χλωρικό άλας → χλωρίδιο + οξυγόνο.' };
+    if (an.sym === 'NO3') {
+      if (GROUP1.has(cat.sym)) return { products: [`${cat.sym}NO2`, 'O2'], type: 'Θερμική διάσπαση νιτρικού', cond: 'Δ', note: 'Νιτρικό άλας μετάλλου της 1ης ομάδας → νιτρώδες + O2.' };
+      return { products: [ionFormula(cat, anionOf('O')), 'NO2', 'O2'], type: 'Θερμική διάσπαση νιτρικού', cond: 'Δ', note: 'Νιτρικό άλας → οξείδιο + NO2 + O2.' };
+    }
+    return { note: 'Δεν γνωρίζω διάσπαση για αυτή την ουσία· συμπλήρωσε τα προϊόντα χειροκίνητα.' };
+  }
+
+  // ---------------------------------------------------------------- ανάλυση εισόδου
+
+  const STATES = ['', 's', 'l', 'g', 'aq'];
+
+  /**
+   * Σπάει «Zn + HCl» σε ουσίες. Το «+» ανάμεσα στις ουσίες διαχωρίζει· τα φορτία γράφονται με «^» (Fe^3+).
+   * Αναγνωρίζει προαιρετικά αρχικό συντελεστή, κατάσταση (g) και ↑ ↓ στο τέλος.
+   * @param {string} text
+   * @returns {Array<{f: string, c: number, st: string, g: (string|undefined)}>}
+   */
+  function splitSpecies(text) {
+    const protectedText = String(text || '').replace(/\^\d*[+-]/g, m => m.replace('+', '\u0001').replace('-', '\u0002'));
+    return protectedText.split('+').map(s => s.replace(/\u0001/g, '+').replace(/\u0002/g, '-').trim()).filter(Boolean).map(raw => {
+      let s = raw;
+      let g;
+      let st = '';
+      let c = 0;
+      const arrow = s.match(/\s*([↑↓])\s*$/);
+      if (arrow) { g = arrow[1] === '↑' ? 'u' : 'd'; s = s.slice(0, arrow.index); }
+      const stm = s.match(/\((s|l|g|aq)\)\s*$/);
+      if (stm) { st = stm[1]; s = s.slice(0, stm.index); }
+      const cm = s.match(/^(\d+)\s*(?=[A-Z(\[])/);
+      if (cm) { c = Number(cm[1]); s = s.slice(cm[0].length); }
+      return { f: s.trim().replace(/\s+/g, ''), c, st, g };
+    });
+  }
+
+  /** Σχηματίζει το LaTeX μιας ουσίας. */
+  function speciesTex(e, flag) {
+    let t = `\\mathrm{${formulaTex(e.f)}}`;
+    if (e.st) t += `_{(${e.st})}`;
+    if (flag === 'u') t += '\\,\\uparrow';
+    else if (flag === 'd') t += '\\,\\downarrow';
+    return t;
+  }
+
+  function escapeText(s) {
+    return String(s || '').replace(/[\\{}$&#%_^~]/g, ch => (ch === '\\' ? '' : `\\${ch}`)).replace(/Δ/g, '}\\Delta\\text{').replace(/\s+/g, ' ');
+  }
+
+  function conditionTex(s) {
+    const text = escapeText(s).trim().replace(/([A-Za-z)])(\d+)/g, '$1$_{$2}$').replace(/\\text\{\}/g, '');
+    return text ? `\\text{${text}}` : '';
+  }
+
+  /**
+   * Συνθέτει την τελική εξίσωση σε LaTeX.
+   * @param {Object} model
+   * @returns {{tex: string, status: string, ok: boolean, coeffs: number[]}}
+   */
+  function compose(model) {
+    const R = model.r.filter(e => e.f);
+    const P = model.p.filter(e => e.f);
+    const result = { tex: '', status: '', ok: true, coeffs: [], auto: [] };
+    if (!R.length || !P.length) {
+      result.ok = false;
+      result.status = 'Συμπλήρωσε αντιδρώντα και προϊόντα.';
+    }
+    const parsed = [];
+    let bad = '';
+    [...R, ...P].forEach(e => {
+      try { parsed.push(parseFormula(e.f)); } catch (err) { bad = bad || `Ο τύπος «${e.f}»: ${err.message}.`; parsed.push(null); }
+    });
+    let auto = null;
+    if (!bad && R.length && P.length) {
+      const b = balance(parsed.slice(0, R.length), parsed.slice(R.length));
+      if (b.coeffs) auto = b.coeffs;
+      else if (model.auto) { result.status = b.error; result.ok = false; }
+    }
+    if (bad) { result.status = bad; result.ok = false; }
+    const all = [...R, ...P];
+    const cs = all.map((e, i) => (e.c > 0 ? e.c : (model.auto && auto ? auto[i] : 1)));
+    result.coeffs = cs;
+    result.auto = auto || [];
+    if (!bad && R.length && P.length) {
+      const miss = mismatch(parsed.slice(0, R.length), parsed.slice(R.length), cs.slice(0, R.length), cs.slice(R.length));
+      if (miss.length) {
+        result.ok = false;
+        result.status = result.status || `Δεν ισοσκελίζεται (${miss.join(', ')}).`;
+      } else if (!result.status) {
+        result.status = 'Η εξίσωση είναι ισοσκελισμένη.';
+      }
+    }
+    const flagOf = (e, i) => (e.g !== undefined && e.g !== null ? e.g : (model.af && i >= R.length ? autoFlag(e.f, R.map(x => x.f)) : ''));
+    const side = (list, offset) => list.map((e, i) => {
+      const c = cs[offset + i];
+      return (c > 1 ? `${c}\\,` : '') + speciesTex(e, flagOf(e, offset + i));
+    }).join(' + ');
+    const up = conditionTex(model.up);
+    const dn = conditionTex(model.dn);
+    let arrow;
+    const eq = model.ar === 'eq';
+    if (up || dn) arrow = `${eq ? '\\xrightleftharpoons' : '\\xrightarrow'}${dn ? `[${dn}]` : ''}{${up}}`;
+    else arrow = eq ? '\\rightleftharpoons' : '\\rightarrow';
+    result.tex = `${side(R, 0)} \\; ${arrow} \\; ${side(P, R.length)}`;
+    return result;
+  }
+
+  // ---------------------------------------------------------------- αποθήκευση / επαναφορά
+
+  /** Μετατρέπει το μοντέλο σε συμπαγές JSON για το data-chem. */
+  function serialize(model) {
+    const slim = e => ({ f: e.f, c: e.c || 0, st: e.st || '', g: e.g === undefined ? null : e.g });
+    const json = JSON.stringify({ v: 1, r: model.r.map(slim), p: model.p.map(slim), ar: model.ar, up: model.up, dn: model.dn, auto: model.auto ? 1 : 0, af: model.af ? 1 : 0 });
+    return json.length <= MAX_STATE ? json : '';
+  }
+
+  /** Ελέγχει και κανονικοποιεί αποθηκευμένο μοντέλο. Δεν εμπιστεύεται το περιεχόμενο. */
+  function deserialize(text) {
+    try {
+      const o = JSON.parse(String(text || ''));
+      if (!o || o.v !== 1) return null;
+      const ent = e => ({
+        f: String(e.f || '').slice(0, 40).replace(/[^A-Za-z0-9()\[\].·*^+\-]/g, ''),
+        c: Math.max(0, Math.min(99, Math.floor(Number(e.c) || 0))),
+        st: STATES.includes(e.st) ? e.st : '',
+        g: e.g === 'u' || e.g === 'd' || e.g === '' ? e.g : undefined
+      });
+      return {
+        r: (Array.isArray(o.r) ? o.r : []).slice(0, MAX_SPECIES).map(ent),
+        p: (Array.isArray(o.p) ? o.p : []).slice(0, MAX_SPECIES).map(ent),
+        ar: o.ar === 'eq' ? 'eq' : 'to',
+        up: String(o.up || '').slice(0, 40),
+        dn: String(o.dn || '').slice(0, 40),
+        auto: o.auto !== 0,
+        af: o.af !== 0
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** Κρατά μόνο έγκυρο data-chem σε έναν καθαρισμένο κόμβο. */
+  function cleanState(text) {
+    const m = deserialize(text);
+    return m ? serialize(m) : '';
+  }
+
+  // ---------------------------------------------------------------- διάλογος
+
+  const EXAMPLES = ['Zn + HCl', 'NaOH + H2SO4', 'AgNO3 + NaCl', 'CaCO3 + HCl', 'CH4 + O2', 'Fe + O2', 'H2 + O2', 'Al + CuSO4', 'Na + H2O', 'KClO3', 'Ba(OH)2 + H2SO4'];
+
+  const SUB = '₀₁₂₃₄₅₆₇₈₉';
+  const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+  const sub = t => t.replace(/\d/g, d => SUB[d]);
+  const ionLabel = (ion, sign) => `${sub(ion.sym)}${ion.q > 1 ? SUP[ion.q] : ''}${sign}`;
+  const cationLabel = c => ionLabel(c, '⁺');
+  const anionLabel = a => ionLabel(a, '⁻');
+
+  /**
+   * Ανοίγει τον διάλογο εισαγωγής ή επεξεργασίας χημικής εξίσωσης.
+   * @param {{sectionId?: string, node?: HTMLElement}} [options]
+   */
+  function open({ sectionId, node } = {}) {
+    const id = node ? node.closest('.editor-block')?.dataset.sectionId : InsertTools.target(sectionId);
+    if (!id) return;
+    InsertTools.hideOverlays();
+    let display = node ? node.getAttribute('data-display') === '1' : true;
+    const saved = node ? deserialize(node.getAttribute('data-chem')) : null;
+    const model = saved || { r: [], p: [], ar: 'to', up: '', dn: '', auto: true, af: true };
+
+    const rInput = Util.h('input', { class: 'input', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'π.χ. Zn + HCl', 'aria-label': 'Αντιδρώντα' });
+    const pInput = Util.h('input', { class: 'input', type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'π.χ. ZnCl2 + H2', 'aria-label': 'Προϊόντα' });
+    const upInput = Util.h('input', { class: 'input', type: 'text', maxlength: '40', placeholder: 'π.χ. Δ, Pt, φως', 'aria-label': 'Συνθήκες πάνω από το βέλος' });
+    const dnInput = Util.h('input', { class: 'input', type: 'text', maxlength: '40', placeholder: 'π.χ. 450°C', 'aria-label': 'Συνθήκες κάτω από το βέλος' });
+    const arrowSel = Util.h('select', { class: 'input', 'aria-label': 'Είδος βέλους' },
+      Util.h('option', { value: 'to', text: '→  μονόδρομη' }), Util.h('option', { value: 'eq', text: '⇌  αμφίδρομη' }));
+    const autoChk = Util.h('input', { type: 'checkbox' });
+    const afChk = Util.h('input', { type: 'checkbox' });
+    const status = Util.h('p', { class: 'chem-status', 'aria-live': 'polite' });
+    const note = Util.h('p', { class: 'chem-note', 'aria-live': 'polite' });
+    const preview = Util.h('div', { class: 'math-preview chem-preview', 'aria-live': 'polite' });
+    const tbody = Util.h('tbody');
+    const modeInline = Util.h('button', { type: 'button', text: 'Εντός κειμένου' });
+    const modeDisplay = Util.h('button', { type: 'button', text: 'Σε ξεχωριστή γραμμή' });
+    const predictBtn = Util.h('button', { class: 'btn btn-secondary', type: 'button', text: 'Πρόβλεψη προϊόντων' });
+    let focusSide = 'p';
+
+    rInput.value = model.r.map(e => e.f).join(' + ');
+    pInput.value = model.p.map(e => e.f).join(' + ');
+    upInput.value = model.up;
+    dnInput.value = model.dn;
+    arrowSel.value = model.ar;
+    autoChk.checked = model.auto;
+    afChk.checked = model.af;
+
+    /** Συγχρονίζει τις λίστες ουσιών με τα πεδία κειμένου, κρατώντας ό,τι έχει ορίσει ο χρήστης. */
+    const reparse = () => {
+      [['r', rInput], ['p', pInput]].forEach(([side, input]) => {
+        const fresh = splitSpecies(input.value).slice(0, MAX_SPECIES);
+        const old = model[side].slice();
+        model[side] = fresh.map(f => {
+          const j = old.findIndex(o => o.f === f.f);
+          if (j >= 0) {
+            const o = old.splice(j, 1)[0];
+            if (f.c) o.c = f.c;
+            if (f.st) o.st = f.st;
+            if (f.g !== undefined) o.g = f.g;
+            return o;
+          }
+          return { f: f.f, c: f.c, st: f.st, g: f.g };
+        });
+      });
+    };
+
+    let rebuildTable = () => {};
+    const update = () => {
+      model.ar = arrowSel.value;
+      model.up = upInput.value;
+      model.dn = dnInput.value;
+      model.auto = autoChk.checked;
+      model.af = afChk.checked;
+      modeInline.setAttribute('aria-pressed', String(!display));
+      modeDisplay.setAttribute('aria-pressed', String(display));
+      const res = compose(model);
+      status.textContent = res.status;
+      status.className = `chem-status ${res.ok ? 'is-ok' : 'is-bad'}`;
+      if (!res.tex) {
+        preview.replaceChildren(Util.h('span', { class: 'hint', text: 'Η προεπισκόπηση εμφανίζεται εδώ' }));
+        return res;
+      }
+      try {
+        preview.innerHTML = MathEngine.render(res.tex, display, true);
+        preview.classList.remove('has-error');
+      } catch (e) {
+        preview.classList.add('has-error');
+        preview.textContent = res.tex;
+      }
+      // placeholder με τον υπολογισμένο συντελεστή και ενεργές επισημάνσεις
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const reactantsF = model.r.filter(e => e.f).map(e => e.f);
+      const all = [...model.r.filter(e => e.f), ...model.p.filter(e => e.f)];
+      rows.forEach((tr, i) => {
+        const coef = tr.querySelector('.chem-coef');
+        const flag = tr.querySelector('.chem-flag');
+        if (coef) coef.placeholder = res.auto[i] ? String(res.auto[i]) : '1';
+        if (flag && all[i]) {
+          const e = all[i];
+          const isProduct = i >= model.r.filter(x => x.f).length;
+          flag.value = e.g !== undefined && e.g !== null ? e.g : (isProduct && model.af ? autoFlag(e.f, reactantsF) : '');
+        }
+      });
+      return res;
+    };
+
+    const rebuild = () => {
+      reparse();
+      rebuildTable();
+      update();
+    };
+
+    rebuildTable = () => {
+      tbody.replaceChildren();
+      const add = (side, list) => list.forEach(e => {
+        let invalid = '';
+        try { parseFormula(e.f); } catch (err) { invalid = err.message; }
+        const coef = Util.h('input', { class: 'input chem-coef', type: 'number', min: '0', max: '99', step: '1', 'aria-label': `Συντελεστής ${e.f}` });
+        coef.value = e.c ? String(e.c) : '';
+        coef.addEventListener('input', () => { e.c = Math.max(0, Math.min(99, Math.floor(Number(coef.value) || 0))); update(); });
+        const st = Util.h('select', { class: 'input', 'aria-label': `Κατάσταση ${e.f}` },
+          STATES.map(s => Util.h('option', { value: s, text: s ? `(${s})` : '—' })));
+        st.value = e.st || '';
+        st.addEventListener('change', () => { e.st = st.value; update(); });
+        const flag = Util.h('select', { class: 'input chem-flag', 'aria-label': `Αέριο ή ίζημα ${e.f}` },
+          Util.h('option', { value: '', text: '—' }), Util.h('option', { value: 'u', text: '↑ αέριο' }), Util.h('option', { value: 'd', text: '↓ ίζημα' }));
+        flag.addEventListener('change', () => { e.g = flag.value; update(); });
+        if (side === 'r') flag.disabled = false;
+        let shown;
+        try { shown = MathEngine.render(`\\mathrm{${formulaTex(e.f)}}`, false, true); } catch (err) { shown = null; }
+        const name = Util.h('td', { class: invalid ? 'chem-bad' : '', title: invalid });
+        if (shown) name.innerHTML = shown; else name.textContent = e.f;
+        tbody.append(Util.h('tr', null, Util.h('td', { class: 'chem-side', text: side === 'r' ? 'Αντιδρώντα' : 'Προϊόντα' }), name,
+          Util.h('td', null, coef), Util.h('td', null, st), Util.h('td', null, flag)));
+      });
+      add('r', model.r.filter(e => e.f));
+      add('p', model.p.filter(e => e.f));
+      if (!tbody.children.length) tbody.append(Util.h('tr', null, Util.h('td', { colspan: '5', class: 'empty-note', text: 'Γράψε αντιδρώντα ή διάλεξε ένα παράδειγμα.' })));
+    };
+
+    rInput.addEventListener('input', rebuild);
+    pInput.addEventListener('input', rebuild);
+    rInput.addEventListener('focus', () => { focusSide = 'r'; });
+    pInput.addEventListener('focus', () => { focusSide = 'p'; });
+    [upInput, dnInput, arrowSel, autoChk, afChk].forEach(el => el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input', update));
+    modeInline.addEventListener('click', () => { display = false; update(); });
+    modeDisplay.addEventListener('click', () => { display = true; update(); });
+
+    predictBtn.addEventListener('click', () => {
+      reparse();
+      const reactants = model.r.map(e => e.f).filter(Boolean);
+      const res = predict(reactants);
+      if (!res.products) {
+        note.textContent = res.note || 'Δεν βρέθηκε πρόβλεψη.';
+        note.className = 'chem-note is-warn';
+        return;
+      }
+      pInput.value = res.products.join(' + ');
+      model.p = res.products.map(f => ({ f, c: 0, st: '', g: undefined }));
+      if (res.arrow) arrowSel.value = res.arrow; else arrowSel.value = 'to';
+      upInput.value = res.cond || '';
+      dnInput.value = '';
+      note.textContent = `${res.type || 'Πρόβλεψη'} — ${res.note || ''}`;
+      note.className = `chem-note ${res.warn ? 'is-warn' : ''}`;
+      autoChk.checked = true;
+      afChk.checked = true;
+      rebuildTable();
+      update();
+    });
+
+    const examples = Util.h('div', { class: 'chem-examples' }, EXAMPLES.map(text => {
+      const b = Util.h('button', { class: 'btn btn-sm btn-ghost', type: 'button', text });
+      b.addEventListener('click', () => { rInput.value = text; model.p = []; pInput.value = ''; rebuild(); predictBtn.click(); });
+      return b;
+    }));
+
+    // Σύνθεση τύπου από ιόντα: οι δείκτες υπολογίζονται από τα σθένη.
+    const catSel = Util.h('select', { class: 'input', 'aria-label': 'Κατιόν' }, CATIONS.map((c, i) => Util.h('option', { value: String(i), text: cationLabel(c) })));
+    const anSel = Util.h('select', { class: 'input', 'aria-label': 'Ανιόν' }, ANIONS.map((a, i) => Util.h('option', { value: String(i), text: anionLabel(a) })));
+    const formulaOut = Util.h('span', { class: 'chem-ion-formula' });
+    const ionUpdate = () => {
+      const f = ionFormula(CATIONS[Number(catSel.value)], ANIONS[Number(anSel.value)]);
+      formulaOut.innerHTML = MathEngine.render(`\\mathrm{${formulaTex(f)}}`, false);
+      formulaOut.dataset.formula = f;
+    };
+    catSel.addEventListener('change', ionUpdate);
+    anSel.addEventListener('change', ionUpdate);
+    ionUpdate();
+    const addTo = (side, label) => {
+      const b = Util.h('button', { class: 'btn btn-sm btn-secondary', type: 'button', text: label });
+      b.addEventListener('click', () => {
+        const input = side === 'r' ? rInput : pInput;
+        input.value = input.value.trim() ? `${input.value.trim()} + ${formulaOut.dataset.formula}` : formulaOut.dataset.formula;
+        rebuild();
+      });
+      return b;
+    };
+
+    const submit = () => {
+      reparse();
+      const res = update();
+      if (!res.tex) {
+        Toast.show('Γράψε αντιδρώντα και προϊόντα', 'warning');
+        rInput.focus();
+        return false;
+      }
+      try { MathEngine.render(res.tex, display, true); } catch (e) {
+        Toast.show('Ο τύπος δεν μπορεί να αποδοθεί· έλεγξε τους χημικούς τύπους', 'warning');
+        return false;
+      }
+      const stateText = serialize(model);
+      if (node && document.contains(node)) {
+        node.setAttribute('data-latex', res.tex);
+        node.setAttribute('data-display', display ? '1' : '0');
+        node.setAttribute('data-chem', stateText);
+        node.className = display ? 'math-node math-display' : 'math-node';
+        MathEngine.renderInto(node);
+        EditorManager.commit(id);
+        MathEngine.fit(node.parentElement || node);
+      } else {
+        const created = MathEngine.createNode(res.tex, display);
+        created.setAttribute('data-chem', stateText);
+        if (display) EditorManager.insertBlock(id, [Util.h('p', null, created)]);
+        else EditorManager.insertInline(id, [created, document.createTextNode(' ')]);
+        const content = EditorManager.getContentEl(id);
+        if (content) requestAnimationFrame(() => MathEngine.fit(content));
+      }
+      return true;
+    };
+
+    const field = (label, control) => Util.h('label', { class: 'field' }, Util.h('span', { text: label }), control);
+    const body = Util.h('div', { class: 'stack chem-layout' },
+      Util.h('div', { class: 'row', style: { justifyContent: 'space-between' } },
+        Util.h('div', { class: 'segmented', role: 'group', 'aria-label': 'Τρόπος εμφάνισης' }, modeInline, modeDisplay)),
+      Util.h('div', { class: 'chem-grid' },
+        field('Αντιδρώντα (π.χ. Zn + HCl)', rInput),
+        predictBtn,
+        field('Προϊόντα (πρόταση ή δικά σου)', pInput)),
+      Util.h('div', { class: 'chem-grid chem-grid-arrow' },
+        field('Βέλος', arrowSel), field('Συνθήκες πάνω από το βέλος', upInput), field('Συνθήκες κάτω από το βέλος', dnInput)),
+      Util.h('div', { class: 'row chem-checks' },
+        Util.h('label', { class: 'checkbox' }, autoChk, Util.h('span', { text: 'Αυτόματοι συντελεστές' })),
+        Util.h('label', { class: 'checkbox' }, afChk, Util.h('span', { text: 'Αυτόματα ↑ (αέριο) και ↓ (ίζημα)' }))),
+      note,
+      Util.h('div', { class: 'field' }, Util.h('span', { class: 'field-label', text: 'Προεπισκόπηση' }), preview, status),
+      Util.h('div', { class: 'field' }, Util.h('span', { class: 'field-label', text: 'Ουσίες (άφησε τον συντελεστή κενό για αυτόματο)' }),
+        Util.h('table', { class: 'chem-table' },
+          Util.h('thead', null, Util.h('tr', null, ['', 'Τύπος', 'Συντελεστής', 'Κατάσταση', 'Αέριο / ίζημα'].map(t => Util.h('th', { text: t })))), tbody)),
+      Util.h('div', { class: 'field' }, Util.h('span', { class: 'field-label', text: 'Τύπος από ιόντα (οι δείκτες υπολογίζονται από τα σθένη)' }),
+        Util.h('div', { class: 'row chem-ions' }, catSel, anSel, Util.h('span', { class: 'chem-ion-eq', text: '=' }), formulaOut,
+          addTo('r', '+ Αντιδρώντα'), addTo('p', '+ Προϊόντα'))),
+      Util.h('div', { class: 'field' }, Util.h('span', { class: 'field-label', text: 'Παραδείγματα' }), examples),
+      Util.h('p', { class: 'hint', text: 'Γράψε τους τύπους με απλούς αριθμούς (H2SO4, Ca(OH)2). Φορτία με ^ (Fe^3+). Ένυδρα: CuSO4.5H2O. Μπορείς να γράψεις και συντελεστή (2H2O) ή ↑ ↓ στο τέλος.' }));
+
+    void focusSide;
+    const handle = Modal.open({
+      title: node ? 'Επεξεργασία χημικής εξίσωσης' : 'Εισαγωγή χημικής εξίσωσης',
+      size: 'lg',
+      body,
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        { label: node ? 'Ενημέρωση' : 'Εισαγωγή', variant: 'primary', onClick: submit }
+      ],
+      initialFocus: rInput
+    });
+    body.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && Util.isMod(e)) {
+        e.preventDefault();
+        if (submit()) handle.close(true);
+      } else if (e.key === 'Enter' && e.target === rInput) {
+        e.preventDefault();
+        predictBtn.click();
+      }
+    });
+    rebuild();
+  }
+
+  return { open, predict, balance, parseFormula, formulaTex, compose, classify, autoFlag, splitSpecies, cleanState, serialize, deserialize, ionFormula, CATIONS, ANIONS };
 })();
 
 
@@ -15498,7 +16457,7 @@ const UIController = (() => {
     ]],
     ['Εισαγωγή', [
       ['Μαθηματική έκφραση', 'Ctrl+M'], ['Σύνδεσμος', 'Ctrl+K'], ['Πίνακας', 'Ctrl+Alt+T'], ['Εικόνα', 'Ctrl+Alt+I'],
-      ['Γραφική παράσταση', 'Ctrl+Alt+G'], ['Ενσωμάτωση (iframe) από σύνδεσμο', 'Ctrl+Alt+E'], ['Εισαγωγή από διάλογο LaTeX', 'Ctrl+Enter']
+      ['Χημική εξίσωση', 'Ctrl+Alt+C'], ['Γραφική παράσταση', 'Ctrl+Alt+G'], ['Ενσωμάτωση (iframe) από σύνδεσμο', 'Ctrl+Alt+E'], ['Εισαγωγή από διάλογο LaTeX', 'Ctrl+Enter']
     ]],
     ['Επεξεργασία', [
       ['Αναίρεση', 'Ctrl+Z'], ['Επανάληψη', 'Ctrl+Y / Ctrl+Shift+Z'], ['Επεξεργασία εξίσωσης ή γραφήματος', 'Διπλό κλικ'],
@@ -16047,6 +17006,7 @@ const UIController = (() => {
       btn.addEventListener('click', () => {
         const tool = btn.dataset.tool;
         if (tool === 'math') MathEngine.open({});
+        else if (tool === 'chem') ChemEngine.open({});
         else if (tool === 'graph') GraphEngine.open({});
         else if (tool === 'draw') DrawEngine.open({});
         else if (tool === 'quiz') Quiz.open({});
@@ -16154,6 +17114,7 @@ const UIController = (() => {
   const HELP_GUIDE = [
     ['Πώς ξεκινάω', ['Διάλεξε ένα έτοιμο πρότυπο ή ξεκίνα με κενό φύλλο από την καρτέλα «Πρότυπο». Στην καρτέλα «Ενότητες» προσθέτεις, μετακινείς και κρύβεις ενότητες, και γράφεις μέσα σε κάθε μία.']],
     ['Εργαλεία εισαγωγής', ['Από τη γραμμή εργαλείων κάθε ενότητας και από την καρτέλα «Εργαλεία» εισάγεις μαθηματικές εκφράσεις, πίνακες και γραφήματα, εικόνες, ενσωματώσεις, πεδία συμπλήρωσης και ερωτήσεις αυτοαξιολόγησης (πολλαπλής επιλογής και Σωστό/Λάθος).']],
+    ['Χημικές εξισώσεις', ['Το εργαλείο «Χημική εξίσωση» (Ctrl+Alt+C) δέχεται τα αντιδρώντα (π.χ. Zn + HCl) και προτείνει τα προϊόντα με τους σωστούς δείκτες, υπολογίζει τους συντελεστές και βάζει ↑ για αέρια και ↓ για ιζήματα. Μπορείς να διορθώσεις οτιδήποτε: γράψε τα προϊόντα μόνος σου, δώσε δικούς σου συντελεστές, κατάσταση (s, l, g, aq) ή βέλος (→ ή ⇌, με συνθήκες πάνω και κάτω). Διπλό κλικ στην εξίσωση για επεξεργασία.']],
     ['Σχέδιο', ['Το εργαλείο «Σχέδιο» έχει γραμμές, βέλη, σχήματα, κείμενο, γέμισμα (και σε κλειστές περιοχές από γραμμές), χάρακα, μοιρογνωμόνιο, αγωγούς και σύμβολα ηλεκτρικών κυκλωμάτων πάνω σε τετραγωνισμένη επιφάνεια. Διπλό κλικ σε σχέδιο ξανανοίγει την επεξεργασία του.']],
     ['Εξαγωγή', ['Από το κουμπί «Εξαγωγή» παίρνεις PDF, DOCX, αρχείο HTML για τους μαθητές (με πεδία που συμπληρώνονται, ερωτήσεις και PDF του μαθητή) ή εκτύπωση. Το «Αποθήκευση» κρατά ολόκληρο το έργο σε αρχείο .json που ξανανοίγεις με το «Άνοιγμα».']]
   ];
@@ -16224,6 +17185,7 @@ const UIController = (() => {
       else if (mod && e.code === 'Backslash') run(() => setPanel(!$('app-body').classList.contains('panel-collapsed')));
       else if (e.key === 'F1' || (mod && e.code === 'Slash')) run(() => showInfo('help'));
       else if (mod && e.code === 'KeyM') run(() => MathEngine.open({}));
+      else if (mod && e.altKey && e.code === 'KeyC') run(() => ChemEngine.open({}));
     });
   }
 
