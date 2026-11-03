@@ -547,6 +547,9 @@ body.is-panel-resizing .left-panel { transition: none; }
 
 .math-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; }
 .latex-input { font-family: var(--font-mono); font-size: 14px; min-height: 96px; }
+.graph-fn { display: flex; flex-direction: column; gap: 6px; }
+.fn-input { font-family: var(--font-mono); }
+.fn-input.is-invalid { border-color: var(--danger); }
 .latex-input.has-error, .math-preview.has-error { border-color: var(--danger); }
 .math-preview {
   min-height: 80px; padding: 16px; display: flex; align-items: center; justify-content: center;
@@ -1152,7 +1155,7 @@ kbd {
     </div>
     <span class="header-sep" aria-hidden="true"></span>
     <button id="btn-theme" class="btn-icon" type="button" title="Εναλλαγή φωτεινού/σκοτεινού θέματος" aria-label="Εναλλαγή θέματος"><span data-icon="moon"></span></button>
-    <button id="btn-help" class="btn-icon" type="button" title="Βοήθεια και πληροφορίες (F1)" aria-label="Βοήθεια και πληροφορίες">?</button>
+    <button id="btn-help" class="btn-icon" type="button" title="Βοήθεια και πληροφορίες (F1)" aria-label="Βοήθεια και πληροφορίες"><span data-icon="info"></span></button>
   </div>
 </header>
 
@@ -1163,7 +1166,7 @@ kbd {
         <button class="tab" role="tab" type="button" id="tab-template" aria-controls="panel-template" aria-selected="true">Πρότυπο</button>
         <button class="tab" role="tab" type="button" id="tab-sections" aria-controls="panel-sections" aria-selected="false">Ενότητες</button>
         <button class="tab" role="tab" type="button" id="tab-tools" aria-controls="panel-tools" aria-selected="false">Εργαλεία</button>
-        <button class="tab" role="tab" type="button" id="tab-style" aria-controls="panel-style" aria-selected="false">Εμφάνιση</button>
+        <button class="tab" role="tab" type="button" id="tab-style" aria-controls="panel-style" aria-selected="false">Μορφοποίηση</button>
       </div>
 
       <div class="tab-panel" role="tabpanel" id="panel-template" aria-labelledby="tab-template">
@@ -1357,7 +1360,7 @@ kbd {
           <label class="check"><input id="meta-student" type="checkbox">Πεδία στοιχείων μαθητή</label>
         </div>
         <div class="meta-grid">
-          <label class="field span-3"><span>Σχολείο / Φορέας</span><input id="meta-school" class="input" type="text" maxlength="150" placeholder="π.χ. ΕΚΦΕ Αθηνών"></label>
+          <label class="field span-3"><span>Σχολείο / Φορέας</span><input id="meta-school" class="input" type="text" maxlength="150" placeholder="π.χ. ΕΚΦΕ Χανίων"></label>
           <label class="field span-3"><span>Εκπαιδευτικός</span><input id="meta-teacher" class="input" type="text" maxlength="150" placeholder="Ονοματεπώνυμο"></label>
           <label class="field span-2"><span>Μάθημα</span><input id="meta-subject" class="input" type="text" maxlength="100" placeholder="π.χ. Φυσική" list="subject-options"></label>
           <label class="field span-2"><span>Τάξη</span><select id="meta-class" class="select"></select></label>
@@ -1930,6 +1933,7 @@ const Util = (() => {
     'draw-boy': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 7v7.5', 'M12 9.5l-3.5 3.5', 'M12 9.5l3.5 3.5', 'M12 14.5l-3 6', 'M12 14.5l3 6'],
     'draw-girl': ['M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M12 8.5l-4.5 8h9z', 'M10 16.5v4', 'M14 16.5v4', 'M10.3 11.5l-2.5 3', 'M13.7 11.5l2.5 3'],
     'draw-cart': ['M3 7h18v8H3z', 'M8 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M16 16.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', 'M1.5 11h1.5', 'M21 11h1.5'],
+    info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5.5', 'M12 7.6h.01'],
     flask: ['M9 3h6', 'M10 3v6.2L4.6 19a1.6 1.6 0 0 0 1.4 2.4h12a1.6 1.6 0 0 0 1.4-2.4L14 9.2V3', 'M7.5 15h9'],
     quiz: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7', 'M12 17h.01'],
     'draw-text': ['M5 6V4h14v2', 'M12 4v16', 'M9 20h6'],
@@ -3351,7 +3355,10 @@ const AppState = (() => {
       yValues: g.yValues.slice(0, n).map(Number),
       regressionType: ['none', 'linear', 'proportional', 'poly2', 'poly3', 'exponential'].includes(g.regressionType) ? g.regressionType : 'linear',
       showGrid: g.showGrid !== false,
-      includeOrigin: !!g.includeOrigin
+      includeOrigin: !!g.includeOrigin,
+      functions: Array.isArray(g.functions) ? g.functions.slice(0, 3).map(f => String(f).slice(0, 120)) : [],
+      fnMin: Number.isFinite(g.fnMin) ? g.fnMin : null,
+      fnMax: Number.isFinite(g.fnMax) ? g.fnMax : null
     };
   }
 
@@ -10845,6 +10852,176 @@ const GraphEngine = (() => {
     }
   }
 
+  const FN_COLORS = ['#EA580C', '#16A34A', '#9333EA'];
+  const MAX_FUNCTIONS = 3;
+  const FN_SAMPLES = 500;
+  const FN_FUNCS = {
+    sin: Math.sin, cos: Math.cos, tan: Math.tan, asin: Math.asin, acos: Math.acos, atan: Math.atan,
+    sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, exp: Math.exp, ln: Math.log, log: Math.log10,
+    sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs, floor: Math.floor, ceil: Math.ceil, round: Math.round, sign: Math.sign
+  };
+  const FN_ALIAS = {
+    'ημ': 'sin', 'συν': 'cos', 'εφ': 'tan', 'τοξημ': 'asin', 'τοξσυν': 'acos', 'τοξεφ': 'atan', 'arcsin': 'asin', 'arccos': 'acos', 'arctan': 'atan',
+    'ριζα': 'sqrt', 'ρίζα': 'sqrt', 'απολ': 'abs', 'λογ': 'log', 'lg': 'log', 'εκθ': 'exp', 'tg': 'tan'
+  };
+
+  /**
+   * Μεταγλωττίζει μια έκφραση του x (π.χ. «2x+1», «sin(x)/x», «e^(-x^2)») σε συνάρτηση, χωρίς eval.
+   * Δέχεται πράξεις + - * / ^, παρενθέσεις, πολλαπλασιασμό χωρίς σύμβολο (2x), σταθερές pi/π και e,
+   * δεκαδικά με κόμμα και συναρτήσεις (sin, cos, tan, exp, ln, log, sqrt, abs … ή ελληνικά ημ, συν, εφ).
+   * @param {string} source
+   * @returns {function(number): number}
+   */
+  function compileExpression(source) {
+    let src = String(source || '').trim().replace(/^(?:f|y)\s*(?:\(\s*x\s*\))?\s*=\s*/i, '');
+    if (!src) throw new Error('κενή έκφραση');
+    if (src.length > 120) throw new Error('πολύ μεγάλη έκφραση');
+    src = src.replace(/(\d),(\d)/g, '$1.$2').replace(/[×·]/g, '*').replace(/[−–]/g, '-').replace(/π/g, 'pi')
+      .replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, 'sqrt').replace(/\*\*/g, '^').replace(/\[/g, '(').replace(/\]/g, ')');
+    const tokens = [];
+    const re = /\s*(?:(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\.\d+)|([A-Za-zΑ-Ωα-ωά-ώ_]+)|(.))/gy;
+    let m;
+    while (re.lastIndex < src.length && (m = re.exec(src))) {
+      if (m[1] !== undefined) tokens.push({ t: 'num', v: Number(m[1]) });
+      else if (m[2] !== undefined) tokens.push({ t: 'id', v: m[2].toLowerCase() });
+      else if (m[3] !== undefined) tokens.push({ t: 'op', v: m[3] });
+    }
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const isOp = v => peek() && peek().t === 'op' && peek().v === v;
+    const expect = v => {
+      if (!isOp(v)) throw new Error(`λείπει το «${v}»`);
+      pos++;
+    };
+    const startsFactor = () => {
+      const t = peek();
+      return !!t && (t.t === 'num' || t.t === 'id' || (t.t === 'op' && t.v === '('));
+    };
+    const expr = () => {
+      let left = term();
+      while (isOp('+') || isOp('-')) {
+        const plus = tokens[pos++].v === '+';
+        const a = left;
+        const b = term();
+        left = plus ? x => a(x) + b(x) : x => a(x) - b(x);
+      }
+      return left;
+    };
+    const term = () => {
+      let left = unary();
+      for (;;) {
+        if (isOp('*') || isOp('/')) {
+          const mul = tokens[pos++].v === '*';
+          const a = left;
+          const b = unary();
+          left = mul ? x => a(x) * b(x) : x => a(x) / b(x);
+        } else if (startsFactor()) {
+          const a = left;
+          const b = unary();
+          left = x => a(x) * b(x);
+        } else {
+          return left;
+        }
+      }
+    };
+    const unary = () => {
+      if (isOp('-')) { pos++; const a = unary(); return x => -a(x); }
+      if (isOp('+')) { pos++; return unary(); }
+      return power();
+    };
+    const power = () => {
+      const base = atom();
+      if (isOp('^')) {
+        pos++;
+        const a = base;
+        const b = unary();
+        return x => Math.pow(a(x), b(x));
+      }
+      return base;
+    };
+    const atom = () => {
+      const t = tokens[pos++];
+      if (!t) throw new Error('η έκφραση τελειώνει απότομα');
+      if (t.t === 'num') return () => t.v;
+      if (t.t === 'op' && t.v === '(') {
+        const inner = expr();
+        expect(')');
+        return inner;
+      }
+      if (t.t === 'id') {
+        if (t.v === 'x') return x => x;
+        if (t.v === 'pi') return () => Math.PI;
+        if (t.v === 'e') return () => Math.E;
+        const name = FN_ALIAS[t.v] || t.v;
+        const f = FN_FUNCS[name];
+        if (!f) throw new Error(`άγνωστο όνομα «${t.v}»`);
+        if (!isOp('(')) {
+          // sin x, ημx: το όρισμα είναι ο επόμενος παράγοντας
+          const arg = power();
+          return x => f(arg(x));
+        }
+        pos++;
+        const arg = expr();
+        expect(')');
+        return x => f(arg(x));
+      }
+      throw new Error(`μη αναμενόμενο «${t.v}»`);
+    };
+    const fn = expr();
+    if (pos < tokens.length) throw new Error(`μη αναμενόμενο «${tokens[pos].v}»`);
+    fn(1);
+    return fn;
+  }
+
+  /**
+   * Το διάστημα x στο οποίο σχεδιάζονται οι συναρτήσεις: από τα πεδία «από/έως», αλλιώς από τα σημεία, αλλιώς −10 έως 10.
+   * @param {Object} data
+   * @returns {number[]}
+   */
+  function functionRange(data) {
+    const xs = (data.xValues || []).filter(Number.isFinite);
+    let a = Number.isFinite(data.fnMin) ? data.fnMin : (xs.length ? Math.min(...xs) : -10);
+    let b = Number.isFinite(data.fnMax) ? data.fnMax : (xs.length ? Math.max(...xs) : 10);
+    if (a > b) [a, b] = [b, a];
+    if (a === b) { a -= 1; b += 1; }
+    return [a, b];
+  }
+
+  /**
+   * Υπολογίζει τις καμπύλες f(x). Οι τιμές εκτός ορίων (π.χ. κοντά σε ασύμπτωτη) κόβουν τη γραμμή.
+   * @param {Object} data
+   * @returns {Array<{label: string, color: string, points: Array<{x: number, y: (number|null)}>}>}
+   */
+  function functionSeries(data) {
+    const list = Array.isArray(data.functions) ? data.functions.slice(0, MAX_FUNCTIONS) : [];
+    const [a, b] = functionRange(data);
+    const out = [];
+    list.forEach((src, i) => {
+      let f;
+      try { f = compileExpression(src); } catch (e) { return; }
+      const ys = [];
+      for (let k = 0; k < FN_SAMPLES; k++) {
+        const x = a + ((b - a) * k) / (FN_SAMPLES - 1);
+        let y = NaN;
+        try { y = f(x); } catch (e) { y = NaN; }
+        ys.push(Number.isFinite(y) ? y : null);
+      }
+      const sorted = ys.filter(v => v !== null).map(Math.abs).sort((p, q) => p - q);
+      if (!sorted.length) return;
+      const q90 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))];
+      const cap = Math.max(6 * q90, 1e-9);
+      const jump = Math.max(4 * q90, 1e-9);
+      const points = ys.map((y, k) => ({ x: a + ((b - a) * k) / (FN_SAMPLES - 1), y }));
+      points.forEach((pt, k) => {
+        if (pt.y !== null && Math.abs(pt.y) > cap && sorted.length > 10) pt.y = null;
+        if (k > 0 && pt.y !== null && points[k - 1].y !== null && Math.abs(pt.y - points[k - 1].y) > jump) points[k - 1].y = null;
+      });
+      const text = String(src).trim().replace(/^(?:f|y)\s*(?:\(\s*x\s*\))?\s*=\s*/i, '');
+      out.push({ label: `${list.length > 1 ? `f${i + 1}` : 'f'}(x) = ${text}`, color: FN_COLORS[i % FN_COLORS.length], points });
+    });
+    return out;
+  }
+
   /**
    * Σημεία της καμπύλης για σχεδίαση (100 σημεία παρεμβολής).
    * @param {Function} predict
@@ -11005,6 +11182,12 @@ const GraphEngine = (() => {
         borderColor: '#DC2626', borderWidth: 2, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0, order: 2
       });
     }
+    functionSeries(data).forEach(f => {
+      datasets.push({
+        label: f.label, data: f.points, type: 'line', borderColor: f.color, borderWidth: forExport ? 3 : 2, pointRadius: 0,
+        pointHoverRadius: 0, fill: false, tension: 0, spanGaps: false, order: 3, isFn: true
+      });
+    });
     const mode = data.errorMode || 'percent';
     // Οι άξονες μεγαλώνουν ώστε να χωρούν και οι μπάρες σφάλματος.
     const spread = (values, err) => {
@@ -11022,7 +11205,7 @@ const GraphEngine = (() => {
       grid: { display: data.showGrid !== false, color: grid },
       border: { color: '#94A3B8' },
       ticks: { color: text, font: { size: forExport ? 14 : 12 } },
-      ...(axis === 'x' && data.includeOrigin ? { min: Math.min(0, ...data.xValues.filter(Number.isFinite)) } : {})
+      ...(axis === 'x' && data.includeOrigin && data.xValues.length ? { min: Math.min(0, ...data.xValues.filter(Number.isFinite)) } : {})
     });
     const equation = (data.eqPlacement || 'image') === 'image' ? equationParts(data, result).text : '';
     return {
@@ -11036,7 +11219,7 @@ const GraphEngine = (() => {
         locale: 'el-GR',
         layout: { padding: forExport ? 16 : 8 },
         plugins: {
-          legend: { display: true, labels: { color: text, usePointStyle: true, filter: item => item.datasetIndex === 0, font: { size: forExport ? 14 : 12 } } },
+          legend: { display: true, labels: { color: text, usePointStyle: true, filter: (item, chartData) => (chartData.datasets[item.datasetIndex].isFn || (item.datasetIndex === 0 && points.length > 0)), font: { size: forExport ? 14 : 12 } } },
           title: { display: !!data.chartTitle, text: data.chartTitle, color: text, font: { size: forExport ? 20 : 15, weight: '700' } },
           subtitle: { display: !!equation, text: equation, position: 'bottom', color: '#B91C1C', font: { size: forExport ? 16 : 13, family: 'Georgia, serif' }, padding: { top: 8 } },
           tooltip: {
@@ -11062,7 +11245,7 @@ const GraphEngine = (() => {
    * @returns {Promise<string>} data URL
    */
   async function renderImage(data) {
-    const result = fit(data.xValues, data.yValues, data.regressionType);
+    const result = data.xValues.length ? fit(data.xValues, data.yValues, data.regressionType) : {};
     const canvas = Util.h('canvas', { width: '900', height: '560' });
     const holder = Util.h('div', { style: { position: 'fixed', left: '-10000px', top: '0', width: '900px', height: '560px' } }, canvas);
     document.body.append(holder);
@@ -11146,7 +11329,10 @@ const GraphEngine = (() => {
       eqPlacement: initial && initial.eqPlacement ? initial.eqPlacement : (image && equationBelow(image) ? 'below' : 'image'),
       errorX: initial ? Number(initial.errorX) || 0 : 0,
       errorY: initial ? Number(initial.errorY) || 0 : 0,
-      errorMode: initial && initial.errorMode === 'absolute' ? 'absolute' : 'percent'
+      errorMode: initial && initial.errorMode === 'absolute' ? 'absolute' : 'percent',
+      functions: initial && Array.isArray(initial.functions) ? initial.functions.slice(0, MAX_FUNCTIONS).map(String) : [],
+      fnMin: initial && Number.isFinite(initial.fnMin) ? initial.fnMin : null,
+      fnMax: initial && Number.isFinite(initial.fnMax) ? initial.fnMax : null
     };
     const rows = initial && Array.isArray(initial.xValues)
       ? initial.xValues.map((x, i) => ({ x: numToStr(x), y: numToStr(initial.yValues[i]) }))
@@ -11177,6 +11363,31 @@ const GraphEngine = (() => {
       Util.h('option', { value: 'absolute', text: 'σταθερό (στις μονάδες του άξονα)' }));
     errMode.value = data.errorMode;
     const errValue = input => Math.max(0, Util.parseNumber(input.value) || 0);
+    const fnInputs = Array.from({ length: MAX_FUNCTIONS }, (_, i) => Util.h('input', {
+      class: 'input fn-input', type: 'text', maxlength: '120', spellcheck: 'false', autocomplete: 'off', value: data.functions[i] || '',
+      placeholder: i === 0 ? 'π.χ. 2*x + 1   ή   x^2 - 4   ή   sin(x)' : 'Δεύτερη/τρίτη συνάρτηση (προαιρετικά)', 'aria-label': `Συνάρτηση f${i + 1}(x)`
+    }));
+    const fnMinInput = Util.h('input', { class: 'input', type: 'text', inputmode: 'decimal', value: data.fnMin === null ? '' : numToStr(data.fnMin), placeholder: 'αυτόματο', 'aria-label': 'x από' });
+    const fnMaxInput = Util.h('input', { class: 'input', type: 'text', inputmode: 'decimal', value: data.fnMax === null ? '' : numToStr(data.fnMax), placeholder: 'αυτόματο', 'aria-label': 'x έως' });
+    const fnMsg = Util.h('p', { class: 'math-error', hidden: true, 'aria-live': 'polite' });
+    /** @returns {{list: string[], error: string}} έγκυρες εκφράσεις και το πρώτο μήνυμα σφάλματος */
+    const readFunctions = () => {
+      const list = [];
+      let error = '';
+      fnInputs.forEach((input, i) => {
+        const text = input.value.trim();
+        input.classList.remove('is-invalid');
+        if (!text) return;
+        try {
+          compileExpression(text);
+          list.push(text);
+        } catch (e) {
+          input.classList.add('is-invalid');
+          error = error || `Συνάρτηση ${i + 1}: ${e.message}`;
+        }
+      });
+      return { list, error };
+    };
     const tbody = Util.h('tbody');
     const count = Util.h('span', { class: 'hint' });
     const resultBox = Util.h('div', { class: 'fit-result', 'aria-live': 'polite' });
@@ -11212,6 +11423,9 @@ const GraphEngine = (() => {
         errorX: errValue(errXInput),
         errorY: errValue(errYInput),
         errorMode: errMode.value,
+        functions: readFunctions().list,
+        fnMin: Number.isFinite(Util.parseNumber(fnMinInput.value)) ? Util.parseNumber(fnMinInput.value) : null,
+        fnMax: Number.isFinite(Util.parseNumber(fnMaxInput.value)) ? Util.parseNumber(fnMaxInput.value) : null,
         xValues: xs,
         yValues: ys
       };
@@ -11219,6 +11433,9 @@ const GraphEngine = (() => {
     const refresh = () => {
       const d = currentData();
       count.textContent = `${d.xValues.length} έγκυρα σημεία · έως ${MAX_POINTS}`;
+      const fnState = readFunctions();
+      fnMsg.textContent = fnState.error;
+      fnMsg.hidden = !fnState.error;
       const result = d.xValues.length ? fit(d.xValues, d.yValues, d.regressionType) : {};
       if (result.error) {
         resultBox.className = 'fit-result is-error';
@@ -11228,7 +11445,7 @@ const GraphEngine = (() => {
         resultBox.textContent = `${result.equation}     R² = ${Util.fmt(result.r2)}`;
       } else {
         resultBox.className = 'fit-result';
-        resultBox.textContent = d.xValues.length ? 'Χωρίς καμπύλη προσέγγισης.' : 'Συμπλήρωσε τιμές X και Y για να εμφανιστεί το γράφημα.';
+        resultBox.textContent = d.xValues.length ? 'Χωρίς καμπύλη προσέγγισης.' : (d.functions.length ? 'Σχεδιάζεται μόνο η συνάρτηση f(x).' : 'Συμπλήρωσε τιμές X και Y ή μια συνάρτηση f(x) για να εμφανιστεί το γράφημα.');
       }
       if (!chart) return;
       const cfg = chartConfig(d, result, false);
@@ -11385,14 +11602,19 @@ const GraphEngine = (() => {
     });
     [titleInput, xLabel, yLabel].forEach(el => el.addEventListener('input', schedule));
     [regression, gridCheck, originCheck, eqCheck, r2Check, placement, errMode].forEach(el => el.addEventListener('change', refresh));
-    [errXInput, errYInput].forEach(el => el.addEventListener('input', schedule));
+    [errXInput, errYInput, fnMinInput, fnMaxInput, ...fnInputs].forEach(el => el.addEventListener('input', schedule));
     renderRows();
     if (fromTable && !image) loadSource();
 
     const submit = async () => {
       const d = currentData();
-      if (!d.xValues.length) {
-        Toast.show('Συμπλήρωσε τουλάχιστον ένα σημείο με έγκυρες τιμές X και Y', 'warning');
+      const fnState = readFunctions();
+      if (fnState.error) {
+        Toast.show(fnState.error, 'warning');
+        return false;
+      }
+      if (!d.xValues.length && !d.functions.length) {
+        Toast.show('Συμπλήρωσε τουλάχιστον ένα σημείο με έγκυρες τιμές X και Y ή μια συνάρτηση f(x)', 'warning');
         return false;
       }
       try {
@@ -11448,6 +11670,13 @@ const GraphEngine = (() => {
           Util.h('div', { class: 'grid-2' },
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Άξονας X' }), xLabel),
             Util.h('label', { class: 'field' }, Util.h('span', { text: 'Άξονας Y' }), yLabel)),
+          Util.h('div', { class: 'graph-eq-options graph-fn' },
+            Util.h('span', { class: 'graph-eq-title' }, 'Συνάρτηση f(x) (προαιρετικά):',
+              Util.tip('Γράψε τη συνάρτηση του x, π.χ. 2*x+1, x^2-4, sin(x), sqrt(x), exp(-x), ln(x), 1/x, 3*cos(2*x), π*x. Δεκαδικά με κόμμα. Μπορείς να βάλεις έως 3 συναρτήσεις και να τις συνδυάσεις με πειραματικά σημεία. Δεν χρειάζεται να γράψεις «f(x) =».')),
+            ...fnInputs, fnMsg,
+            Util.h('div', { class: 'grid-2' },
+              Util.h('label', { class: 'field' }, Util.h('span', { text: 'x από' }), fnMinInput),
+              Util.h('label', { class: 'field' }, Util.h('span', { text: 'x έως' }), fnMaxInput))),
           Util.h('div', { class: 'data-grid-wrap' },
             Util.h('table', { class: 'data-grid' },
               Util.h('thead', null, Util.h('tr', null, Util.h('th', { text: '#' }), Util.h('th', { text: 'X' }), Util.h('th', { text: 'Y' }), Util.h('th', { 'aria-label': 'Ενέργειες' }))),
@@ -11491,7 +11720,7 @@ const GraphEngine = (() => {
     refresh();
   }
 
-  return { fit, polyfit, linearFit, gaussSolve, renderImage, open, REGRESSIONS };
+  return { fit, polyfit, linearFit, gaussSolve, renderImage, open, REGRESSIONS, compileExpression, functionSeries };
 })();
 
 /**
@@ -13441,7 +13670,7 @@ const ExportManager = (() => {
     AppState.sections().forEach(s => {
       if (s.hidden || (s.collapsed && !opts.includeCollapsed)) return;
       n++;
-      // «Μία ενότητα ανά σελίδα» (Εμφάνιση → Σελίδες στο PDF) ισχύει σε όλες τις εξαγωγές, και στο DOCX ως αλλαγή σελίδας.
+      // «Μία ενότητα ανά σελίδα» (Μορφοποίηση → Σελίδες στο PDF) ισχύει σε όλες τις εξαγωγές, και στο DOCX ως αλλαγή σελίδας.
       const section = Util.h('section', { class: `wf-print-section${st.pdfPaging === 'section' && st.layout !== 'grid' && n > 1 ? ' wf-break-before' : ''}`, dataset: { sectionId: s.id, span: String(st.layout === 'grid' ? s.span : 12), minHeight: String(st.layout === 'grid' ? s.minHeight : 0) } });
       if (st.layout === 'grid') {
         section.style.setProperty('--span', String(s.span));
@@ -15251,7 +15480,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       AppState.setStyle({ pdfPaging: paging.value });
       rerender();
     });
-    // Περιθώρια: ίδια ρύθμιση με το Εμφάνιση → Σελίδα A4.
+    // Περιθώρια: ίδια ρύθμιση με το Μορφοποίηση → Σελίδα A4.
     const st0 = AppState.get().style;
     const marginSel = Util.h('select', { class: 'select', 'aria-label': 'Περιθώρια' },
       [['normal', 'Κανονικά (2,5 εκ.)'], ['narrow', 'Στενά (1,27 εκ.)'], ['minimal', 'Ελάχιστα (0,8 εκ.)'], ['custom', 'Προσαρμοσμένα…']].map(([v, t]) => Util.h('option', { value: v, text: t })));
@@ -16783,7 +17012,7 @@ const UIController = (() => {
     custom: { label: 'Προσαρμοσμένη', values: null }
   };
 
-  /** Καρτέλα «Εμφάνιση»: στυλ του τελικού φύλλου. */
+  /** Καρτέλα «Μορφοποίηση»: στυλ του τελικού φύλλου. */
   function bindStyleTab() {
     const preset = $('style-preset');
     Object.entries(STYLE_PRESETS).forEach(([key, p]) => preset.append(Util.h('option', { value: key, text: p.label })));
@@ -17114,6 +17343,23 @@ const UIController = (() => {
   const HELP_GUIDE = [
     ['Πώς ξεκινάω', ['Διάλεξε ένα έτοιμο πρότυπο ή ξεκίνα με κενό φύλλο από την καρτέλα «Πρότυπο». Στην καρτέλα «Ενότητες» προσθέτεις, μετακινείς και κρύβεις ενότητες, και γράφεις μέσα σε κάθε μία.']],
     ['Εργαλεία εισαγωγής', ['Από τη γραμμή εργαλείων κάθε ενότητας και από την καρτέλα «Εργαλεία» εισάγεις μαθηματικές εκφράσεις, πίνακες και γραφήματα, εικόνες, ενσωματώσεις, πεδία συμπλήρωσης και ερωτήσεις αυτοαξιολόγησης (πολλαπλής επιλογής και Σωστό/Λάθος).']],
+    ['Προεπισκόπηση του εγγράφου', [
+      'Το κουμπί «Προεπισκόπηση» (πάνω) δείχνει το φύλλο σελίδα προς σελίδα, όπως θα βγει στην εκτύπωση και στις εξαγωγές. Δεξιά βλέπεις τις σελίδες A4 και αριστερά τις επιλογές, που ισχύουν σε όλες τις εξαγωγές.',
+      'Από τις επιλογές διαλέγεις ποια στοιχεία εγγράφου εμφανίζονται (λογότυπο, φορέας, τίτλος, μάθημα, τάξη, ημερομηνία, εκπαιδευτικός, πεδία μαθητή), τους τίτλους και την αρίθμηση των ενοτήτων, τις γραμμές απάντησης, το QR code για τους συνδέσμους, τον χωρισμό σε σελίδες («Μία ενότητα ανά σελίδα», «Νέα σελίδα μόνο στις αλλαγές σελίδας» ή «Συνεχόμενα»), τα περιθώρια, την ποιότητα του PDF και την κεφαλίδα και την αρίθμηση των σελίδων.',
+      'Ό,τι αλλάζεις ενημερώνει αμέσως την προεπισκόπηση. Η γραμμή πάνω αριστερά γράφει πόσες σελίδες βγαίνουν και αν κάποια σελίδα σμικρύνεται για να χωρέσει. Από το ίδιο παράθυρο κάνεις Εκτύπωση/PDF, PDF (προηγμένο), DOCX ή HTML.'
+    ]],
+    ['Διαγράμματα (γραφικές παραστάσεις)', [
+      'Το εργαλείο «Γραφική παράσταση» (Ctrl+Alt+G) φτιάχνει διάγραμμα από πειραματικά δεδομένα. Γράφεις τιμές στον πίνακα X-Y (έως 200 σημεία) ή τις επικολλάς από Excel, ή τις φορτώνεις από έναν πίνακα του φύλλου (δεξί κλικ στον πίνακα → «Γραφική παράσταση από τον πίνακα…»). Δεκαδικά γράφονται με κόμμα ή τελεία.',
+      'Μπορείς να προσθέσεις καμπύλη προσέγγισης (γραμμική, ανάλογη, 2ου ή 3ου βαθμού, εκθετική) με την εξίσωση και το R², μπάρες σφάλματος στους άξονες X και Y, τίτλους αξόνων, πλέγμα και την αρχή των αξόνων.',
+      'Για γραφική παράσταση συνάρτησης γράψε τον τύπο στο πεδίο «Συνάρτηση f(x)», π.χ. 2*x+1, x^2-4, sin(x), sqrt(x), exp(-x), ln(x), 1/x ή 3*cos(2*x). Δεν χρειάζεται να γράψεις «f(x) =». Μπορείς να βάλεις έως τρεις συναρτήσεις και να ορίσεις το διάστημα «x από … έως …» (κενό σημαίνει αυτόματο: το διάστημα των σημείων ή από −10 έως 10). Η συνάρτηση σχεδιάζεται μόνη της ή μαζί με πειραματικά σημεία. Επιτρέπονται οι πράξεις + − * / ^, παρενθέσεις, οι σταθερές π και e, ο πολλαπλασιασμός χωρίς σύμβολο (2x) και οι συναρτήσεις sin, cos, tan, asin, acos, atan, exp, ln, log, sqrt, abs (και ημ, συν, εφ).',
+      'Το διάγραμμα μπαίνει στο φύλλο ως εικόνα. Διπλό κλικ πάνω του το ανοίγει ξανά για αλλαγές.'
+    ]],
+    ['Πίνακες και συναρτήσεις', [
+      'Ο πίνακας εισάγεται από το κουμπί «Πίνακας» (Ctrl+Alt+T). Με δεξί κλικ σε κελί προσθέτεις ή διαγράφεις γραμμές και στήλες, ενώνεις κελιά και φτιάχνεις γραφική παράσταση από τον πίνακα.',
+      'Για υπολογισμούς σε κελί γράψε τύπο που ξεκινά με =, π.χ. =B2*C2, =(C2-B2)/B2 ή =B2^2, ή διάλεξε δεξί κλικ → «Τύπος υπολογισμού…». Στον διάλογο κάνεις κλικ σε κελιά για να μπουν οι αναφορές (B2) και σύρεις για περιοχή (B2:B6). Υπάρχουν έτοιμα κουμπιά για άθροισμα, μέση τιμή και τις βασικές πράξεις, και η επιλογή «Ίδιος τύπος και στα κελιά από κάτω».',
+      'Συναρτήσεις: SUM (ΑΘΡΟΙΣΜΑ), AVERAGE (ΜΕΣΗ), PRODUCT (ΓΙΝΟΜΕΝΟ), MIN, MAX, COUNT, SQRT (ΡΙΖΑ), ABS, POWER (ΔΥΝΑΜΗ) και ROUND. Τα ορίσματα χωρίζονται με ;, π.χ. =ROUND(B2;2). Με $ η αναφορά μένει σταθερή όταν ο τύπος αντιγράφεται προς τα κάτω, π.χ. =B2/$B$8.',
+      'Στο διαδραστικό HTML για τους μαθητές οι τύποι υπολογίζονται αμέσως μόλις ο μαθητής γράψει τιμές στα κελιά.'
+    ]],
     ['Χημικές εξισώσεις', ['Το εργαλείο «Χημική εξίσωση» (Ctrl+Alt+C) δέχεται τα αντιδρώντα (π.χ. Zn + HCl) και προτείνει τα προϊόντα με τους σωστούς δείκτες, υπολογίζει τους συντελεστές και βάζει ↑ για αέρια και ↓ για ιζήματα. Μπορείς να διορθώσεις οτιδήποτε: γράψε τα προϊόντα μόνος σου, δώσε δικούς σου συντελεστές, κατάσταση (s, l, g, aq) ή βέλος (→ ή ⇌, με συνθήκες πάνω και κάτω). Διπλό κλικ στην εξίσωση για επεξεργασία.']],
     ['Σχέδιο', ['Το εργαλείο «Σχέδιο» έχει γραμμές, βέλη, σχήματα, κείμενο, γέμισμα (και σε κλειστές περιοχές από γραμμές), χάρακα, μοιρογνωμόνιο, αγωγούς και σύμβολα ηλεκτρικών κυκλωμάτων πάνω σε τετραγωνισμένη επιφάνεια. Διπλό κλικ σε σχέδιο ξανανοίγει την επεξεργασία του.']],
     ['Εξαγωγή', ['Από το κουμπί «Εξαγωγή» παίρνεις PDF, DOCX, αρχείο HTML για τους μαθητές (με πεδία που συμπληρώνονται, ερωτήσεις και PDF του μαθητή) ή εκτύπωση. Το «Αποθήκευση» κρατά ολόκληρο το έργο σε αρχείο .json που ξανανοίγεις με το «Άνοιγμα».']]
