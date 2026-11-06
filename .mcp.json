@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ekfe-chanion-elementor": {
+      "type": "http",
+      "url": "https://ekfechanion.eu/wp-json/elementor/mcp/"
+    }
+  }
+}
