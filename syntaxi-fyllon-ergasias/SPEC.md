@@ -13,7 +13,7 @@ Tags: #φυσική #εκφε #λύκειο #γυμνάσιο
 - Υπότιτλος UI: *«Γυμνάσιο & Λύκειο»*
 - Εσωτερικό όνομα: `worksheet-forge` (πεδίο `app` στα αρχεία JSON, κλειδιά `worksheetforge_*` στο localStorage)
 - Έκδοση: `v1.0.0` (meta `generator`)
-- Παραδοτέο: `syntaxi-fyllon-ergasias/index.html`, ένα αυτόνομο αρχείο HTML περίπου 2,28 MB
+- Παραδοτέα: `syntaxi-fyllon-ergasias/index.html` (απλή έκδοση, περίπου 2,7 MB) και `syntaxi-fyllon-ergasias/index-advanced.html` (Advanced, περίπου 2,8 MB: η απλή και επιπλέον το διαγνωστικό τεστ του §6.5δ). Αυτόνομα αρχεία HTML.
 - Διαδικτυακή έκδοση: https://claude.ai/artifact/92wvuBZcerU1CoQzCaG2hV
 - Favicon: SVG με μολύβι πάνω σε έγγραφο, χρώμα `#2563EB`
 
@@ -307,6 +307,8 @@ Tags: #φυσική #εκφε #λύκειο #γυμνάσιο
 - [x] Αποθήκευση: εικόνα PNG περικομμένη στα σχήματα (`img.wf-draw`) με τα σχήματα στο `data-draw-json` (έως 300 σχήματα, ≤100 KB, ελέγχεται από τον sanitizer). Διπλό κλικ ή το κουμπί «Επεξεργασία σχεδίου» ξανανοίγει τον διάλογο· το πλάτος στο φύλλο προσαρμόζεται αναλογικά στο νέο περίγραμμα.
 
 ### 6.5δ Διαγνωστικό τεστ με προσαρμογή (`DiagModel`, `diagCore`, `diagRuntime`, `Diagnostic`)
+Μόνο στο `index-advanced.html`. Η Advanced διαφέρει από την απλή έκδοση μόνο σε αυτή τη λειτουργία, στην καρτέλα «Διάγνωση», στις καρτέλες που αναδιπλώνονται, στον υπότιτλο «· Advanced» και στο κλειδί αυτόματης αποθήκευσης `worksheetforge_advanced_autosave`. Η απλή έκδοση αγνοεί το πεδίο `diagnostic` των αρχείων έργου.
+
 Ελέγχει την κατανόηση μιας ενότητας φυσικής (ή άλλου μαθήματος) σε συγκεκριμένη τάξη. Από τις απαντήσεις του μαθητή εντοπίζει ποιες έννοιες δεν έχει κατανοήσει και ποια συνηθισμένα λάθη κάνει, και διαλέγει τις επόμενες ερωτήσεις ανάλογα. Ο εκπαιδευτικός αναλύει μετά τα PDF όλης της τάξης.
 
 - [x] **Ρυθμίσεις** (παράθυρο με 7 ενότητες, οι αλλαγές σε αντίγραφο ως την «Αποθήκευση», «Έλεγχος» πληρότητας):
@@ -472,7 +474,7 @@ Modules σε IIFE, το καθένα με δημόσιο API μέσω `return {}
 **Αρχείο έργου:** `{ app: 'worksheet-forge', version: '1.0.0', savedAt, state }`.
 
 **Αποθήκευση στον browser:**
-- localStorage: `worksheetforge_autosave` (κατάσταση), `worksheetforge_templates` (παλιά πρότυπα, μόνο για μεταφορά), `worksheetforge_preferences` (`theme`, `lastOpenedDate`, `favoriteEquations[]`, `panelCollapsed`, `print{…}`).
+- localStorage: `worksheetforge_autosave` (κατάσταση, απλή έκδοση), `worksheetforge_advanced_autosave` (κατάσταση, Advanced), `worksheetforge_templates` (παλιά πρότυπα, μόνο για μεταφορά), `worksheetforge_preferences` (`theme`, `lastOpenedDate`, `favoriteEquations[]`, `panelCollapsed`, `print{…}`).
 - IndexedDB `worksheetforge`: ο δείκτης του φακέλου προτύπων.
 
 ### 7.2 Πρότυπα
@@ -675,7 +677,8 @@ Inline SVG σε στυλ Heroicons: 24×24, stroke 1.5, ενσωματωμένα
 | Κενό Πρότυπο | Περιεχόμενο | — |
 
 ### 10.5 Αρχεία και παράδοση
-- `syntaxi-fyllon-ergasias/index.html`: το παραδοτέο, για τοπική χρήση ή για GitHub Pages.
+- `syntaxi-fyllon-ergasias/index.html`: η απλή έκδοση, για τοπική χρήση ή για GitHub Pages.
+- `syntaxi-fyllon-ergasias/index-advanced.html`: η Advanced έκδοση (με το διαγνωστικό τεστ).
 - `syntaxi-fyllon-ergasias/README.md`: οδηγός χρήσης.
 - `syntaxi-fyllon-ergasias/SPEC.md`: αυτό το έγγραφο.
 - Εσωτερική δομή του HTML:
@@ -702,7 +705,7 @@ Inline SVG σε στυλ Heroicons: 24×24, stroke 1.5, ενσωματωμένα
 | Αρχικό spec | Τρέχουσα κατάσταση | Λόγος |
 | --- | --- | --- |
 | Όνομα «WorksheetForge», αρχείο `worksheet-forge.html` | «Σύνταξη φύλλων εργασίας», `index.html` | Αίτημα χρήστη, συμβατότητα με GitHub Pages |
-| Μέγεθος < 2 MB | ~2,8 MB (κάτω από το απόλυτο όριο των 4 MB) | Ενσωματωμένες γραμματοσειρές KaTeX και docx.js |
+| Μέγεθος < 2 MB | ~2,7 MB η απλή, ~2,8 MB η Advanced (κάτω από το απόλυτο όριο των 4 MB) | Ενσωματωμένες γραμματοσειρές KaTeX και docx.js |
 | Όλες οι βιβλιοθήκες σε ένα `<script>` | Ένα `<script>` ανά βιβλιοθήκη | Απομόνωση σφαλμάτων· οι ίδιες σημάνσεις `LIBRARY` |
 | Βιβλιοθήκη προτύπων στο localStorage | Αρχεία `.json` σε φάκελο του χρήστη | Αίτημα χρήστη |
 | `iframe` απαγορεύεται | Ελεγχόμενες ενσωματώσεις με sandbox. Το iframe φτιάχνεται από την εφαρμογή, όχι από αποθηκευμένο HTML | Αίτημα χρήστη |
