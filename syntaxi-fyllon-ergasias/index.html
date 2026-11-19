@@ -264,7 +264,7 @@ body.is-panel-resizing .left-panel { transition: none; }
 .panel-toggle:hover { color: var(--primary); }
 .app-body.panel-collapsed .panel-toggle { left: 4px; }
 
-.tabs { display: flex; gap: 0; padding: 12px 18px 0 6px; border-bottom: 1px solid var(--border); }
+.tabs { display: flex; flex-wrap: wrap; gap: 0; padding: 8px 18px 0 6px; border-bottom: 1px solid var(--border); }
 .tab {
   flex: 1 1 auto; height: 32px; padding: 0 3px; font-size: 12.5px !important; white-space: nowrap; border: none; border-bottom: 2px solid transparent;
   background: transparent; color: var(--text-2); font-size: 14px; font-weight: 500;
@@ -1121,6 +1121,112 @@ kbd {
 .wf-head-preload { position: absolute; left: -10000px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 </style>
+<style id="dg-style">
+/* === Διαγνωστικό τεστ === */
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dg-summary { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); font-size: 12.5px; }
+.dg-sum-title { font-weight: 600; font-size: 13px; }
+.dg-sum-line { color: var(--text-2); }
+.dg-sum-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+.dg-sum-grid span { color: var(--text-2); }
+.dg-sum-grid b { font-weight: 600; }
+.dg-sum-issues { margin: 4px 0 0; padding-left: 16px; color: var(--danger-hover); font-size: 12px; }
+.dg-modal .modal-body { padding: 0; }
+.dg-editor { display: grid; grid-template-columns: 220px minmax(0, 1fr); height: min(70vh, 720px); }
+.dg-nav { display: flex; flex-direction: column; gap: 2px; padding: 12px 8px; border-right: 1px solid var(--border); background: var(--surface-2); overflow-y: auto; }
+.dg-nav-btn { text-align: left; padding: 8px 10px; border: none; border-radius: var(--radius-btn); background: transparent; color: var(--text); font-size: 13px; cursor: pointer; }
+.dg-nav-btn:hover { background: var(--surface-3); }
+.dg-nav-btn[aria-current="true"] { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.dg-main { overflow-y: auto; padding: 16px 20px 24px; scrollbar-width: thin; }
+.dg-intro { font-size: 13px; line-height: 1.5; }
+.dg-list { display: flex; flex-direction: column; gap: 8px; }
+.dg-card { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); font-size: 13px; }
+.dg-card ul { margin: 0; padding-left: 18px; }
+.dg-card-head { display: flex; align-items: center; gap: 10px; }
+.dg-card-head .hint { flex: 1; }
+.dg-choice { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); cursor: pointer; font-size: 13px; }
+.dg-choice:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+.dg-choice ul { margin: 4px 0 0; padding-left: 18px; color: var(--text-2); }
+.dg-choice input { margin-top: 3px; }
+.dg-tree { display: flex; flex-direction: column; gap: 6px; }
+.dg-tree-row { display: flex; align-items: center; gap: 8px; }
+.dg-tree-dot { width: 14px; color: var(--text-3); text-align: center; flex-shrink: 0; }
+.dg-tree-fields { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 6px; }
+.dg-tree-desc { color: var(--text-2); }
+.dg-tree-tools { display: flex; gap: 2px; flex-shrink: 0; }
+.dg-badge { flex-shrink: 0; font-size: 11px; padding: 2px 6px; border-radius: var(--radius-pill); background: var(--primary-soft); color: var(--primary); }
+.dg-badge.is-empty { background: var(--danger-soft); color: var(--danger-hover); }
+.dg-dendro-wrap { overflow-x: auto; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.dg-dendro { display: block; font-family: var(--font-ui); }
+.dg-dendro-link { fill: none; stroke: var(--border-strong, #CBD5E1); stroke-width: 1.5; }
+.dg-dendro-dot { fill: var(--surface, #fff); stroke: var(--text-2, #64748B); stroke-width: 2; }
+.dg-dendro-dot.is-good { fill: var(--ok, #22C55E); stroke: var(--ok, #22C55E); }
+.dg-dendro-dot.is-mid { fill: var(--warn, #EAB308); stroke: var(--warn, #EAB308); }
+.dg-dendro-dot.is-weak { fill: var(--danger, #EF4444); stroke: var(--danger, #EF4444); }
+.dg-dendro-dot.is-none { fill: var(--surface, #fff); stroke: var(--text-3, #94A3B8); }
+.dg-dendro-label { font-size: 13px; fill: var(--text, #1E293B); }
+.dg-dendro-sub { fill: var(--text-2, #64748B); font-size: 12px; }
+.dg-explain p { margin: 0; }
+.dg-q { padding: 6px 8px; }
+.dg-q.is-open { border-color: var(--primary); }
+.dg-q-head { display: flex; align-items: center; gap: 4px; }
+.dg-q-toggle { flex: 1; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px; padding: 4px; border: none; background: transparent; color: var(--text); text-align: left; cursor: pointer; font-size: 13px; }
+.dg-q-num { color: var(--text-3); grid-row: span 2; }
+.dg-q-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dg-q-meta { font-size: 11.5px; color: var(--text-2); }
+.dg-q-editor { padding: 6px 4px 4px; gap: 10px; }
+.dg-opts { display: flex; flex-direction: column; gap: 6px; }
+.dg-opt-head { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1fr) 28px; gap: 6px; font-size: 11.5px; color: var(--text-2); }
+.dg-opt-head span:first-child { grid-column: 1 / 3; }
+.dg-opt-row { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1fr) 28px; gap: 6px; align-items: center; }
+.dg-opt-row .check { font-size: 12px; }
+.dg-trap-row { grid-template-columns: 120px minmax(0, 1fr) 28px; }
+.dg-intake { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr); gap: 12px; padding: 16px 20px 0; }
+.dg-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 96px; padding: 12px; border: 2px dashed var(--border-strong); border-radius: var(--radius-card); color: var(--text-2); font-size: 13px; text-align: center; cursor: pointer; }
+.dg-drop b { color: var(--text); }
+.dg-drop.is-over, .dg-drop:hover { border-color: var(--primary); background: var(--primary-soft); }
+.dg-files { list-style: none; margin: 0; padding: 0; max-height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.dg-files li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 2px 6px; border-radius: var(--radius-btn); background: var(--surface-2); }
+.dg-out { padding: 0 20px 20px; }
+.dg-warnline { color: var(--danger-hover); font-size: 13px; }
+.dg-report { display: flex; flex-direction: column; gap: 18px; color: var(--text); }
+.dg-report-head h2 { margin: 0 0 2px; font-size: 18px; }
+.dg-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.dg-tile { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.dg-tile-label { font-size: 12px; color: var(--text-2); }
+.dg-tile-value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dg-tile-sub { font-size: 11.5px; color: var(--text-3); }
+.dg-rsec h3 { margin: 0 0 8px; font-size: 15px; }
+.dg-sug { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.dg-sug li { padding: 6px 10px; border-left: 3px solid var(--border-strong, #CBD5E1); background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.dg-sug li.is-class { border-left-color: var(--danger, #EF4444); }
+.dg-sug li.is-mis { border-left-color: var(--warn, #EAB308); }
+.dg-sug li.is-group { border-left-color: var(--primary, #2563EB); }
+.dg-sug li.is-ok { border-left-color: var(--ok, #22C55E); }
+.dg-legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 6px 0 0; }
+.dg-level { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+.dg-level::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; background: var(--text-3, #94A3B8); }
+.dg-level.is-good::before { background: var(--ok, #22C55E); }
+.dg-level.is-mid::before { background: var(--warn, #EAB308); }
+.dg-level.is-weak::before { background: var(--danger, #EF4444); }
+.dg-level.is-none::before { background: transparent; border: 1.5px solid var(--text-3, #94A3B8); }
+.dg-tablewrap { overflow-x: auto; }
+.dg-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.dg-table th { text-align: left; font-weight: 600; color: var(--text-2); border-bottom: 1px solid var(--border-strong, #CBD5E1); padding: 4px 8px; white-space: nowrap; }
+.dg-table td { border-bottom: 1px solid var(--border); padding: 4px 8px; vertical-align: top; }
+.dg-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dg-table tr.is-top td:first-child { font-weight: 600; }
+.dg-bar { display: block; width: 110px; height: 8px; margin-top: 5px; border-radius: 4px; background: var(--surface-3, #E2E8F0); overflow: hidden; }
+.dg-bar > span { display: block; height: 100%; border-radius: 4px; background: var(--text-3, #94A3B8); }
+.dg-bar.is-good > span { background: var(--ok, #22C55E); }
+.dg-bar.is-mid > span { background: var(--warn, #EAB308); }
+.dg-bar.is-weak > span { background: var(--danger, #EF4444); }
+.dg-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; font-size: 13px; }
+.dg-group { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.dg-checks { gap: 6px; max-height: 260px; overflow-y: auto; }
+.dg-checks .check { font-size: 13px; }
+@media (max-width: 900px) { .dg-editor { grid-template-columns: 1fr; height: auto; } .dg-nav { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); } .dg-intake, .dg-tiles { grid-template-columns: 1fr 1fr; } }
+</style>
 </head>
 <body>
 <header class="app-header">
@@ -1167,6 +1273,7 @@ kbd {
         <button class="tab" role="tab" type="button" id="tab-sections" aria-controls="panel-sections" aria-selected="false">Ενότητες</button>
         <button class="tab" role="tab" type="button" id="tab-tools" aria-controls="panel-tools" aria-selected="false">Εργαλεία</button>
         <button class="tab" role="tab" type="button" id="tab-style" aria-controls="panel-style" aria-selected="false">Μορφοποίηση</button>
+        <button class="tab" role="tab" type="button" id="tab-diag" aria-controls="panel-diag" aria-selected="false" title="Διαγνωστικό τεστ με προσαρμοστικές ερωτήσεις και ανάλυση των απαντήσεων των μαθητών">Διάγνωση</button>
       </div>
 
       <div class="tab-panel" role="tabpanel" id="panel-template" aria-labelledby="tab-template">
@@ -1345,6 +1452,30 @@ kbd {
         <section class="panel-section">
           <h3 class="panel-heading">Γραφήματα εγγράφου</h3>
           <ul id="graphs-list" class="mini-list"></ul>
+        </section>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" id="panel-diag" aria-labelledby="tab-diag" hidden>
+        <section class="panel-section">
+          <h3 class="panel-heading">Διαγνωστικό τεστ</h3>
+          <label class="check" title="Το τεστ μπαίνει ως τελευταία ενότητα στο διαδραστικό HTML (Εξαγωγή → Διαδραστικό HTML)"><input id="diag-enabled" type="checkbox">Στο διαδραστικό HTML</label>
+          <div id="diag-summary" class="dg-summary"></div>
+          <button id="btn-diag-edit" class="btn btn-primary btn-block" type="button">Ρυθμίσεις και τράπεζα ερωτήσεων…</button>
+          <button id="btn-diag-example" class="btn btn-secondary btn-block" type="button" title="Έτοιμη ύλη, γνωστικό μοντέλο, συνηθισμένα λάθη και 24 ερωτήσεις για να δοκιμάσεις το εργαλείο">Παράδειγμα: Β΄ Γυμνασίου – Κινήσεις</button>
+          <p class="hint">Ο μαθητής απαντά στο διαδραστικό HTML. Οι επόμενες ερωτήσεις διαλέγονται ανάλογα με τις απαντήσεις του, ώστε να φανεί ποιες έννοιες δεν έχει κατανοήσει. Η τράπεζα είναι μέσα στο αρχείο: λειτουργεί στο σπίτι και στο σχολείο χωρίς internet.</p>
+        </section>
+        <section class="panel-section">
+          <h3 class="panel-heading">Έλεγχος απαντήσεων</h3>
+          <button id="btn-diag-analyze" class="btn btn-primary btn-block" type="button"><span data-icon="chart"></span>Ανάλυση PDF μαθητών…</button>
+          <p class="hint">Φόρτωσε τα PDF που σου παρέδωσαν οι μαθητές: στατιστικά της τάξης, κατανόηση ανά έννοια, συνηθισμένα λάθη, ομάδες ενίσχυσης, προτάσεις και φύλλο ενίσχυσης.</p>
+        </section>
+        <section class="panel-section">
+          <h3 class="panel-heading">Αρχείο διάγνωσης</h3>
+          <div class="grid-2">
+            <button id="btn-diag-export" class="btn btn-secondary" type="button" title="Αποθήκευση της ύλης, του γνωστικού μοντέλου, των λαθών και της τράπεζας σε αρχείο .json">Εξαγωγή</button>
+            <button id="btn-diag-import" class="btn btn-secondary" type="button" title="Άνοιγμα διάγνωσης από αρχείο .json">Εισαγωγή</button>
+          </div>
+          <p class="hint">Μοιράσου την τράπεζα με συναδέλφους. Η διάγνωση αποθηκεύεται και μαζί με το έργο.</p>
         </section>
       </div>
     </div>
@@ -3217,6 +3348,696 @@ const Busy = (() => {
 
 
 /**
+ * Πυρήνας του διαγνωστικού τεστ: βαθμολόγηση απαντήσεων, εκτίμηση κατανόησης ανά έννοια
+ * (Bayesian Knowledge Tracing ή ποσοστό επιτυχίας) και επιλογή της επόμενης ερώτησης.
+ * Αυτόνομη συνάρτηση χωρίς εξαρτήσεις, ώστε να μπαίνει αυτούσια (μέσω toString) και στο διαδραστικό HTML.
+ * @param {{skills: Array, bank: Array, adapt: Object}} D
+ * @returns {Object}
+ */
+function diagCore(D) {
+  const A = D.adapt;
+  const skills = D.skills;
+  const byId = {};
+  skills.forEach(s => { byId[s.id] = s; });
+  const childrenOf = id => skills.filter(s => s.parent === id);
+  const order = [];
+  const walk = parent => childrenOf(parent).forEach(s => { order.push(s); walk(s.id); });
+  walk('');
+  skills.forEach(s => { if (order.indexOf(s) < 0) order.push(s); });
+  const assessable = order.filter(s => D.bank.some(q => q.skill === s.id));
+  const descendants = id => {
+    const out = [];
+    const go = pid => childrenOf(pid).forEach(c => { out.push(c.id); go(c.id); });
+    go(id);
+    return out;
+  };
+
+  /** Πιθανότητα «μαντέματος»: 1/πλήθος επιλογών, 0,5 στο Σωστό/Λάθος, μικρή στις αριθμητικές. */
+  const guess = q => (q.type === 'mc' ? 1 / Math.max(2, q.opts.length) : (q.type === 'tf' ? 0.5 : 0.05));
+
+  const num = v => {
+    const n = parseFloat(String(v == null ? '' : v).replace(/\s+/g, '').replace(',', '.').replace(/[−–]/g, '-'));
+    return Number.isFinite(n) ? n : null;
+  };
+  const near = (a, b, tolPct) => {
+    const tol = Math.max(Math.abs(b) * (tolPct || 0) / 100, 1e-9 + Math.abs(b) * 0.005, 0.005);
+    return Math.abs(a - b) <= tol;
+  };
+
+  /**
+   * @param {Object} q ερώτηση
+   * @param {*} answer δείκτης επιλογής (mc), true/false (tf) ή κείμενο αριθμού (num)
+   * @returns {{correct: boolean, mis: string, text: string, valid: boolean}}
+   */
+  function grade(q, answer) {
+    if (q.type === 'mc') {
+      const i = Number(answer);
+      const opt = q.opts[i];
+      if (!opt) return { correct: false, mis: '', text: '', valid: false };
+      return { correct: i === q.ok, mis: i === q.ok ? '' : (opt.mis || ''), text: opt.t, valid: true };
+    }
+    if (q.type === 'tf') {
+      if (answer !== true && answer !== false) return { correct: false, mis: '', text: '', valid: false };
+      const ok = answer === q.answer;
+      return { correct: ok, mis: ok ? '' : (q.mis || ''), text: answer ? 'Σωστό' : 'Λάθος', valid: true };
+    }
+    const v = num(answer);
+    if (v === null) return { correct: false, mis: '', text: String(answer || ''), valid: false };
+    const ok = near(v, q.v, q.tol);
+    let mis = '';
+    if (!ok) {
+      const trap = (q.traps || []).find(t => near(v, t.v, Math.max(q.tol || 0, 1)));
+      mis = trap ? (trap.mis || '') : (q.mis || '');
+    }
+    return { correct: ok, mis, text: `${String(answer).trim()}${q.unit ? ` ${q.unit}` : ''}`, valid: true };
+  }
+
+  /** @returns {Object} νέα κατάσταση μαθητή */
+  function init() {
+    const st = { p: {}, n: {}, k: {}, mis: {}, probe: {}, asked: [], log: [] };
+    assessable.forEach(s => { st.p[s.id] = A.pL0; st.n[s.id] = 0; st.k[s.id] = 0; });
+    return st;
+  }
+
+  /**
+   * Ενημερώνει την κατάσταση με μια απάντηση.
+   * @param {Object} st
+   * @param {Object} q
+   * @param {{correct: boolean, mis: string}} r
+   */
+  function observe(st, q, r) {
+    const sid = q.skill;
+    if (!(sid in st.p)) { st.p[sid] = A.pL0; st.n[sid] = 0; st.k[sid] = 0; }
+    const p = st.p[sid];
+    const G = guess(q);
+    const S = A.pS;
+    const post = r.correct ? (p * (1 - S)) / (p * (1 - S) + (1 - p) * G) : (p * S) / (p * S + (1 - p) * (1 - G));
+    st.p[sid] = post + (1 - post) * A.pT;
+    st.n[sid] += 1;
+    if (r.correct) st.k[sid] += 1;
+    if (st.asked.indexOf(q.id) < 0) st.asked.push(q.id);
+    if (r.mis) {
+      st.mis[r.mis] = (st.mis[r.mis] || 0) + 1;
+      st.probe[r.mis] = 1;
+    }
+    (q.type === 'mc' ? q.opts.map(o => o.mis) : [q.mis].concat((q.traps || []).map(t => t.mis))).forEach(m => {
+      if (m && m !== r.mis && st.probe[m] === 1 && r.correct) st.probe[m] = 2;
+    });
+  }
+
+  /**
+   * Εκτίμηση κατανόησης (0–1) μιας έννοιας· για γονικές έννοιες ο μέσος όρος των υποεννοιών που ελέγχθηκαν.
+   * @param {Object} st
+   * @param {string} sid
+   * @returns {number|null} null όταν δεν ελέγχθηκε
+   */
+  function mastery(st, sid) {
+    const own = sid in st.n && st.n[sid] > 0 ? (A.method === 'rate' ? st.k[sid] / st.n[sid] : st.p[sid]) : null;
+    const kids = descendants(sid).filter(id => id in st.n && st.n[id] > 0);
+    if (!kids.length) return own;
+    const vals = kids.map(id => (A.method === 'rate' ? st.k[id] / st.n[id] : st.p[id]));
+    if (own !== null) vals.push(own);
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+
+  const threshold = () => (A.method === 'rate' ? A.rate : A.mastery);
+
+  /** @returns {'good'|'mid'|'weak'|'none'} */
+  function level(m) {
+    if (m === null || m === undefined) return 'none';
+    if (m >= threshold()) return 'good';
+    return m >= 0.5 ? 'mid' : 'weak';
+  }
+
+  function remaining(st, sid) {
+    return D.bank.filter(q => q.skill === sid && st.asked.indexOf(q.id) < 0);
+  }
+
+  function settled(st, sid) {
+    const n = st.n[sid] || 0;
+    if (!remaining(st, sid).length) return true;
+    if (n >= A.maxPer) return true;
+    const m = A.method === 'rate' ? (n ? st.k[sid] / n : 0) : st.p[sid];
+    return n >= A.minPer && m >= threshold();
+  }
+
+  /**
+   * Η επόμενη ερώτηση: η έννοια με τις λιγότερες ερωτήσεις και τη χαμηλότερη κατανόηση (ή με τη σειρά του δέντρου),
+   * δυσκολία ανάλογη με την κατανόηση, και προτίμηση σε ερωτήσεις που ξαναελέγχουν παρανόηση που εμφανίστηκε.
+   * @param {Object} st
+   * @param {Function} [rnd]
+   * @returns {Object|null}
+   */
+  function next(st, rnd) {
+    const random = rnd || Math.random;
+    if (st.asked.length >= A.maxQ) return null;
+    const open = assessable.filter(s => !settled(st, s.id));
+    if (!open.length) return null;
+    let skill;
+    if (A.order === 'sequential') {
+      skill = open[0];
+    } else {
+      const est = s => (A.method === 'rate' ? ((st.n[s.id] ? st.k[s.id] / st.n[s.id] : A.pL0)) : st.p[s.id]);
+      skill = open.slice().sort((a, b) => (st.n[a.id] - st.n[b.id]) || (est(a) - est(b)) || (order.indexOf(a) - order.indexOf(b)))[0];
+    }
+    const m = A.method === 'rate' ? (st.n[skill.id] ? st.k[skill.id] / st.n[skill.id] : A.pL0) : st.p[skill.id];
+    const target = m < 0.4 ? 1 : (m < 0.7 ? 2 : 3);
+    const probing = Object.keys(st.probe).filter(k => st.probe[k] === 1);
+    const tags = q => (q.type === 'mc' ? q.opts.map(o => o.mis) : [q.mis].concat((q.traps || []).map(t => t.mis))).filter(Boolean);
+    const scored = remaining(st, skill.id).map(q => ({
+      q, s: Math.abs(q.diff - target) * 2 - (tags(q).some(t => probing.indexOf(t) >= 0) ? 1.5 : 0) + random() * 0.9
+    }));
+    scored.sort((a, b) => a.s - b.s);
+    return scored.length ? scored[0].q : null;
+  }
+
+  return { order, assessable, byId, childrenOf, descendants, grade, init, observe, mastery, level, threshold, next, settled };
+}
+
+/**
+ * Διαγνωστικό τεστ στο διαδραστικό HTML του μαθητή (μπαίνει αυτούσιο μέσω toString).
+ * Επιλέγει προσαρμοστικά τις ερωτήσεις, κρατά την πρόοδο στον browser και στη σελίδα,
+ * και δίνει στο PDF του μαθητή την έντυπη μορφή και τα δεδομένα για την ανάλυση από τον εκπαιδευτικό.
+ * @param {Function} core η diagCore
+ */
+function diagRuntime(core) {
+  const host = document.getElementById('wf-diag');
+  const dataEl = document.getElementById('wf-diag-data');
+  const cfgEl = document.getElementById('wf-pdf-config');
+  if (!host || !dataEl) return;
+  const CFG = cfgEl ? JSON.parse(cfgEl.textContent) : {};
+  const KEYSTR = `wf-diag|${CFG.id || document.title}`;
+  const decode = b64 => {
+    const bin = atob(b64.trim());
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) ^ KEYSTR.charCodeAt(i % KEYSTR.length);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  };
+  const toB64 = obj => {
+    const bytes = new TextEncoder().encode(JSON.stringify(obj));
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
+  const fromB64 = s => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0))));
+  let D;
+  try {
+    D = decode(dataEl.textContent);
+  } catch (e) {
+    host.textContent = 'Το διαγνωστικό τεστ δεν μπόρεσε να φορτωθεί.';
+    return;
+  }
+  const C = core(D);
+  const qById = {};
+  D.bank.forEach(q => { qById[q.id] = q; });
+  const misById = {};
+  D.misconceptions.forEach(m => { misById[m.id] = m; });
+  const home = D.setting === 'home';
+  const KEY = `wf-diag:${CFG.id || document.title}`;
+
+  const el = (tag, attrs, ...kids) => {
+    const n = document.createElement(tag);
+    Object.entries(attrs || {}).forEach(([k, v]) => {
+      if (v === null || v === undefined || v === false) return;
+      if (k === 'text') n.textContent = v;
+      else if (k === 'class') n.className = v;
+      else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? '' : String(v));
+    });
+    kids.flat().forEach(c => { if (c !== null && c !== undefined && c !== false) n.append(c.nodeType ? c : document.createTextNode(String(c))); });
+    return n;
+  };
+
+  const fresh = () => ({ v: 1, phase: 'intro', st: C.init(), cur: null, perm: {}, shownAt: 0, last: null, started: '', ended: '', name: '' });
+  let S = null;
+  try {
+    const attr = host.getAttribute('data-state');
+    const stored = localStorage.getItem(KEY);
+    S = stored ? JSON.parse(stored) : (attr ? fromB64(attr) : null);
+  } catch (e) {
+    S = null;
+  }
+  if (!S || S.v !== 1 || !S.st) S = fresh();
+  if (!S.st.log) S.st.log = [];
+
+  const save = () => {
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* μόνο στη σελίδα */ }
+    try { host.setAttribute('data-state', toB64(S)); } catch (e) { /* χωρίς αντίγραφο στη σελίδα */ }
+  };
+  const studentLines = () => Array.from(document.querySelectorAll('#print-root .wf-student .line')).map(l => l.textContent.replace(/\s+/g, ' ').trim());
+  const studentName = () => studentLines()[0] || S.name || '';
+  const shuffle = n => {
+    const a = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const pct = v => `${Math.round(v * 100)}%`;
+  const LEVEL = { good: 'Κατανοήθηκε', mid: 'Μερική κατανόηση', weak: 'Χρειάζεται ενίσχυση', none: 'Δεν ελέγχθηκε' };
+  const correctText = q => (q.type === 'mc' ? q.opts[q.ok].t : (q.type === 'tf' ? (q.answer ? 'Σωστό' : 'Λάθος') : `${String(q.v).replace('.', ',')}${q.unit ? ` ${q.unit}` : ''}`));
+
+  const advance = () => {
+    const q = C.next(S.st);
+    if (!q) {
+      S.phase = 'done';
+      S.cur = null;
+      S.ended = new Date().toISOString();
+    } else {
+      S.phase = 'q';
+      S.cur = q.id;
+      if (q.type === 'mc' && !S.perm[q.id]) S.perm[q.id] = shuffle(q.opts.length);
+      S.shownAt = Date.now();
+    }
+    save();
+    render();
+  };
+
+  const submit = answer => {
+    const q = qById[S.cur];
+    if (!q) return;
+    const r = C.grade(q, answer);
+    if (!r.valid) {
+      const warn = host.querySelector('.wf-diag-warn');
+      if (warn) warn.textContent = q.type === 'num' ? 'Γράψε έναν αριθμό (π.χ. 2,5).' : 'Διάλεξε μια απάντηση.';
+      return;
+    }
+    C.observe(S.st, q, r);
+    S.st.log.push({ q: q.id, s: q.skill, d: q.diff, y: q.type, n: q.type === 'mc' ? q.opts.length : 0, c: r.correct ? 1 : 0, m: r.mis, a: r.text, t: Math.round((Date.now() - (S.shownAt || Date.now())) / 1000) });
+    S.last = { q: q.id, c: r.correct, a: r.text };
+    if (home) {
+      S.phase = 'fb';
+      save();
+      render();
+    } else {
+      advance();
+    }
+  };
+
+  const head = () => el('div', { class: 'wf-diag-head' },
+    el('strong', { text: D.unit.chapter || 'Διαγνωστικό τεστ' }),
+    D.unit.className ? el('span', { text: ` · ${D.unit.className}` }) : null);
+
+  const masteryList = () => el('ul', { class: 'wf-diag-skills' }, C.order.map(s => {
+    const m = C.mastery(S.st, s.id);
+    const lv = C.level(m);
+    const depth = (() => { let d = 0; let p = s.parent; while (p && C.byId[p] && d < 8) { d++; p = C.byId[p].parent; } return d; })();
+    return el('li', { class: `wf-diag-skill is-${lv}`, style: `padding-left:${depth * 14}px` },
+      el('span', { class: 'wf-diag-skill-name', text: s.title }),
+      el('span', { class: 'wf-diag-bar', 'aria-hidden': 'true' }, el('span', { style: `width:${m === null ? 0 : Math.round(m * 100)}%` })),
+      el('span', { class: 'wf-diag-skill-val', text: m === null ? '—' : pct(m) }),
+      el('span', { class: 'wf-diag-tag', text: LEVEL[lv] }));
+  }));
+
+  function render() {
+    host.replaceChildren();
+    host.append(head());
+    if (S.phase === 'intro') {
+      const needName = !studentLines().length;
+      const nameInput = needName ? el('input', { type: 'text', class: 'wf-diag-input', placeholder: 'Ονοματεπώνυμο', 'aria-label': 'Ονοματεπώνυμο', value: S.name || '' }) : null;
+      host.append(
+        el('p', { text: `Θα σου γίνουν έως ${D.adapt.maxQ} ερωτήσεις. Οι επόμενες ερωτήσεις διαλέγονται ανάλογα με τις απαντήσεις σου, ώστε να φανεί τι έχεις καταλάβει καλά και τι χρειάζεται επανάληψη.` }),
+        el('p', { class: 'wf-diag-note', text: home ? 'Μετά από κάθε απάντηση θα βλέπεις αν είναι σωστή και μια σύντομη εξήγηση.' : 'Απάντησε μόνος/μόνη σου. Οι απαντήσεις δεν διορθώνονται στην οθόνη· τις βλέπει ο/η εκπαιδευτικός.' }),
+        nameInput,
+        el('div', { class: 'wf-diag-actions' }, el('button', {
+          type: 'button', class: 'wf-diag-btn primary', text: 'Έναρξη', onclick: () => {
+            if (nameInput) S.name = nameInput.value.trim();
+            S.started = new Date().toISOString();
+            advance();
+          }
+        })));
+      return;
+    }
+    if (S.phase === 'q' || S.phase === 'fb') {
+      const q = qById[S.cur];
+      if (!q) { advance(); return; }
+      const n = S.st.log.length + (S.phase === 'q' ? 1 : 0);
+      const done = S.phase === 'fb';
+      host.append(el('div', { class: 'wf-diag-progress', text: `Ερώτηση ${n} (έως ${D.adapt.maxQ})${C.byId[q.skill] && home ? ` · ${C.byId[q.skill].title}` : ''}` }),
+        el('p', { class: 'wf-diag-q', text: q.q }));
+      const last = done ? S.st.log[S.st.log.length - 1] : null;
+      let getAnswer = () => null;
+      if (q.type === 'mc' || q.type === 'tf') {
+        const choices = q.type === 'mc' ? (S.perm[q.id] || q.opts.map((_, i) => i)).map(i => ({ v: i, t: q.opts[i].t })) : [{ v: true, t: 'Σωστό' }, { v: false, t: 'Λάθος' }];
+        let picked = null;
+        const box = el('div', { class: 'wf-diag-opts', role: 'radiogroup', 'aria-label': q.q });
+        choices.forEach(c => {
+          const isPicked = done && last && last.a === c.t;
+          const right = done && (q.type === 'mc' ? c.v === q.ok : c.v === q.answer);
+          const b = el('button', {
+            type: 'button', class: `wf-diag-opt${isPicked ? ' is-picked' : ''}${done && right ? ' is-right' : ''}${isPicked && !right ? ' is-wrong' : ''}`,
+            role: 'radio', 'aria-checked': isPicked ? 'true' : 'false', disabled: done, text: c.t,
+            onclick: () => {
+              picked = c.v;
+              box.querySelectorAll('.wf-diag-opt').forEach(o => { o.classList.toggle('is-picked', o === b); o.setAttribute('aria-checked', String(o === b)); });
+            }
+          });
+          box.append(b);
+        });
+        host.append(box);
+        getAnswer = () => picked;
+      } else {
+        const input = el('input', { type: 'text', inputmode: 'decimal', class: 'wf-diag-input wf-diag-num', 'aria-label': 'Απάντηση', placeholder: 'αριθμός', disabled: done, value: done && last ? last.a.replace(q.unit ? ` ${q.unit}` : '', '') : '' });
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(input.value); } });
+        host.append(el('div', { class: 'wf-diag-numrow' }, input, q.unit ? el('span', { text: q.unit }) : null));
+        getAnswer = () => input.value;
+      }
+      if (!done) {
+        host.append(el('div', { class: 'wf-diag-warn', 'aria-live': 'polite' }),
+          el('div', { class: 'wf-diag-actions' }, el('button', { type: 'button', class: 'wf-diag-btn primary', text: 'Υποβολή', onclick: () => submit(getAnswer()) })));
+      } else {
+        const ok = last && last.c === 1;
+        host.append(el('div', { class: `wf-diag-fb ${ok ? 'is-right' : 'is-wrong'}`, 'aria-live': 'polite' },
+          el('strong', { text: ok ? '✓ Σωστά!' : '✗ Όχι ακριβώς.' }),
+          !ok ? el('span', { text: ` Σωστή απάντηση: ${correctText(q)}.` }) : null,
+          q.expl ? el('div', { text: q.expl }) : null),
+        el('div', { class: 'wf-diag-actions' }, el('button', { type: 'button', class: 'wf-diag-btn primary', text: 'Επόμενη', onclick: advance })));
+      }
+      return;
+    }
+    const total = S.st.log.length;
+    const right = S.st.log.filter(l => l.c).length;
+    host.append(el('p', { class: 'wf-diag-done', text: `Το τεστ ολοκληρώθηκε (${total} ερωτήσεις).` }));
+    if (home) {
+      host.append(el('p', { text: `Σωστές απαντήσεις: ${right} από ${total}.` }), el('h4', { text: 'Πόσο κατανοείς κάθε έννοια' }), masteryList());
+      const weak = C.order.filter(s => C.assessable.indexOf(s) >= 0 && ['weak', 'mid'].indexOf(C.level(C.mastery(S.st, s.id))) >= 0);
+      if (weak.length) {
+        host.append(el('h4', { text: 'Τι να ξαναδιαβάσεις' }), el('ul', null, weak.map(s => el('li', null, el('strong', { text: s.title }), s.desc ? ` — ${s.desc}` : ''))));
+      }
+      const mis = Object.keys(S.st.mis).filter(id => misById[id]);
+      if (mis.length) host.append(el('h4', { text: 'Προσοχή σε αυτά τα λάθη' }), el('ul', null, mis.map(id => el('li', { text: misById[id].text }))));
+    }
+    host.append(el('p', { class: 'wf-diag-note', text: 'Πάτησε «PDF» στη γραμμή πάνω δεξιά για να αποθηκεύσεις το αρχείο και να το παραδώσεις στον/στην εκπαιδευτικό.' }),
+      el('div', { class: 'wf-diag-actions' }, el('button', {
+        type: 'button', class: 'wf-diag-btn', text: home ? 'Νέα προσπάθεια' : 'Νέος μαθητής',
+        title: home ? '' : 'Για κοινόχρηστο υπολογιστή: καθαρίζει το τεστ ώστε να το κάνει ο επόμενος μαθητής',
+        onclick: () => {
+          if (!window.confirm(home ? 'Να ξεκινήσει το τεστ από την αρχή; Οι τωρινές απαντήσεις θα χαθούν.' : 'Έχεις αποθηκεύσει το PDF σου; Το τεστ θα καθαρίσει για τον επόμενο μαθητή.')) return;
+          const name = home ? S.name : '';
+          reset();
+          S.name = name;
+          save();
+        }
+      })));
+  }
+
+  function reset() {
+    S = fresh();
+    try { localStorage.removeItem(KEY); } catch (e) { /* τίποτα */ }
+    host.removeAttribute('data-state');
+    render();
+  }
+
+  /** Έντυπη μορφή για το PDF του μαθητή. */
+  function printable(copy) {
+    const target = copy.querySelector('#wf-diag');
+    if (!target) return;
+    target.removeAttribute('id');
+    target.removeAttribute('data-state');
+    target.replaceChildren();
+    const log = S.st.log;
+    if (!log.length) {
+      target.append(el('p', { text: 'Το διαγνωστικό τεστ δεν έγινε.' }));
+      return;
+    }
+    const right = log.filter(l => l.c).length;
+    target.append(el('p', { text: `${S.phase === 'done' ? 'Ολοκληρώθηκε' : 'Δεν ολοκληρώθηκε'} · ${log.length} ερωτήσεις${D.pdf.report ? ` · σωστές ${right}` : ''}` }));
+    if (D.pdf.answers) {
+      target.append(el('table', { class: 'wf-diag-table' },
+        el('thead', null, el('tr', null, el('th', { text: '#' }), el('th', { text: 'Ερώτηση' }), el('th', { text: 'Απάντηση' }), D.pdf.report ? el('th', { text: '' }) : null)),
+        el('tbody', null, log.map((l, i) => el('tr', null,
+          el('td', { text: String(i + 1) }), el('td', { text: qById[l.q] ? qById[l.q].q : l.q }), el('td', { text: l.a }),
+          D.pdf.report ? el('td', { class: l.c ? 'is-right' : 'is-wrong', text: l.c ? '✓' : '✗' }) : null)))));
+    }
+    if (D.pdf.report) target.append(el('h4', { text: 'Κατανόηση ανά έννοια' }), masteryList());
+  }
+
+  /** Δεδομένα για την ανάλυση: base64 JSON, στα «Λέξεις-κλειδιά» του PDF. */
+  function payload() {
+    const lines = studentLines();
+    const data = {
+      app: 'wf-diag', v: 1, exp: CFG.id || '', title: CFG.title || document.title, chapter: D.unit.chapter, className: D.unit.className,
+      student: studentName(), section: lines[1] || '', setting: D.setting, method: D.adapt.method,
+      started: S.started, ended: S.ended, done: S.phase === 'done',
+      log: S.st.log,
+      skills: D.skills.map(s => [s.id, s.parent, s.title]),
+      mis: D.misconceptions.map(m => [m.id, m.text])
+    };
+    return `WFDIAG1:${toB64(data)}`;
+  }
+
+  window.wfDiag = { printable, payload, reset };
+  render();
+}
+
+/**
+ * Δεδομένα του διαγνωστικού τεστ: ύλη, συνηθισμένα λάθη, πλαίσιο χρήσης, μορφή PDF, γνωστικό μοντέλο (δέντρο εννοιών),
+ * λογική προσαρμογής και τράπεζα ερωτήσεων. Κανονικοποίηση και έτοιμο παράδειγμα.
+ * @namespace DiagModel
+ */
+const DiagModel = (() => {
+  const ADAPT_DEFAULTS = { method: 'bkt', order: 'mixed', pL0: 0.3, pT: 0.1, pS: 0.1, mastery: 0.85, rate: 0.7, minPer: 2, maxPer: 4, maxQ: 20 };
+  const LEVELS = { gym: 'Γυμνάσιο', lyk: 'Λύκειο' };
+  const ID = /^[\w-]{1,40}$/;
+
+  /** @returns {Object} κενό διαγνωστικό */
+  function empty() {
+    return {
+      enabled: false,
+      unit: { level: 'gym', className: '', subject: 'Φυσική', book: '', chapter: '', syllabus: '' },
+      misconceptions: [],
+      setting: 'home',
+      pdf: { report: true, answers: true },
+      skills: [],
+      adapt: { ...ADAPT_DEFAULTS },
+      bank: []
+    };
+  }
+
+  const str = (v, n) => String(v == null ? '' : v).replace(/\r/g, '').slice(0, n);
+  const line = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+  const numIn = (v, min, max, def) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+  };
+  const newId = prefix => `${prefix}${Math.random().toString(36).slice(2, 8)}`;
+
+  /**
+   * Κανονικοποιεί τα δεδομένα από εξωτερική πηγή (αρχείο, localStorage, PDF μαθητή).
+   * @param {*} raw
+   * @returns {Object}
+   */
+  function normalize(raw) {
+    const base = empty();
+    if (!raw || typeof raw !== 'object') return base;
+    const u = raw.unit && typeof raw.unit === 'object' ? raw.unit : {};
+    const unit = {
+      level: LEVELS[u.level] ? u.level : 'gym',
+      className: line(u.className, 40),
+      subject: line(u.subject ?? 'Φυσική', 80),
+      book: line(u.book, 200),
+      chapter: line(u.chapter, 200),
+      syllabus: str(u.syllabus, 4000)
+    };
+    const seen = new Set();
+    const uniq = (id, prefix) => {
+      let v = typeof id === 'string' && ID.test(id) ? id : newId(prefix);
+      while (seen.has(v)) v = newId(prefix);
+      seen.add(v);
+      return v;
+    };
+    const misconceptions = (Array.isArray(raw.misconceptions) ? raw.misconceptions.slice(0, 60) : [])
+      .filter(m => m && typeof m === 'object' && line(m.text, 300))
+      .map(m => ({ id: uniq(m.id, 'm'), text: line(m.text, 300), remedy: str(m.remedy, 600).trim() }));
+    const misIds = new Set(misconceptions.map(m => m.id));
+    const mis = v => (misIds.has(v) ? v : '');
+    const skills = [];
+    (Array.isArray(raw.skills) ? raw.skills.slice(0, 80) : []).forEach(s => {
+      if (!s || typeof s !== 'object' || !line(s.title, 150)) return;
+      const id = uniq(s.id, 'k');
+      skills.push({ id, parent: skills.some(p => p.id === s.parent) ? s.parent : '', title: line(s.title, 150), desc: str(s.desc, 400).trim() });
+    });
+    const skillIds = new Set(skills.map(s => s.id));
+    const a = raw.adapt && typeof raw.adapt === 'object' ? raw.adapt : {};
+    const minPer = Math.round(numIn(a.minPer, 1, 10, ADAPT_DEFAULTS.minPer));
+    const adapt = {
+      method: a.method === 'rate' ? 'rate' : 'bkt',
+      order: a.order === 'sequential' ? 'sequential' : 'mixed',
+      pL0: numIn(a.pL0, 0.01, 0.95, ADAPT_DEFAULTS.pL0),
+      pT: numIn(a.pT, 0, 0.5, ADAPT_DEFAULTS.pT),
+      pS: numIn(a.pS, 0.01, 0.4, ADAPT_DEFAULTS.pS),
+      mastery: numIn(a.mastery, 0.5, 0.99, ADAPT_DEFAULTS.mastery),
+      rate: numIn(a.rate, 0.4, 1, ADAPT_DEFAULTS.rate),
+      minPer,
+      maxPer: Math.round(numIn(a.maxPer, minPer, 15, Math.max(minPer, ADAPT_DEFAULTS.maxPer))),
+      maxQ: Math.round(numIn(a.maxQ, 3, 80, ADAPT_DEFAULTS.maxQ))
+    };
+    const bank = [];
+    (Array.isArray(raw.bank) ? raw.bank.slice(0, 400) : []).forEach(q => {
+      if (!q || typeof q !== 'object') return;
+      const text = str(q.q, 600).trim();
+      if (!text) return;
+      const common = { id: uniq(q.id, 'q'), skill: skillIds.has(q.skill) ? q.skill : '', diff: Math.round(numIn(q.diff, 1, 3, 1)), q: text, expl: str(q.expl, 600).trim() };
+      if (q.type === 'tf') {
+        bank.push({ ...common, type: 'tf', answer: !(q.answer === false || q.answer === 'false'), mis: mis(q.mis) });
+      } else if (q.type === 'num') {
+        const v = Number(String(q.v).replace(',', '.'));
+        if (!Number.isFinite(v)) return;
+        const traps = (Array.isArray(q.traps) ? q.traps.slice(0, 6) : [])
+          .map(t => ({ v: Number(String(t && t.v).replace(',', '.')), mis: mis(t && t.mis) }))
+          .filter(t => Number.isFinite(t.v));
+        bank.push({ ...common, type: 'num', v, tol: numIn(q.tol, 0, 50, 0), unit: line(q.unit, 20), mis: mis(q.mis), traps });
+      } else {
+        const opts = (Array.isArray(q.opts) ? q.opts.slice(0, 6) : []).map(o => ({ t: line(o && o.t, 300), mis: mis(o && o.mis) })).filter(o => o.t);
+        if (opts.length < 2) return;
+        const ok = Math.round(numIn(q.ok, 0, opts.length - 1, 0));
+        opts[ok].mis = '';
+        bank.push({ ...common, type: 'mc', opts, ok });
+      }
+    });
+    return {
+      enabled: !!raw.enabled,
+      unit, misconceptions,
+      setting: raw.setting === 'school' ? 'school' : 'home',
+      pdf: { report: !(raw.pdf && raw.pdf.report === false), answers: !(raw.pdf && raw.pdf.answers === false) },
+      skills, adapt, bank
+    };
+  }
+
+  /**
+   * Έλεγχοι πληρότητας για τον εκπαιδευτικό.
+   * @param {Object} d
+   * @returns {string[]}
+   */
+  function problems(d) {
+    const out = [];
+    if (!d.skills.length) out.push('Δεν έχει οριστεί γνωστικό μοντέλο (έννοιες).');
+    if (!d.bank.length) out.push('Η τράπεζα ερωτήσεων είναι κενή.');
+    const noSkill = d.bank.filter(q => !q.skill).length;
+    if (noSkill) out.push(`${noSkill} ερωτήσεις δεν αντιστοιχούν σε έννοια και δεν θα χρησιμοποιηθούν.`);
+    const leaves = d.skills.filter(s => !d.skills.some(c => c.parent === s.id));
+    const empty = leaves.filter(s => !d.bank.some(q => q.skill === s.id));
+    if (empty.length) out.push(`Έννοιες χωρίς ερωτήσεις: ${empty.map(s => s.title).join(', ')}.`);
+    const few = d.skills.filter(s => {
+      const n = d.bank.filter(q => q.skill === s.id).length;
+      return n > 0 && n < d.adapt.minPer;
+    });
+    if (few.length) out.push(`Έννοιες με λιγότερες ερωτήσεις από το ελάχιστο (${d.adapt.minPer}): ${few.map(s => s.title).join(', ')}.`);
+    const untagged = d.bank.filter(q => q.type === 'mc' && q.opts.every(o => !o.mis)).length;
+    if (d.misconceptions.length && untagged) out.push(`${untagged} ερωτήσεις πολλαπλής επιλογής δεν συνδέουν καμία λανθασμένη επιλογή με συνηθισμένο λάθος.`);
+    return out;
+  }
+
+  /** @returns {boolean} αν το τεστ μπορεί να μπει στο διαδραστικό HTML */
+  function usable(d) {
+    return !!(d && d.enabled && d.bank.some(q => q.skill));
+  }
+
+  /**
+   * Έτοιμο παράδειγμα: Φυσική Β΄ Γυμνασίου, Κινήσεις.
+   * @returns {Object}
+   */
+  function example() {
+    const mc = (id, skill, diff, q, opts, ok, expl) => ({ id, skill, diff, type: 'mc', q, opts: opts.map(([t, mis]) => ({ t, mis: mis || '' })), ok, expl });
+    const tf = (id, skill, diff, q, answer, mis, expl) => ({ id, skill, diff, type: 'tf', q, answer, mis: mis || '', expl });
+    const nm = (id, skill, diff, q, v, unit, tol, mis, traps, expl) => ({ id, skill, diff, type: 'num', q, v, unit, tol, mis: mis || '', traps: (traps || []).map(([tv, tm]) => ({ v: tv, mis: tm })), expl });
+    return normalize({
+      enabled: true,
+      unit: {
+        level: 'gym', className: 'Β΄ Γυμνασίου', subject: 'Φυσική',
+        book: 'Φυσική Β΄ Γυμνασίου (ΙΤΥΕ «Διόφαντος» / ΙΕΠ)',
+        chapter: 'Κεφάλαιο 2: Κινήσεις',
+        syllabus: '2.1 Περιγραφή της κίνησης: θέση, σύστημα αναφοράς, μετατόπιση, διάστημα, χρόνος.\n2.2 Η έννοια της ταχύτητας: μέση ταχύτητα, μονάδες (m/s, km/h), ευθύγραμμη ομαλή κίνηση, διαγράμματα x–t και υ–t.\n2.3 Η έννοια της επιτάχυνσης (ποιοτικά και απλοί υπολογισμοί).'
+      },
+      misconceptions: [
+        { id: 'm1', text: 'Συγχέει τη μετατόπιση με το διάστημα (απόσταση που διανύθηκε).', remedy: 'Σχεδίασε τη διαδρομή πάνω σε άξονα: το διάστημα μετρά όλο τον δρόμο, η μετατόπιση μόνο από την αρχική ως την τελική θέση (Δx = x₂ − x₁). Δραστηριότητα: «πήγαινε–έλα» στην αίθουσα με μετροταινία.' },
+        { id: 'm2', text: 'Θεωρεί την κίνηση απόλυτη, ανεξάρτητη από το σύστημα αναφοράς.', remedy: 'Συζήτηση με παραδείγματα (επιβάτης σε τρένο, σκάλα κυλιόμενη): κάθε φορά ρωτάμε «ακίνητος ή κινούμενος ως προς τι;». Προσομοίωση PhET «Κίνηση ως προς άλλο σώμα».' },
+        { id: 'm3', text: 'Υπολογίζει τη μέση ταχύτητα ως μέσο όρο των ταχυτήτων.', remedy: 'Ξεκίνα πάντα από τον ορισμό: συνολική απόσταση / συνολικός χρόνος. Λύσε μαζί τους ένα παράδειγμα με ίσες αποστάσεις και διαφορετικούς χρόνους και σύγκρινε με τον «μέσο όρο».' },
+        { id: 'm4', text: 'Μετατρέπει λάθος τα km/h σε m/s (πολλαπλασιάζει αντί να διαιρεί με 3,6).', remedy: 'Ανάλυσε τη μονάδα: 1 km/h = 1000 m / 3600 s = 1/3,6 m/s. Κανόνας ελέγχου: ο αριθμός σε m/s είναι πάντα μικρότερος από τον αριθμό σε km/h.' },
+        { id: 'm5', text: 'Διαβάζει το διάγραμμα σαν «εικόνα» της διαδρομής (π.χ. κλίση = ανηφόρα).', remedy: 'Κινήσου μπροστά σε αισθητήρα κίνησης ή στο PhET «Ο κινούμενος άνθρωπος» και σύγκρινε την κίνηση με το διάγραμμα που σχηματίζεται. Τονίζουμε: ο οριζόντιος άξονας είναι ο χρόνος, όχι η απόσταση.' },
+        { id: 'm6', text: 'Συγχέει το διάγραμμα θέσης–χρόνου με το διάγραμμα ταχύτητας–χρόνου.', remedy: 'Βάλε δίπλα-δίπλα x–t και υ–t για την ίδια κίνηση (ακινησία, σταθερή ταχύτητα). Πριν από κάθε ερώτηση ο μαθητής γράφει ποιο μέγεθος έχει ο κατακόρυφος άξονας.' },
+        { id: 'm7', text: 'Συγχέει την ταχύτητα με την επιτάχυνση (μεγάλη ταχύτητα = μεγάλη επιτάχυνση).', remedy: 'Η επιτάχυνση δείχνει πόσο γρήγορα αλλάζει η ταχύτητα. Παραδείγματα: αεροπλάνο με σταθερή μεγάλη ταχύτητα (επιτάχυνση 0) και αυτοκίνητο που ξεκινά από φανάρι (μικρή ταχύτητα, μεγάλη επιτάχυνση).' },
+        { id: 'm8', text: 'Αγνοεί το πρόσημο και τη φορά (θέση, μετατόπιση, ταχύτητα).', remedy: 'Ορίζουμε πάντα αρχή και θετική φορά στον άξονα. Ασκήσεις με θέσεις αριστερά της αρχής και κινήσεις προς την αρνητική φορά.' },
+        { id: 'm9', text: 'Δεν μετατρέπει τις μονάδες στο SI πριν από τον υπολογισμό.', remedy: 'Πριν από κάθε πράξη, πίνακας «δεδομένα – μονάδα – μετατροπή στο SI». Ελέγχουμε τη μονάδα του αποτελέσματος.' },
+        { id: 'm10', text: 'Συγκρίνει ταχύτητες μόνο με βάση την απόσταση ή μόνο τον χρόνο.', remedy: 'Η ταχύτητα είναι λόγος: απόσταση ανά μονάδα χρόνου. Υπολόγισε για κάθε σώμα «πόσα μέτρα σε 1 s» και μετά σύγκρινε.' },
+        { id: 'm11', text: 'Υπολογίζει την ταχύτητα από τη θέση (x/t) αντί από τη μετατόπιση (Δx/Δt).', remedy: 'Στο διάγραμμα x–t διαβάζουμε δύο σημεία και παίρνουμε διαφορές: υ = (x₂ − x₁)/(t₂ − t₁). Παράδειγμα με σώμα που δεν ξεκινά από το 0.' }
+      ],
+      setting: 'home',
+      pdf: { report: true, answers: true },
+      skills: [
+        { id: 'k1', parent: '', title: 'Περιγραφή της κίνησης', desc: '' },
+        { id: 'k1a', parent: 'k1', title: 'Θέση και σύστημα αναφοράς', desc: 'Η θέση ορίζεται ως προς σημείο αναφοράς με θετική φορά· η κίνηση είναι σχετική.' },
+        { id: 'k1b', parent: 'k1', title: 'Μετατόπιση και διάστημα', desc: 'Δx = x₂ − x₁, με πρόσημο· το διάστημα είναι πάντα θετικό.' },
+        { id: 'k2', parent: '', title: 'Ταχύτητα', desc: '' },
+        { id: 'k2a', parent: 'k2', title: 'Μέση ταχύτητα', desc: 'Συνολική απόσταση / συνολικός χρόνος.' },
+        { id: 'k2b', parent: 'k2', title: 'Ευθύγραμμη ομαλή κίνηση', desc: 'Σταθερή ταχύτητα: ίσες αποστάσεις σε ίσους χρόνους, x = υ·t.' },
+        { id: 'k2c', parent: 'k2', title: 'Μονάδες ταχύτητας', desc: 'Μετατροπή km/h ↔ m/s (÷3,6 / ×3,6).' },
+        { id: 'k3', parent: '', title: 'Γραφικές παραστάσεις', desc: '' },
+        { id: 'k3a', parent: 'k3', title: 'Διάγραμμα θέσης–χρόνου (x–t)', desc: 'Κλίση = ταχύτητα· οριζόντια γραμμή = ακινησία.' },
+        { id: 'k3b', parent: 'k3', title: 'Διάγραμμα ταχύτητας–χρόνου (υ–t)', desc: 'Οριζόντια γραμμή = σταθερή ταχύτητα· εμβαδόν = μετατόπιση.' },
+        { id: 'k4', parent: '', title: 'Επιτάχυνση', desc: 'Ρυθμός μεταβολής της ταχύτητας, α = Δυ/Δt.' }
+      ],
+      adapt: { ...ADAPT_DEFAULTS },
+      bank: [
+        mc('q1', 'k1a', 1, 'Ένας επιβάτης κάθεται στη θέση του σε τρένο που κινείται. Ποια πρόταση είναι σωστή;', [
+          ['Είναι ακίνητος ως προς το τρένο και κινείται ως προς τις ράγες.'],
+          ['Είναι ακίνητος, αφού δεν σηκώνεται από τη θέση του.', 'm2'],
+          ['Κινείται ως προς οποιοδήποτε σώμα.', 'm2'],
+          ['Δεν μπορούμε να το πούμε χωρίς χρονόμετρο.']
+        ], 0, 'Η κίνηση περιγράφεται πάντα ως προς κάποιο σώμα αναφοράς.'),
+        tf('q2', 'k1a', 2, 'Η θέση ενός σώματος πάνω σε ευθεία έχει νόημα μόνο αν ορίσουμε σημείο αναφοράς και θετική φορά.', true, 'm2', 'Χωρίς αρχή και φορά ο αριθμός της θέσης δεν σημαίνει τίποτα.'),
+        nm('q3', 'k1a', 2, 'Σε άξονα x το σπίτι είναι το σημείο αναφοράς (x = 0) και η θετική φορά είναι προς τα δεξιά. Το σχολείο βρίσκεται 300 m αριστερά του σπιτιού. Ποια είναι η θέση x του σχολείου;', -300, 'm', 0, 'm8', [[300, 'm8']], 'Αριστερά της αρχής οι θέσεις είναι αρνητικές: x = −300 m.'),
+        mc('q4', 'k1b', 1, 'Ένας μαθητής περπατά 40 m ανατολικά και μετά 40 m δυτικά, οπότε γυρίζει στο σημείο εκκίνησης. Πόση είναι η μετατόπισή του;', [
+          ['0 m'], ['80 m', 'm1'], ['40 m'], ['−40 m', 'm8']
+        ], 0, 'Η τελική θέση συμπίπτει με την αρχική, άρα Δx = 0. Το διάστημα είναι 80 m.'),
+        nm('q5', 'k1b', 2, 'Ένα σώμα ξεκινά από τη θέση x₁ = +2 m και φτάνει στη θέση x₂ = −6 m. Πόση είναι η μετατόπιση Δx;', -8, 'm', 0, 'm8', [[8, 'm8'], [-4, 'm1'], [4, 'm1']], 'Δx = x₂ − x₁ = −6 − 2 = −8 m.'),
+        tf('q6', 'k1b', 2, 'Το διάστημα που διανύει ένα σώμα είναι πάντα ίσο με το μέτρο της μετατόπισής του.', false, 'm1', 'Είναι ίσα μόνο όταν το σώμα κινείται σε ευθεία χωρίς να αλλάζει φορά.'),
+        mc('q7', 'k1b', 3, 'Ένας δρομέας κάνει ακριβώς έναν γύρο σε στίβο 400 m. Ποιο ζεύγος (διάστημα, μετατόπιση) είναι σωστό;', [
+          ['400 m, 0 m'], ['400 m, 400 m', 'm1'], ['0 m, 400 m', 'm1'], ['0 m, 0 m']
+        ], 0, 'Διάνυσε 400 m, αλλά κατέληξε εκεί που ξεκίνησε.'),
+        nm('q8', 'k2a', 1, 'Ένα ποδήλατο διανύει 600 m σε 120 s. Πόση είναι η μέση ταχύτητά του (σε m/s);', 5, 'm/s', 0, '', [[0.2, '']], 'υ = 600 m / 120 s = 5 m/s.'),
+        mc('q9', 'k2a', 2, 'Ένας ποδηλάτης διανύει τα πρώτα 12 km με 12 km/h και τα επόμενα 12 km με 6 km/h. Πόση είναι η μέση ταχύτητά του σε όλη τη διαδρομή;', [
+          ['8 km/h'], ['9 km/h', 'm3'], ['18 km/h'], ['6 km/h']
+        ], 0, 'Χρόνοι: 1 h + 2 h = 3 h, άρα υ = 24 km / 3 h = 8 km/h.'),
+        nm('q10', 'k2a', 3, 'Ένας μαθητής περπατά 300 m σε 4 min και μετά τρέχει 900 m σε 6 min. Πόση είναι η μέση ταχύτητά του σε όλη τη διαδρομή (σε m/s);', 2, 'm/s', 2, '', [[1.875, 'm3'], [120, 'm9'], [187.5, 'm3']], '1200 m / 600 s = 2 m/s.'),
+        tf('q11', 'k2b', 1, 'Στην ευθύγραμμη ομαλή κίνηση το σώμα διανύει ίσες αποστάσεις σε ίσους χρόνους.', true, '', 'Αυτός είναι ο ορισμός της ομαλής κίνησης: σταθερή ταχύτητα.'),
+        nm('q12', 'k2b', 2, 'Ένα τρένο κινείται ευθύγραμμα ομαλά με ταχύτητα 20 m/s. Πόση απόσταση διανύει σε 15 s (σε m);', 300, 'm', 0, '', [[0.75, ''], [1.33, ''], [35, '']], 'x = υ·t = 20 · 15 = 300 m.'),
+        mc('q13', 'k2b', 3, 'Τα αυτοκίνητα Α και Β κινούνται ευθύγραμμα ομαλά. Το Α διανύει 100 m σε 5 s και το Β 150 m σε 10 s. Ποιο είναι γρηγορότερο;', [
+          ['Το Α'], ['Το Β, γιατί διανύει μεγαλύτερη απόσταση', 'm10'], ['Το Β, γιατί κινείται περισσότερο χρόνο', 'm10'], ['Έχουν την ίδια ταχύτητα']
+        ], 0, 'υΑ = 20 m/s, υΒ = 15 m/s.'),
+        mc('q14', 'k2c', 1, 'Πόσα m/s είναι τα 72 km/h;', [
+          ['20 m/s'], ['259,2 m/s', 'm4'], ['72 m/s', 'm9'], ['7,2 m/s']
+        ], 0, '72 / 3,6 = 20 m/s.'),
+        nm('q15', 'k2c', 2, 'Ένας δρομέας τρέχει με 5 m/s. Πόση είναι η ταχύτητά του σε km/h;', 18, 'km/h', 1, '', [[1.39, 'm4'], [5, 'm9']], '5 · 3,6 = 18 km/h.'),
+        mc('q16', 'k3a', 1, 'Στο διάγραμμα θέσης–χρόνου (x–t) ενός σώματος η γραμμή είναι οριζόντια. Τι σημαίνει αυτό;', [
+          ['Το σώμα είναι ακίνητο.'], ['Το σώμα κινείται με σταθερή ταχύτητα.', 'm6'], ['Το σώμα κινείται σε οριζόντιο δρόμο.', 'm5'], ['Το σώμα επιταχύνεται.']
+        ], 0, 'Η θέση δεν αλλάζει με τον χρόνο: το σώμα δεν κινείται.'),
+        mc('q17', 'k3a', 2, 'Στο ίδιο διάγραμμα x–t, οι γραμμές δύο σωμάτων Α και Β είναι ευθείες από την αρχή των αξόνων· η γραμμή του Α είναι πιο απότομη. Τι ισχύει;', [
+          ['Το Α έχει μεγαλύτερη ταχύτητα.'], ['Το Α ανεβαίνει ανηφόρα.', 'm5'], ['Το Α έχει μεγαλύτερη επιτάχυνση.', 'm7'], ['Το Α διανύει μικρότερη απόσταση.']
+        ], 0, 'Η κλίση του διαγράμματος x–t είναι η ταχύτητα.'),
+        nm('q18', 'k3a', 3, 'Σε ένα διάγραμμα x–t (ευθεία γραμμή) το σώμα είναι στη θέση x = 10 m τη στιγμή t = 0 s και στη θέση x = 40 m τη στιγμή t = 5 s. Πόση είναι η ταχύτητά του (σε m/s);', 6, 'm/s', 0, 'm11', [[8, 'm11'], [2, 'm11'], [10, 'm11']], 'υ = Δx/Δt = (40 − 10)/(5 − 0) = 6 m/s.'),
+        tf('q19', 'k3b', 1, 'Στο διάγραμμα ταχύτητας–χρόνου (υ–t), μια οριζόντια γραμμή πάνω από τον άξονα του χρόνου δείχνει ευθύγραμμη ομαλή κίνηση.', true, 'm6', 'Η ταχύτητα μένει σταθερή και διάφορη του μηδενός.'),
+        mc('q20', 'k3b', 2, 'Σε διάγραμμα υ–t η ταχύτητα είναι σταθερή, 4 m/s, για 10 s. Τι παριστάνει το εμβαδόν κάτω από τη γραμμή;', [
+          ['Τη μετατόπιση, 40 m'], ['Την επιτάχυνση', 'm7'], ['Τη θέση του σώματος στην αρχή', 'm11'], ['Δεν έχει φυσική σημασία']
+        ], 0, 'Εμβαδόν = υ · t = 4 · 10 = 40 m.'),
+        mc('q21', 'k3b', 3, 'Ένα αυτοκίνητο κινείται σε ευθύ δρόμο. Στο διάγραμμα υ–t η γραμμή ανεβαίνει και μετά γίνεται οριζόντια. Τι κάνει το αυτοκίνητο;', [
+          ['Επιταχύνεται και μετά κινείται με σταθερή ταχύτητα.'], ['Ανεβαίνει λόφο και μετά κινείται σε επίπεδο δρόμο.', 'm5'], ['Απομακρύνεται και μετά σταματά.', 'm6'], ['Κινείται με σταθερή ταχύτητα και μετά σταματά.', 'm6']
+        ], 0, 'Στο υ–t, γραμμή που ανεβαίνει σημαίνει αύξηση της ταχύτητας.'),
+        tf('q22', 'k4', 1, 'Ένα αεροπλάνο που πετά σε ευθεία γραμμή με σταθερή ταχύτητα 900 km/h έχει μεγάλη επιτάχυνση.', false, 'm7', 'Η ταχύτητα δεν αλλάζει, άρα η επιτάχυνση είναι μηδέν.'),
+        nm('q23', 'k4', 2, 'Ένα αυτοκίνητο αυξάνει ομαλά την ταχύτητά του από 0 σε 20 m/s σε 10 s. Πόση είναι η επιτάχυνσή του (σε m/s²);', 2, 'm/s²', 0, '', [[20, 'm7'], [200, ''], [0.5, '']], 'α = Δυ/Δt = 20/10 = 2 m/s².'),
+        mc('q24', 'k4', 3, 'Ποιο από τα παρακάτω έχει τη μεγαλύτερη επιτάχυνση;', [
+          ['Ποδήλατο που φτάνει από 0 σε 6 m/s σε 2 s'], ['Τρένο που κινείται σταθερά με 30 m/s', 'm7'], ['Αυτοκίνητο που φτάνει από 0 σε 20 m/s σε 10 s'], ['Αεροπλάνο που πετά σταθερά με 250 m/s', 'm7']
+        ], 0, 'Ποδήλατο: 3 m/s², αυτοκίνητο: 2 m/s², τρένο και αεροπλάνο: 0.')
+      ]
+    });
+  }
+
+  return { ADAPT_DEFAULTS, LEVELS, empty, normalize, problems, usable, example, newId };
+})();
+
+
+/**
  * Κεντρική κατάσταση της εφαρμογής. Κάθε αλλαγή παράγει νέο αντικείμενο (immutable κατά σύμβαση).
  * @namespace AppState
  */
@@ -3253,7 +4074,8 @@ const AppState = (() => {
       content: {},
       graphs: {},
       metadata: { title: '', school: '', subject: '', className: '', date: Util.todayISO(), teacher: '', studentFields: true },
-      style: { ...STYLE_DEFAULTS }
+      style: { ...STYLE_DEFAULTS },
+      diagnostic: DiagModel.empty()
     };
   }
 
@@ -3395,7 +4217,8 @@ const AppState = (() => {
       templateName: String(raw.templateName ?? '').slice(0, 100),
       template, content, graphs,
       metadata: normalizeMetadata(raw.metadata),
-      style: normalizeStyle(raw.style)
+      style: normalizeStyle(raw.style),
+      diagnostic: DiagModel.normalize(raw.diagnostic)
     };
   }
 
@@ -3541,6 +4364,14 @@ const AppState = (() => {
     Bus.emit('state-replaced', { reason });
   }
 
+  /**
+   * Αντικαθιστά τα δεδομένα του διαγνωστικού τεστ.
+   * @param {Object} d
+   */
+  function setDiagnostic(d) {
+    set({ ...state, diagnostic: DiagModel.normalize(d) }, 'diagnostic-changed', {});
+  }
+
   /** @returns {Object} αντίγραφο κατάλληλο για JSON */
   function toJSON() { return JSON.parse(JSON.stringify(state)); }
 
@@ -3552,7 +4383,7 @@ const AppState = (() => {
 
   return {
     TYPES, CLASSES, FONTS, SPANS, STYLE_DEFAULTS, normalizeStyle, setStyle, get, sections, getSection, setMetadata, addSection, removeSection, updateSection, reorder,
-    setContent, setGraph, pruneGraphs, setStructure, replace, toJSON, isDirty, markClean, normalizeSection, createEmpty
+    setContent, setGraph, pruneGraphs, setStructure, setDiagnostic, replace, toJSON, isDirty, markClean, normalizeSection, createEmpty
   };
 })();
 
@@ -13540,6 +14371,1127 @@ const Quiz = (() => {
 
 
 /**
+ * Διαγνωστικό τεστ: καρτέλα «Διάγνωση», επεξεργασία (ύλη, λάθη, χρήση, PDF, γνωστικό μοντέλο, προσαρμογή, τράπεζα),
+ * ενσωμάτωση στο διαδραστικό HTML, ανάλυση των PDF των μαθητών και φύλλο ενίσχυσης.
+ * @namespace Diagnostic
+ */
+const Diagnostic = (() => {
+  const LEVEL = { good: 'Κατανοήθηκε', mid: 'Μερική κατανόηση', weak: 'Χρειάζεται ενίσχυση', none: 'Δεν ελέγχθηκε' };
+  const DIFF = { 1: 'Εύκολη', 2: 'Μέτρια', 3: 'Δύσκολη' };
+  const TYPE = { mc: 'Πολλαπλής επιλογής', tf: 'Σωστό / Λάθος', num: 'Αριθμητική απάντηση' };
+  const $ = id => document.getElementById(id);
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const pct = v => (v === null || v === undefined || !Number.isFinite(v) ? '—' : `${Math.round(v * 100)}%`);
+  const fmtNum = v => String(v).replace('.', ',');
+
+  /** @returns {Object} τα δεδομένα του τρέχοντος έργου */
+  const data = () => AppState.get().diagnostic || DiagModel.empty();
+
+  /** Βάθος έννοιας στο δέντρο. */
+  function depthOf(skills, s) {
+    let d = 0;
+    let p = s.parent;
+    while (p && d < 10) {
+      const parent = skills.find(x => x.id === p);
+      if (!parent) break;
+      d++;
+      p = parent.parent;
+    }
+    return d;
+  }
+
+  /** Έννοιες με τη σειρά του δέντρου (προδιάταξη). */
+  function treeOrder(skills) {
+    const out = [];
+    const walk = parent => skills.filter(s => s.parent === parent).forEach(s => { out.push(s); walk(s.id); });
+    walk('');
+    skills.forEach(s => { if (!out.includes(s)) out.push(s); });
+    return out;
+  }
+
+  /**
+   * Δεντρόγραμμα (SVG) του γνωστικού μοντέλου, από αριστερά (ενότητα) προς τα δεξιά (επιμέρους έννοιες).
+   * @param {Object[]} skills
+   * @param {string} rootLabel
+   * @param {Function} [info] s => {level, value} για χρωματισμό με την κατανόηση
+   * @returns {SVGElement|HTMLElement}
+   */
+  function dendrogram(skills, rootLabel, info) {
+    if (!skills.length) return Util.h('p', { class: 'empty-note', text: 'Δεν υπάρχουν έννοιες ακόμα.' });
+    const NS = 'http://www.w3.org/2000/svg';
+    const ROW = 30;
+    const COL = 200;
+    const RX = Math.min(220, 16 + Math.min(28, String(rootLabel || 'Ενότητα').length) * 7.4);
+    const X0 = RX + 70;
+    const ordered = treeOrder(skills);
+    const pos = {};
+    let leafRow = 0;
+    const place = (id, depth) => {
+      const kids = ordered.filter(s => s.parent === id);
+      if (!kids.length) {
+        const y = leafRow * ROW + ROW / 2 + 14;
+        leafRow++;
+        return y;
+      }
+      const ys = kids.map(k => {
+        const y = place(k.id, depth + 1);
+        pos[k.id] = { x: X0 + depth * COL, y };
+        return y;
+      });
+      return (ys[0] + ys[ys.length - 1]) / 2;
+    };
+    const rootY = place('', 0);
+    const maxDepth = Math.max(...ordered.map(s => depthOf(skills, s))) + 1;
+    const width = X0 + maxDepth * COL + 110;
+    const height = Math.max(leafRow, 1) * ROW + 20;
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.setAttribute('class', 'dg-dendro');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', `Δεντρόγραμμα: ${rootLabel}`);
+    svg.style.width = '100%';
+    svg.style.maxWidth = `${width}px`;
+    const mk = (tag, attrs, text) => {
+      const n = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, String(v)));
+      if (text !== undefined) n.textContent = text;
+      svg.append(n);
+      return n;
+    };
+    const link = (x1, y1, x2, y2) => mk('path', { d: `M${x1 + 6},${y1} H${x2 - 40} V${y2} H${x2 - 6}`, class: 'dg-dendro-link' });
+    const node = (x, y, label, lv, sub, left, above) => {
+      mk('circle', { cx: x, cy: y, r: 5, class: `dg-dendro-dot is-${lv || 'plain'}` });
+      const t = mk('text', left ? { x: x - 10, y: y + 4, class: 'dg-dendro-label dg-dendro-root', 'text-anchor': 'end' } : (above ? { x: x + 8, y: y - 8, class: 'dg-dendro-label' } : { x: x + 10, y: y + 4, class: 'dg-dendro-label' }));
+      const max = left ? 28 : 30;
+      const clip = label.length > max ? `${label.slice(0, max - 1)}…` : label;
+      t.textContent = clip;
+      if (sub) {
+        const s = document.createElementNS(NS, 'tspan');
+        s.setAttribute('class', 'dg-dendro-sub');
+        s.textContent = `  ${sub}`;
+        t.append(s);
+      }
+      const title = document.createElementNS(NS, 'title');
+      title.textContent = sub ? `${label}: ${sub}` : label;
+      t.append(title);
+    };
+    ordered.forEach(s => {
+      const p = s.parent && pos[s.parent] ? pos[s.parent] : { x: RX, y: rootY };
+      link(p.x, p.y, pos[s.id].x, pos[s.id].y);
+    });
+    node(RX, rootY, rootLabel || 'Ενότητα', null, '', true);
+    ordered.forEach(s => {
+      const i = info ? info(s) : null;
+      node(pos[s.id].x, pos[s.id].y, s.title, i ? i.level : null, i ? i.sub : '', false, ordered.some(c => c.parent === s.id));
+    });
+    return svg;
+  }
+
+  // ---------------------------------------------------------------- καρτέλα
+
+  function renderPanel() {
+    const d = data();
+    const box = $('diag-enabled');
+    if (!box) return;
+    box.checked = !!d.enabled;
+    const summary = $('diag-summary');
+    const typeCount = t => d.bank.filter(q => q.type === t).length;
+    summary.replaceChildren(
+      Util.h('div', { class: 'dg-sum-title', text: d.unit.chapter || 'Χωρίς κεφάλαιο' }),
+      Util.h('div', { class: 'dg-sum-line', text: [d.unit.className, d.unit.subject].filter(Boolean).join(' · ') || '—' }),
+      Util.h('div', { class: 'dg-sum-grid' },
+        Util.h('span', { text: 'Έννοιες' }), Util.h('b', { text: String(d.skills.length) }),
+        Util.h('span', { text: 'Συνηθισμένα λάθη' }), Util.h('b', { text: String(d.misconceptions.length) }),
+        Util.h('span', { text: 'Ερωτήσεις' }), Util.h('b', { text: `${d.bank.length}${d.bank.length ? ` (${typeCount('mc')} ΠΕ · ${typeCount('tf')} Σ/Λ · ${typeCount('num')} αριθμ.)` : ''}` }),
+        Util.h('span', { text: 'Χρήση' }), Util.h('b', { text: d.setting === 'school' ? 'Στο σχολείο' : 'Στο σπίτι' }),
+        Util.h('span', { text: 'Προσαρμογή' }), Util.h('b', { text: d.adapt.method === 'rate' ? 'Ποσοστό επιτυχίας' : 'BKT' })));
+    const issues = DiagModel.problems(d);
+    if (d.enabled && issues.length) summary.append(Util.h('ul', { class: 'dg-sum-issues' }, issues.slice(0, 3).map(t => Util.h('li', { text: t }))));
+  }
+
+  function bindPanel() {
+    $('diag-enabled').addEventListener('change', e => {
+      const d = clone(data());
+      d.enabled = e.target.checked;
+      AppState.setDiagnostic(d);
+      if (d.enabled && !DiagModel.usable(d)) Toast.show('Πρόσθεσε έννοιες και ερωτήσεις στην τράπεζα για να μπει το τεστ στο διαδραστικό HTML', 'info', 5000);
+    });
+    $('btn-diag-edit').addEventListener('click', () => openEditor());
+    $('btn-diag-example').addEventListener('click', async () => {
+      const d = data();
+      if (d.bank.length || d.skills.length) {
+        const ok = await confirmDialog('Φόρτωση παραδείγματος', 'Το παράδειγμα θα αντικαταστήσει την ύλη, τα λάθη, το γνωστικό μοντέλο και την τράπεζα ερωτήσεων του έργου. Να συνεχίσω;', 'Αντικατάσταση');
+        if (!ok) return;
+      }
+      AppState.setDiagnostic(DiagModel.example());
+      Toast.show('Φορτώθηκε το παράδειγμα «Β΄ Γυμνασίου – Κινήσεις». Έλεγξε την ύλη με το βιβλίο σου.', 'success', 5000);
+    });
+    $('btn-diag-analyze').addEventListener('click', () => openAnalysis());
+    $('btn-diag-export').addEventListener('click', exportFile);
+    $('btn-diag-import').addEventListener('click', importFile);
+    Bus.on('diagnostic-changed', renderPanel);
+    Bus.on('state-replaced', renderPanel);
+    renderPanel();
+  }
+
+  function confirmDialog(title, text, okLabel) {
+    return new Promise(resolve => {
+      Modal.open({
+        title, size: 'sm', body: Util.h('p', { text }),
+        onClose: v => resolve(v === true),
+        actions: [{ label: 'Ακύρωση', variant: 'secondary', value: false }, { label: okLabel, variant: 'primary', value: true }]
+      });
+    });
+  }
+
+  async function exportFile() {
+    const d = data();
+    const payload = { app: 'worksheet-forge-diagnostic', version: 1, savedAt: new Date().toISOString(), diagnostic: d };
+    const name = `διάγνωση-${d.unit.chapter || 'τράπεζα'}`;
+    if (await Util.downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), Util.safeFilename(name, 'json'))) Toast.show('Η διάγνωση αποθηκεύτηκε σε αρχείο', 'success');
+  }
+
+  async function importFile() {
+    const [file] = await Util.pickFiles('.json,application/json');
+    if (!file) return;
+    try {
+      const raw = JSON.parse(await Util.readAsText(file));
+      const src = raw && (raw.diagnostic || (raw.state && raw.state.diagnostic) || raw);
+      const d = DiagModel.normalize(src);
+      if (!d.skills.length && !d.bank.length) throw new Error('Το αρχείο δεν περιέχει γνωστικό μοντέλο ή ερωτήσεις');
+      AppState.setDiagnostic(d);
+      Toast.show(`Εισήχθησαν ${d.skills.length} έννοιες και ${d.bank.length} ερωτήσεις`, 'success');
+    } catch (e) {
+      Toast.show(`Σφάλμα εισαγωγής: ${e.message}`, 'error', 6000);
+    }
+  }
+
+  // ---------------------------------------------------------------- επεξεργασία
+
+  /**
+   * Παράθυρο ρυθμίσεων με επτά ενότητες· οι αλλαγές γίνονται σε αντίγραφο και εφαρμόζονται με «Αποθήκευση».
+   * @param {string} [startPane]
+   */
+  function openEditor(startPane = 'unit') {
+    const draft = clone(data());
+    let pane = startPane;
+    let changed = false;
+    const touch = () => { changed = true; };
+    const nav = Util.h('nav', { class: 'dg-nav', 'aria-label': 'Ενότητες ρυθμίσεων' });
+    const main = Util.h('div', { class: 'dg-main' });
+    const PANES = [
+      ['unit', '1. Ύλη και βιβλίο'],
+      ['mis', '2. Συνηθισμένα λάθη'],
+      ['setting', '3. Χρήση: σπίτι ή σχολείο'],
+      ['pdf', '4. Αρχείο των μαθητών (PDF)'],
+      ['model', '5. Γνωστικό μοντέλο'],
+      ['adapt', '6. Λογική προσαρμογής'],
+      ['bank', '7. Τράπεζα ερωτήσεων']
+    ];
+    const show = key => {
+      pane = key;
+      nav.querySelectorAll('button').forEach(b => b.setAttribute('aria-current', String(b.dataset.pane === key)));
+      main.replaceChildren(RENDER[key]());
+      main.scrollTop = 0;
+    };
+    PANES.forEach(([key, label]) => nav.append(Util.h('button', { type: 'button', class: 'dg-nav-btn', dataset: { pane: key }, text: label, onclick: () => show(key) })));
+
+    const field = (label, control, tip) => Util.h('label', { class: 'field' }, Util.h('span', null, label, tip ? Util.tip(tip) : null), control);
+    const input = (value, onInput, attrs = {}) => {
+      const el = Util.h('input', { class: 'input', type: 'text', value, ...attrs });
+      el.addEventListener('input', () => { onInput(el.value); touch(); });
+      return el;
+    };
+    const textarea = (value, onInput, attrs = {}) => {
+      const el = Util.h('textarea', { class: 'textarea', rows: '3', ...attrs });
+      el.value = value;
+      el.addEventListener('input', () => { onInput(el.value); touch(); });
+      return el;
+    };
+    const select = (value, options, onChange, attrs = {}) => {
+      const el = Util.h('select', { class: 'select', ...attrs }, options.map(([v, t]) => Util.h('option', { value: v, text: t })));
+      el.value = value;
+      el.addEventListener('change', () => { onChange(el.value); touch(); });
+      return el;
+    };
+    const misOptions = () => [['', '— κανένα —'], ...draft.misconceptions.map((m, i) => [m.id, `Λ${i + 1}. ${m.text.length > 70 ? `${m.text.slice(0, 69)}…` : m.text}`])];
+    const skillOptions = () => [['', '— χωρίς έννοια —'], ...treeOrder(draft.skills).map(s => [s.id, `${'  '.repeat(depthOf(draft.skills, s))}${s.title}`])];
+    const iconBtn = (icon, title, onClick, danger) => Util.h('button', { type: 'button', class: `btn-icon btn-sm${danger ? ' is-danger' : ''}`, title, 'aria-label': title, onclick: onClick }, icon.length > 2 ? Util.icon(icon, 16) : icon);
+    const intro = text => Util.h('p', { class: 'hint dg-intro', text });
+
+    const RENDER = {
+      unit() {
+        const u = draft.unit;
+        return Util.h('div', { class: 'stack' },
+          intro('Ποια ύλη ελέγχει το τεστ. Τα στοιχεία εμφανίζονται στο τεστ του μαθητή, στην αναφορά της τάξης και στο φύλλο ενίσχυσης.'),
+          Util.h('div', { class: 'grid-3' },
+            field('Βαθμίδα', select(u.level, Object.entries(DiagModel.LEVELS), v => { u.level = v; })),
+            field('Τάξη', select(u.className, [['', '—'], ...AppState.CLASSES.filter(Boolean).map(c => [c, c])], v => { u.className = v; })),
+            field('Μάθημα', input(u.subject, v => { u.subject = v; }, { maxlength: '80' }))),
+          field('Βιβλίο (ΙΕΠ)', input(u.book, v => { u.book = v; }, { maxlength: '200', placeholder: 'π.χ. Φυσική Β΄ Γυμνασίου (ΙΤΥΕ «Διόφαντος» / ΙΕΠ)' })),
+          field('Κεφάλαιο / ενότητα', input(u.chapter, v => { u.chapter = v; }, { maxlength: '200', placeholder: 'π.χ. Κεφάλαιο 2: Κινήσεις' })),
+          field('Ύλη (παράγραφοι του βιβλίου που καλύπτει το τεστ)', textarea(u.syllabus, v => { u.syllabus = v; }, { rows: '7', maxlength: '4000', placeholder: '2.1 Περιγραφή της κίνησης…\n2.2 Η έννοια της ταχύτητας…' }),
+            'Γράψε τις παραγράφους ακριβώς όπως είναι στο βιβλίο του ΙΕΠ. Βοηθά να συνδέσεις κάθε έννοια του γνωστικού μοντέλου με την ύλη.'));
+      },
+      mis() {
+        const list = Util.h('div', { class: 'dg-list' });
+        const usage = id => draft.bank.filter(q => (q.type === 'mc' ? q.opts.some(o => o.mis === id) : q.mis === id || (q.traps || []).some(t => t.mis === id))).length;
+        const draw = () => {
+          list.replaceChildren(...draft.misconceptions.map((m, i) => Util.h('div', { class: 'dg-card' },
+            Util.h('div', { class: 'dg-card-head' }, Util.h('b', { text: `Λ${i + 1}` }), Util.h('span', { class: 'hint', text: `σε ${usage(m.id)} ερωτήσεις` }),
+              iconBtn('trash', 'Διαγραφή λάθους', () => {
+                draft.misconceptions.splice(i, 1);
+                draft.bank.forEach(q => {
+                  if (q.type === 'mc') q.opts.forEach(o => { if (o.mis === m.id) o.mis = ''; });
+                  if (q.mis === m.id) q.mis = '';
+                  (q.traps || []).forEach(t => { if (t.mis === m.id) t.mis = ''; });
+                });
+                touch();
+                draw();
+              }, true)),
+            field('Περιγραφή του λάθους', input(m.text, v => { m.text = v; }, { maxlength: '300', placeholder: 'π.χ. Συγχέει τη μετατόπιση με το διάστημα.' })),
+            field('Προτεινόμενη ενίσχυση', textarea(m.remedy, v => { m.remedy = v; }, { rows: '2', maxlength: '600', placeholder: 'Δραστηριότητα, παράδειγμα ή προσομοίωση που βοηθά.' })))));
+          if (!draft.misconceptions.length) list.append(Util.h('p', { class: 'empty-note', text: 'Δεν έχουν οριστεί συνηθισμένα λάθη.' }));
+        };
+        draw();
+        return Util.h('div', { class: 'stack' },
+          intro('Τα λάθη και οι παρανοήσεις που κάνουν συχνά οι μαθητές σε αυτή την ενότητα. Στην τράπεζα συνδέεις κάθε λανθασμένη επιλογή με ένα λάθος, ώστε η εφαρμογή να καταλαβαίνει τι δεν έχει γίνει κατανοητό και να προτείνει την ενίσχυση.'),
+          list,
+          Util.h('div', null, Util.h('button', {
+            type: 'button', class: 'btn btn-secondary btn-sm', text: '+ Συνηθισμένο λάθος', onclick: () => {
+              draft.misconceptions.push({ id: DiagModel.newId('m'), text: '', remedy: '' });
+              touch();
+              draw();
+              const inputs = list.querySelectorAll('input');
+              if (inputs.length) inputs[inputs.length - 1].focus();
+            }
+          })));
+      },
+      setting() {
+        const opt = (value, title, lines) => {
+          const radio = Util.h('input', { type: 'radio', name: 'dg-setting', value, checked: draft.setting === value });
+          radio.addEventListener('change', () => { draft.setting = value; touch(); });
+          return Util.h('label', { class: 'dg-choice' }, radio, Util.h('div', null, Util.h('b', { text: title }), Util.h('ul', null, lines.map(t => Util.h('li', { text: t })))));
+        };
+        return Util.h('div', { class: 'stack' },
+          intro('Το ίδιο αρχείο HTML λειτουργεί παντού: χωρίς internet και χωρίς εγκατάσταση, γιατί η τράπεζα ερωτήσεων είναι μέσα του. Η επιλογή αλλάζει μόνο τη συμπεριφορά του τεστ.'),
+          opt('home', 'Στο σπίτι (εξάσκηση, αυτοαξιολόγηση)', [
+            'Μετά από κάθε απάντηση ο μαθητής βλέπει αν είναι σωστή, τη σωστή απάντηση και τη σύντομη εξήγηση.',
+            'Στο τέλος βλέπει πόσο κατανοεί κάθε έννοια, τι να ξαναδιαβάσει και ποια λάθη έκανε.',
+            'Μπορεί να ξεκινήσει ξανά («Νέα προσπάθεια»).'
+          ]),
+          opt('school', 'Στο σχολείο (διαγνωστική αξιολόγηση)', [
+            'Χωρίς διόρθωση στην οθόνη: οι απαντήσεις φαίνονται μόνο στον εκπαιδευτικό.',
+            'Οι επιλογές κάθε ερώτησης έχουν διαφορετική σειρά σε κάθε μαθητή.',
+            'Δεν υπάρχει «Νέα προσπάθεια».'
+          ]),
+          Util.h('p', { class: 'hint', text: 'Μοίρασμα: στείλε το αρχείο HTML με e-class ή email, ή βάλ’ το σε φάκελο του εργαστηρίου ή σε USB. Δεν χρειάζεται κοινόχρηστος δίσκος.' }));
+      },
+      pdf() {
+        const check = (key, label) => {
+          const box = Util.h('input', { type: 'checkbox', checked: draft.pdf[key] });
+          box.addEventListener('change', () => { draft.pdf[key] = box.checked; touch(); });
+          return Util.h('label', { class: 'check' }, box, label);
+        };
+        return Util.h('div', { class: 'stack' },
+          intro('Ο μαθητής, αφού τελειώσει, πατά «PDF» στο διαδραστικό HTML και σου παραδίδει το αρχείο (e-class, email, USB).'),
+          Util.h('div', { class: 'dg-card' },
+            Util.h('b', { text: 'Τι περιέχει το PDF του μαθητή' }),
+            Util.h('ul', null,
+              Util.h('li', { text: 'Το φύλλο εργασίας με τις απαντήσεις του.' }),
+              Util.h('li', { text: 'Σελίδα «Διαγνωστικό τεστ» με τις ερωτήσεις που του δόθηκαν και τις απαντήσεις του (ρυθμίζεται παρακάτω).' }),
+              Util.h('li', { text: 'Κρυφά, στις ιδιότητες του αρχείου, τα δεδομένα των απαντήσεων. Αυτά διαβάζει η «Ανάλυση PDF μαθητών» για τα στατιστικά και τις προτάσεις.' }))),
+          check('answers', 'Στο PDF να φαίνονται οι ερωτήσεις και οι απαντήσεις του μαθητή'),
+          check('report', 'Στο PDF να φαίνονται το σωστό/λάθος και η κατανόηση ανά έννοια'),
+          Util.h('p', { class: 'hint', text: 'Το όνομα του αρχείου έχει τον τίτλο του φύλλου και το ονοματεπώνυμο. Ένα PDF που φτιάχτηκε με «Εκτύπωση → Αποθήκευση ως PDF» δεν έχει τα δεδομένα και δεν μπορεί να αναλυθεί.' }));
+      },
+      model() {
+        const tree = Util.h('div', { class: 'dg-tree' });
+        const preview = Util.h('div', { class: 'dg-dendro-wrap' });
+        const qCount = id => draft.bank.filter(q => q.skill === id).length;
+        const siblings = s => draft.skills.filter(x => x.parent === s.parent);
+        const subtree = id => {
+          const out = [id];
+          draft.skills.filter(x => x.parent === id).forEach(c => out.push(...subtree(c.id)));
+          return out;
+        };
+        const moveAfter = (s, anchorId) => {
+          draft.skills.splice(draft.skills.indexOf(s), 1);
+          const ids = subtree(anchorId);
+          const last = Math.max(...ids.map(id => draft.skills.findIndex(x => x.id === id)));
+          draft.skills.splice(last + 1, 0, s);
+        };
+        const draw = () => {
+          tree.replaceChildren(...treeOrder(draft.skills).map(s => {
+            const sib = siblings(s);
+            const idx = sib.indexOf(s);
+            const depth = depthOf(draft.skills, s);
+            const n = qCount(s.id);
+            return Util.h('div', { class: 'dg-tree-row', style: { marginLeft: `${depth * 22}px` } },
+              Util.h('span', { class: 'dg-tree-dot', 'aria-hidden': 'true', text: depth ? '└' : '●' }),
+              Util.h('div', { class: 'dg-tree-fields' },
+                input(s.title, v => { s.title = v; schedule(); }, { maxlength: '150', placeholder: 'Έννοια', 'aria-label': 'Τίτλος έννοιας' }),
+                input(s.desc, v => { s.desc = v; }, { maxlength: '400', placeholder: 'Τι πρέπει να κατανοήσει ο μαθητής (προαιρετικά)', 'aria-label': 'Περιγραφή έννοιας', class: 'input dg-tree-desc' })),
+              Util.h('span', { class: `dg-badge${n ? '' : ' is-empty'}`, title: 'Ερωτήσεις στην τράπεζα', text: `${n} ερ.` }),
+              Util.h('div', { class: 'dg-tree-tools' },
+                iconBtn('+', 'Νέα υποέννοια', () => {
+                  draft.skills.splice(Math.max(...subtree(s.id).map(id => draft.skills.findIndex(x => x.id === id))) + 1, 0, { id: DiagModel.newId('k'), parent: s.id, title: '', desc: '' });
+                  touch();
+                  draw();
+                }),
+                iconBtn('↑', 'Μετακίνηση πάνω', () => {
+                  if (idx <= 0) return;
+                  const prev = sib[idx - 1];
+                  const ids = subtree(s.id);
+                  const block = draft.skills.filter(x => ids.includes(x.id));
+                  draft.skills = draft.skills.filter(x => !ids.includes(x.id));
+                  draft.skills.splice(draft.skills.indexOf(prev), 0, ...block);
+                  touch();
+                  draw();
+                }),
+                iconBtn('↓', 'Μετακίνηση κάτω', () => {
+                  if (idx >= sib.length - 1) return;
+                  const nextS = sib[idx + 1];
+                  const ids = subtree(s.id);
+                  const block = draft.skills.filter(x => ids.includes(x.id));
+                  draft.skills = draft.skills.filter(x => !ids.includes(x.id));
+                  const after = subtree(nextS.id);
+                  const last = Math.max(...after.map(id => draft.skills.findIndex(x => x.id === id)));
+                  draft.skills.splice(last + 1, 0, ...block);
+                  touch();
+                  draw();
+                }),
+                iconBtn('⇤', 'Ένα επίπεδο πάνω', () => {
+                  if (!s.parent) return;
+                  const oldParent = s.parent;
+                  const gp = draft.skills.find(x => x.id === oldParent);
+                  s.parent = gp ? gp.parent : '';
+                  const ids = subtree(s.id);
+                  const block = draft.skills.filter(x => ids.includes(x.id));
+                  draft.skills = draft.skills.filter(x => !ids.includes(x.id));
+                  const last = Math.max(...subtree(oldParent).map(id => draft.skills.findIndex(x => x.id === id)));
+                  draft.skills.splice(last + 1, 0, ...block);
+                  touch();
+                  draw();
+                }),
+                iconBtn('⇥', 'Υποέννοια της προηγούμενης', () => {
+                  if (idx <= 0) return;
+                  s.parent = sib[idx - 1].id;
+                  moveAfter(s, sib[idx - 1].id);
+                  touch();
+                  draw();
+                }),
+                iconBtn('trash', 'Διαγραφή έννοιας (οι υποέννοιες ανεβαίνουν ένα επίπεδο)', () => {
+                  draft.skills.forEach(x => { if (x.parent === s.id) x.parent = s.parent; });
+                  draft.skills.splice(draft.skills.indexOf(s), 1);
+                  draft.bank.forEach(q => { if (q.skill === s.id) q.skill = ''; });
+                  touch();
+                  draw();
+                }, true)));
+          }));
+          if (!draft.skills.length) tree.append(Util.h('p', { class: 'empty-note', text: 'Ξεκίνα με τις κύριες έννοιες της ενότητας και μετά πρόσθεσε υποέννοιες.' }));
+          drawPreview();
+        };
+        let timer = 0;
+        const drawPreview = () => preview.replaceChildren(dendrogram(draft.skills.filter(s => s.title.trim()), draft.unit.chapter || 'Ενότητα'));
+        const schedule = () => {
+          clearTimeout(timer);
+          timer = setTimeout(drawPreview, 300);
+        };
+        draw();
+        return Util.h('div', { class: 'stack' },
+          intro('Το γνωστικό μοντέλο είναι το δέντρο των εννοιών της ενότητας: κύριες έννοιες και οι υποέννοιές τους, από τις βασικές προς τις πιο σύνθετες. Κάθε ερώτηση της τράπεζας ελέγχει μία έννοια. Η κατανόηση μιας κύριας έννοιας είναι ο μέσος όρος των υποεννοιών της.'),
+          tree,
+          Util.h('div', null, Util.h('button', {
+            type: 'button', class: 'btn btn-secondary btn-sm', text: '+ Κύρια έννοια', onclick: () => {
+              draft.skills.push({ id: DiagModel.newId('k'), parent: '', title: '', desc: '' });
+              touch();
+              draw();
+              const rows = tree.querySelectorAll('.dg-tree-row');
+              if (rows.length) rows[rows.length - 1].querySelector('input').focus();
+            }
+          })),
+          Util.h('h3', { class: 'panel-heading', text: 'Δεντρόγραμμα' }),
+          preview);
+      },
+      adapt() {
+        const a = draft.adapt;
+        const num = (key, label, min, max, step, tip) => {
+          const el = Util.h('input', { class: 'input', type: 'number', min: String(min), max: String(max), step: String(step), value: String(a[key]) });
+          el.addEventListener('input', () => {
+            const v = Number(el.value);
+            if (Number.isFinite(v)) { a[key] = v; touch(); explain(); }
+          });
+          return field(label, el, tip);
+        };
+        const method = select(a.method, [['bkt', 'Εκτίμηση πιθανότητας κατανόησης (Bayesian Knowledge Tracing)'], ['rate', 'Ποσοστό επιτυχίας ανά έννοια']], v => { a.method = v; sync(); explain(); });
+        const order = select(a.order, [['mixed', 'Προσαρμοστικά: κάθε φορά η έννοια με τις λιγότερες ερωτήσεις και τη χαμηλότερη κατανόηση'], ['sequential', 'Ανά έννοια: ολοκληρώνεται μία έννοια και μετά η επόμενη (σειρά του δέντρου)']], v => { a.order = v; });
+        const bkt = Util.h('div', { class: 'grid-2' },
+          num('pL0', 'Αρχική πιθανότητα κατανόησης P(L₀)', 0.01, 0.95, 0.05, 'Πόσο πιθανό είναι ο μαθητής να ξέρει ήδη την έννοια πριν από το τεστ.'),
+          num('pT', 'Πιθανότητα μάθησης P(T)', 0, 0.5, 0.05, 'Πόσο πιθανό είναι να «μάθει» την έννοια ανάμεσα σε δύο ερωτήσεις (π.χ. από την ανατροφοδότηση).'),
+          num('pS', 'Πιθανότητα αβλεψίας P(S)', 0.01, 0.4, 0.05, 'Πόσο πιθανό είναι να απαντήσει λάθος ενώ κατανοεί την έννοια.'),
+          num('mastery', 'Κατώφλι κατανόησης', 0.5, 0.99, 0.05, 'Πάνω από αυτή την πιθανότητα η έννοια θεωρείται κατανοητή και δεν δίνονται άλλες ερωτήσεις της.'));
+        const rate = Util.h('div', { class: 'grid-2' }, num('rate', 'Κατώφλι επιτυχίας (0–1)', 0.4, 1, 0.05, 'π.χ. 0,7 = 70% σωστές απαντήσεις στην έννοια.'));
+        const out = Util.h('div', { class: 'dg-card dg-explain' });
+        const explain = () => {
+          const n = DiagModel.normalize({ adapt: a }).adapt;
+          if (n.method === 'rate') {
+            out.replaceChildren(Util.h('b', { text: 'Πώς αποφασίζει' }), Util.h('p', { text: `Η έννοια θεωρείται κατανοητή όταν, μετά από τουλάχιστον ${n.minPer} ερωτήσεις, οι σωστές απαντήσεις είναι πάνω από ${Math.round(n.rate * 100)}%. Οι ερωτήσεις γίνονται πιο δύσκολες όσο ανεβαίνει το ποσοστό.` }));
+            return;
+          }
+          const sim = (guess, k) => {
+            let p = n.pL0;
+            for (let i = 0; i < k; i++) {
+              const post = (p * (1 - n.pS)) / (p * (1 - n.pS) + (1 - p) * guess);
+              p = post + (1 - post) * n.pT;
+            }
+            return p;
+          };
+          const need = guess => {
+            for (let k = 1; k <= 10; k++) if (sim(guess, k) >= n.mastery) return Math.max(k, n.minPer);
+            return null;
+          };
+          const say = (label, g) => {
+            const k = need(g);
+            return Util.h('li', { text: `${label}: ${k ? `${k} σωστές στη σειρά` : 'δεν φτάνει το κατώφλι με 10 σωστές'} (μετά από 1 σωστή: ${pct(sim(g, 1))})` });
+          };
+          out.replaceChildren(Util.h('b', { text: 'Με αυτές τις τιμές, για να θεωρηθεί κατανοητή μια έννοια χρειάζονται:' }),
+            Util.h('ul', null, say('Πολλαπλής επιλογής (4 επιλογές)', 0.25), say('Σωστό / Λάθος', 0.5), say('Αριθμητική', 0.05)),
+            Util.h('p', { class: 'hint', text: 'Η πιθανότητα «μαντέματος» υπολογίζεται αυτόματα: 1/πλήθος επιλογών, 50% στο Σωστό/Λάθος, 5% στις αριθμητικές. Ένα λάθος μειώνει την εκτίμηση και οδηγεί σε ευκολότερη ερώτηση της ίδιας έννοιας.' }));
+        };
+        const sync = () => { bkt.hidden = a.method !== 'bkt'; rate.hidden = a.method !== 'rate'; };
+        sync();
+        explain();
+        return Util.h('div', { class: 'stack' },
+          intro('Πώς διαλέγονται οι ερωτήσεις και πότε μια έννοια θεωρείται κατανοητή. Οι προεπιλογές ταιριάζουν σε τεστ 15–20 ερωτήσεων.'),
+          field('Εκτίμηση κατανόησης', method),
+          field('Ομαδοποίηση ερωτήσεων', order),
+          Util.h('div', { class: 'grid-3' },
+            num('maxQ', 'Μέγιστος αριθμός ερωτήσεων', 3, 80, 1),
+            num('minPer', 'Ελάχιστες ερωτήσεις ανά έννοια', 1, 10, 1, 'Ακόμη κι αν απαντήσει σωστά την πρώτη, δίνεται τουλάχιστον αυτός ο αριθμός.'),
+            num('maxPer', 'Μέγιστες ερωτήσεις ανά έννοια', 1, 15, 1, 'Αν δεν φτάσει το κατώφλι μέχρι εδώ, η έννοια σημειώνεται για ενίσχυση και το τεστ προχωρά.')),
+          bkt, rate, out,
+          Util.h('p', { class: 'hint', text: 'Δυσκολία: όσο χαμηλότερη η κατανόηση, τόσο ευκολότερη η επόμενη ερώτηση της έννοιας. Αν ο μαθητής δείξει ένα συνηθισμένο λάθος, προτιμάται ερώτηση που το ξαναελέγχει.' }));
+      },
+      bank() {
+        let filter = '*';
+        let open = null;
+        const list = Util.h('div', { class: 'dg-list' });
+        const counter = Util.h('span', { class: 'hint' });
+        const filterSel = Util.h('select', { class: 'select', 'aria-label': 'Φίλτρο έννοιας' });
+        const fillFilter = () => {
+          filterSel.replaceChildren(Util.h('option', { value: '*', text: `Όλες οι ερωτήσεις (${draft.bank.length})` }),
+            ...treeOrder(draft.skills).map(s => Util.h('option', { value: s.id, text: `${'  '.repeat(depthOf(draft.skills, s))}${s.title || '(χωρίς τίτλο)'} (${draft.bank.filter(q => q.skill === s.id).length})` })),
+            Util.h('option', { value: '', text: `Χωρίς έννοια (${draft.bank.filter(q => !q.skill).length})` }));
+          filterSel.value = filter;
+        };
+        filterSel.addEventListener('change', () => { filter = filterSel.value; open = null; draw(); });
+        const summaryText = q => {
+          const s = draft.skills.find(x => x.id === q.skill);
+          return `${TYPE[q.type]} · ${DIFF[q.diff]} · ${s ? s.title : 'χωρίς έννοια'}`;
+        };
+        const editor = q => {
+          const box = Util.h('div', { class: 'stack dg-q-editor' });
+          const typeArea = Util.h('div', { class: 'stack' });
+          const drawType = () => {
+            typeArea.replaceChildren();
+            if (q.type === 'mc') {
+              const rows = Util.h('div', { class: 'dg-opts' });
+              const drawOpts = () => {
+                rows.replaceChildren(...q.opts.map((o, i) => {
+                  const radio = Util.h('input', { type: 'radio', name: `dg-ok-${q.id}`, checked: q.ok === i, 'aria-label': 'Σωστή απάντηση' });
+                  radio.addEventListener('change', () => { q.ok = i; o.mis = ''; touch(); drawOpts(); });
+                  const mis = select(o.mis || '', misOptions(), v => { o.mis = v; }, { 'aria-label': 'Συνηθισμένο λάθος', disabled: q.ok === i });
+                  return Util.h('div', { class: 'dg-opt-row' },
+                    Util.h('label', { class: 'check', title: 'Σωστή απάντηση' }, radio, 'Σωστή'),
+                    input(o.t, v => { o.t = v; }, { maxlength: '300', placeholder: `Επιλογή ${i + 1}`, 'aria-label': `Επιλογή ${i + 1}` }),
+                    mis,
+                    iconBtn('trash', 'Αφαίρεση επιλογής', () => {
+                      if (q.opts.length <= 2) { Toast.show('Χρειάζονται τουλάχιστον δύο επιλογές', 'warning'); return; }
+                      q.opts.splice(i, 1);
+                      if (q.ok >= q.opts.length || q.ok === i) q.ok = 0;
+                      else if (q.ok > i) q.ok -= 1;
+                      touch();
+                      drawOpts();
+                    }, true));
+                }));
+              };
+              drawOpts();
+              typeArea.append(Util.h('div', { class: 'dg-opt-head' }, Util.h('span', { text: 'Επιλογές' }), Util.h('span', { text: 'Αν επιλεγεί, δείχνει το λάθος' })), rows,
+                Util.h('div', null, Util.h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: '+ Επιλογή', onclick: () => { if (q.opts.length >= 6) return; q.opts.push({ t: '', mis: '' }); touch(); drawOpts(); } })),
+                Util.h('p', { class: 'hint', text: 'Στο τεστ οι επιλογές εμφανίζονται με τυχαία σειρά.' }));
+            } else if (q.type === 'tf') {
+              typeArea.append(Util.h('div', { class: 'grid-2' },
+                field('Η σωστή απάντηση είναι', select(q.answer ? 'true' : 'false', [['true', 'Σωστό'], ['false', 'Λάθος']], v => { q.answer = v === 'true'; })),
+                field('Η λάθος απάντηση δείχνει', select(q.mis || '', misOptions(), v => { q.mis = v; }))));
+            } else {
+              const traps = Util.h('div', { class: 'dg-opts' });
+              const drawTraps = () => {
+                traps.replaceChildren(...(q.traps || []).map((t, i) => Util.h('div', { class: 'dg-opt-row dg-trap-row' },
+                  input(String(t.v ?? ''), v => { t.v = v; }, { inputmode: 'decimal', placeholder: 'τιμή', 'aria-label': 'Λανθασμένη τιμή' }),
+                  select(t.mis || '', misOptions(), v => { t.mis = v; }, { 'aria-label': 'Συνηθισμένο λάθος' }),
+                  iconBtn('trash', 'Αφαίρεση', () => { q.traps.splice(i, 1); touch(); drawTraps(); }, true))));
+              };
+              drawTraps();
+              typeArea.append(Util.h('div', { class: 'grid-3' },
+                field('Σωστή τιμή', input(fmtNum(q.v ?? ''), v => { q.v = v.replace(',', '.'); }, { inputmode: 'decimal' })),
+                field('Μονάδα', input(q.unit || '', v => { q.unit = v; }, { maxlength: '20', placeholder: 'π.χ. m/s' })),
+                field('Ανοχή (%)', input(String(q.tol ?? 0), v => { q.tol = v.replace(',', '.'); }, { inputmode: 'decimal' }), 'Πόσο μπορεί να απέχει η απάντηση από τη σωστή τιμή (στρογγυλοποιήσεις).')),
+                field('Άλλη λάθος τιμή δείχνει', select(q.mis || '', misOptions(), v => { q.mis = v; })),
+                Util.h('div', { class: 'dg-opt-head' }, Util.h('span', { text: 'Χαρακτηριστικές λάθος τιμές' }), Util.h('span', { text: 'δείχνουν το λάθος' })), traps,
+                Util.h('div', null, Util.h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: '+ Λάθος τιμή', onclick: () => { q.traps = q.traps || []; if (q.traps.length >= 6) return; q.traps.push({ v: '', mis: '' }); touch(); drawTraps(); } })),
+                Util.h('p', { class: 'hint', text: 'π.χ. στη μετατροπή 72 km/h → m/s, η τιμή 259,2 δείχνει ότι ο μαθητής πολλαπλασίασε με 3,6 αντί να διαιρέσει.' }));
+            }
+          };
+          drawType();
+          const typeSel = select(q.type, Object.entries(TYPE), v => {
+            q.type = v;
+            if (v === 'mc' && !Array.isArray(q.opts)) { q.opts = [{ t: '', mis: '' }, { t: '', mis: '' }, { t: '', mis: '' }, { t: '', mis: '' }]; q.ok = 0; }
+            if (v === 'tf' && typeof q.answer !== 'boolean') q.answer = true;
+            if (v === 'num' && q.v === undefined) { q.v = ''; q.unit = ''; q.tol = 0; q.traps = []; }
+            drawType();
+          });
+          box.append(
+            Util.h('div', { class: 'grid-3' },
+              field('Έννοια', select(q.skill, skillOptions(), v => { q.skill = v; })),
+              field('Δυσκολία', select(String(q.diff), Object.entries(DIFF), v => { q.diff = Number(v); })),
+              field('Είδος', typeSel)),
+            field('Ερώτηση', textarea(q.q, v => { q.q = v; }, { rows: '2', maxlength: '600' })),
+            typeArea,
+            field('Εξήγηση της σωστής απάντησης (φαίνεται στο σπίτι μετά την απάντηση)', textarea(q.expl || '', v => { q.expl = v; }, { rows: '2', maxlength: '600' })));
+          return box;
+        };
+        const draw = () => {
+          fillFilter();
+          const shown = draft.bank.filter(q => filter === '*' || q.skill === filter);
+          counter.textContent = `${shown.length} ερωτήσεις`;
+          list.replaceChildren(...shown.map(q => {
+            const i = draft.bank.indexOf(q);
+            const isOpen = open === q.id;
+            const head = Util.h('div', { class: 'dg-q-head' },
+              Util.h('button', {
+                type: 'button', class: 'dg-q-toggle', 'aria-expanded': String(isOpen), onclick: () => { open = isOpen ? null : q.id; draw(); }
+              }, Util.h('span', { class: 'dg-q-num', text: `${i + 1}.` }), Util.h('span', { class: 'dg-q-text', text: q.q || '(κενή ερώτηση)' }), Util.h('span', { class: 'dg-q-meta', text: summaryText(q) })),
+              iconBtn('copy', 'Αντίγραφο ερώτησης', () => {
+                const c = clone(q);
+                c.id = DiagModel.newId('q');
+                draft.bank.splice(i + 1, 0, c);
+                open = c.id;
+                touch();
+                draw();
+              }),
+              iconBtn('trash', 'Διαγραφή ερώτησης', () => { draft.bank.splice(i, 1); touch(); draw(); }, true));
+            return Util.h('div', { class: `dg-card dg-q${isOpen ? ' is-open' : ''}` }, head, isOpen ? editor(q) : null);
+          }));
+          if (!shown.length) list.append(Util.h('p', { class: 'empty-note', text: 'Δεν υπάρχουν ερωτήσεις εδώ.' }));
+        };
+        draw();
+        const add = type => {
+          const skill = filter !== '*' ? filter : (draft.skills.length ? treeOrder(draft.skills).find(s => !draft.skills.some(c => c.parent === s.id))?.id || '' : '');
+          const base = { id: DiagModel.newId('q'), skill, diff: 1, type, q: '', expl: '' };
+          const q = type === 'mc' ? { ...base, opts: [{ t: '', mis: '' }, { t: '', mis: '' }, { t: '', mis: '' }, { t: '', mis: '' }], ok: 0 }
+            : (type === 'tf' ? { ...base, answer: true, mis: '' } : { ...base, v: '', unit: '', tol: 0, mis: '', traps: [] });
+          draft.bank.push(q);
+          open = q.id;
+          touch();
+          draw();
+          list.lastElementChild?.scrollIntoView({ block: 'nearest' });
+        };
+        return Util.h('div', { class: 'stack' },
+          intro('Κάθε ερώτηση ελέγχει μία έννοια του γνωστικού μοντέλου και έχει δυσκολία. Στις λανθασμένες επιλογές δήλωσε ποιο συνηθισμένο λάθος δείχνουν: έτσι το τεστ καταλαβαίνει τι δεν έχει γίνει κατανοητό. Χρειάζονται 2–4 ερωτήσεις ανά έννοια, με διαφορετική δυσκολία.'),
+          Util.h('div', { class: 'row' }, filterSel, counter),
+          list,
+          Util.h('div', { class: 'row' },
+            Util.h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: '+ Πολλαπλής επιλογής', onclick: () => add('mc') }),
+            Util.h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: '+ Σωστό / Λάθος', onclick: () => add('tf') }),
+            Util.h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: '+ Αριθμητική', onclick: () => add('num') })));
+      }
+    };
+
+    const issuesBox = Util.h('div', { class: 'dg-issues', 'aria-live': 'polite' });
+    const handle = Modal.open({
+      title: 'Διαγνωστικό τεστ: ρυθμίσεις και τράπεζα ερωτήσεων',
+      size: 'xl', className: 'dg-modal',
+      body: Util.h('div', { class: 'dg-editor' }, nav, main),
+      onClose: () => {},
+      actions: [
+        { label: 'Έλεγχος', variant: 'ghost', left: true, close: false, onClick: () => {
+          const issues = DiagModel.problems(DiagModel.normalize(draft));
+          Toast.show(issues.length ? issues.join(' ') : 'Όλα εντάξει: το τεστ είναι έτοιμο', issues.length ? 'warning' : 'success', 7000);
+          return false;
+        } },
+        { label: 'Ακύρωση', variant: 'secondary', onClick: async () => {
+          if (!changed) return true;
+          return confirmDialog('Ακύρωση αλλαγών', 'Οι αλλαγές δεν έχουν αποθηκευτεί. Να χαθούν;', 'Ναι, να χαθούν');
+        } },
+        { label: 'Αποθήκευση', variant: 'primary', onClick: () => {
+          const before = draft.bank.length;
+          const next = DiagModel.normalize(draft);
+          AppState.setDiagnostic(next);
+          const dropped = before - next.bank.length;
+          Toast.show(dropped > 0 ? `Αποθηκεύτηκε. ${dropped} ημιτελείς ερωτήσεις δεν κρατήθηκαν (χωρίς κείμενο, επιλογές ή σωστή τιμή).` : 'Οι ρυθμίσεις του διαγνωστικού αποθηκεύτηκαν', dropped > 0 ? 'warning' : 'success', 6000);
+          return true;
+        } }
+      ]
+    });
+    handle.el.querySelector('.modal-footer')?.prepend(issuesBox);
+    show(pane);
+  }
+
+  // ---------------------------------------------------------------- διαδραστικό HTML
+
+  /**
+   * Προσθέτει την ενότητα του τεστ στο εξαγόμενο φύλλο.
+   * @param {HTMLElement} root .wf-print-doc
+   * @returns {boolean} αν προστέθηκε
+   */
+  function addToExport(root) {
+    const d = data();
+    if (!DiagModel.usable(d)) return false;
+    const title = `Διαγνωστικό τεστ${d.unit.chapter ? ` – ${d.unit.chapter}` : ''}`;
+    root.append(Util.h('section', { class: 'wf-print-section wf-diag-section wf-break-before', dataset: { sectionId: 'wf-diag', span: '12' } },
+      Util.h('h2', { class: 'wf-print-section-title', text: title }),
+      Util.h('div', { class: 'wf-print-content doc-content' }, Util.h('div', { id: 'wf-diag', class: 'wf-diag' }))));
+    return true;
+  }
+
+  /**
+   * Τα δεδομένα του τεστ για το HTML του μαθητή, κωδικοποιημένα ώστε οι σωστές απαντήσεις να μη διαβάζονται με μια ματιά.
+   * Οι οδηγίες ενίσχυσης και η ύλη μένουν μόνο στον εκπαιδευτικό.
+   * @param {string} id το αναγνωριστικό της εξαγωγής
+   * @returns {string}
+   */
+  function encodeFor(id) {
+    const d = data();
+    const payload = {
+      unit: { chapter: d.unit.chapter, className: d.unit.className, subject: d.unit.subject },
+      setting: d.setting, pdf: d.pdf, adapt: d.adapt,
+      skills: d.skills,
+      misconceptions: d.misconceptions.map(m => ({ id: m.id, text: m.text })),
+      bank: d.bank.filter(q => q.skill)
+    };
+    const key = `wf-diag|${id}`;
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i] ^ key.charCodeAt(i % key.length));
+    return btoa(bin);
+  }
+
+  /** Τα script του τεστ για το διαδραστικό HTML. @param {string} id */
+  function exportScripts(id) {
+    return `<script type="application/x-wf-diag" id="wf-diag-data">${encodeFor(id)}<\/script>\n<script>\n${diagCore.toString()}\n(${diagRuntime.toString()})(diagCore);\n<\/script>\n`;
+  }
+
+  // ---------------------------------------------------------------- ανάλυση
+
+  /**
+   * Βρίσκει τα δεδομένα του τεστ μέσα σε PDF (Λέξεις-κλειδιά, ως απλό κείμενο ή δεκαεξαδικά).
+   * @param {ArrayBuffer} buf
+   * @returns {Object|null}
+   */
+  function extractPayload(buf) {
+    const text = new TextDecoder('latin1').decode(new Uint8Array(buf));
+    let b64 = null;
+    const plain = text.match(/WFDIAG1:([A-Za-z0-9+/=\\\r\n]+)/);
+    if (plain) b64 = plain[1].replace(/\\\r?\n|\\/g, '').replace(/[\r\n]/g, '');
+    if (!b64) {
+      const hexes = text.match(/\/Keywords\s*<([0-9A-Fa-f\s]+)>/);
+      if (hexes) {
+        const hex = hexes[1].replace(/\s+/g, '');
+        let s = '';
+        const start = /^feff/i.test(hex) ? 4 : 0;
+        const step = start ? 4 : 2;
+        for (let i = start; i + step <= hex.length; i += step) s += String.fromCharCode(parseInt(hex.substr(i, step), 16));
+        const m = s.match(/WFDIAG1:([A-Za-z0-9+/=]+)/);
+        if (m) b64 = m[1];
+      }
+    }
+    if (!b64) return null;
+    try {
+      const json = new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0)));
+      const p = JSON.parse(json);
+      return p && p.app === 'wf-diag' && Array.isArray(p.log) ? p : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Ξαναϋπολογίζει την κατανόηση κάθε μαθητή με τις τρέχουσες ρυθμίσεις προσαρμογής και συγκεντρώνει τα στατιστικά της τάξης.
+   * @param {Object[]} students payloads
+   * @returns {Object}
+   */
+  function analyze(students) {
+    const cur = data();
+    const ref = students[0];
+    const skills = (ref.skills || []).map(([id, parent, title]) => ({ id, parent: parent || '', title }));
+    cur.skills.forEach(s => { if (!skills.some(x => x.id === s.id)) skills.push({ id: s.id, parent: s.parent, title: s.title }); });
+    skills.forEach(s => {
+      const c = cur.skills.find(x => x.id === s.id);
+      if (c) { s.title = c.title; s.desc = c.desc; }
+    });
+    const misMap = {};
+    students.forEach(p => (p.mis || []).forEach(([id, text]) => { if (!misMap[id]) misMap[id] = { id, text, remedy: '' }; }));
+    cur.misconceptions.forEach(m => { misMap[m.id] = { id: m.id, text: m.text, remedy: m.remedy }; });
+    const bankById = {};
+    cur.bank.forEach(q => { bankById[q.id] = q; });
+    const pseudoBank = [];
+    students.forEach(p => p.log.forEach(l => {
+      if (!pseudoBank.some(q => q.id === l.q)) pseudoBank.push(bankById[l.q] && bankById[l.q].skill === l.s ? bankById[l.q] : { id: l.q, skill: l.s, diff: l.d || 1, type: l.y || 'mc', opts: Array.from({ length: l.n || 4 }, () => ({ t: '', mis: '' })), mis: '', traps: [] });
+    }));
+    const C = diagCore({ skills, bank: pseudoBank, adapt: cur.adapt });
+    const rows = students.map(p => {
+      const st = C.init();
+      p.log.forEach(l => {
+        const q = pseudoBank.find(x => x.id === l.q);
+        C.observe(st, q, { correct: !!l.c, mis: l.m || '' });
+      });
+      const m = {};
+      C.order.forEach(s => { m[s.id] = C.mastery(st, s.id); });
+      const right = p.log.filter(l => l.c).length;
+      const weakest = C.assessable.filter(s => st.n[s.id] > 0 && ['weak', 'mid'].includes(C.level(m[s.id])))
+        .sort((a, b) => m[a.id] - m[b.id]);
+      return { p, st, m, right, n: p.log.length, weakest, mis: st.mis };
+    });
+    const N = rows.length;
+    const skillStats = C.order.map(s => {
+      const vals = rows.map(r => r.m[s.id]).filter(v => v !== null && v !== undefined);
+      const counts = { good: 0, mid: 0, weak: 0, none: N - vals.length };
+      rows.forEach(r => { const lv = C.level(r.m[s.id]); if (lv !== 'none') counts[lv]++; });
+      const ids = [s.id, ...C.descendants(s.id)];
+      const answers = rows.flatMap(r => r.p.log.filter(l => ids.includes(l.s)));
+      return {
+        s, depth: depthOf(skills, s), mean: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null, counts,
+        correct: answers.length ? answers.filter(l => l.c).length / answers.length : null, answers: answers.length,
+        weakNames: rows.filter(r => ['weak', 'mid'].includes(C.level(r.m[s.id]))).map(r => r.p.student || '—')
+      };
+    });
+    const misStats = Object.values(misMap).map(mm => {
+      const who = rows.filter(r => r.mis[mm.id]);
+      const times = rows.reduce((a, r) => a + (r.mis[mm.id] || 0), 0);
+      let chances = 0;
+      rows.forEach(r => r.p.log.forEach(l => {
+        const q = bankById[l.q];
+        if (!q) return;
+        const tags = q.type === 'mc' ? q.opts.map(o => o.mis) : [q.mis, ...(q.traps || []).map(t => t.mis)];
+        if (tags.includes(mm.id)) chances++;
+      }));
+      return { ...mm, students: who.length, names: who.map(r => r.p.student || '—'), times, chances };
+    }).filter(x => x.students > 0).sort((a, b) => b.students - a.students || b.times - a.times);
+    const items = {};
+    rows.forEach(r => r.p.log.forEach(l => {
+      const it = items[l.q] || (items[l.q] = { id: l.q, skill: l.s, n: 0, right: 0, answers: {}, time: 0 });
+      it.n++;
+      if (l.c) it.right++;
+      else it.answers[l.a] = (it.answers[l.a] || 0) + 1;
+      it.time += l.t || 0;
+    }));
+    const itemStats = Object.values(items).map(it => {
+      const q = bankById[it.id];
+      const wrong = Object.entries(it.answers).sort((a, b) => b[1] - a[1]);
+      const unused = q && q.type === 'mc' && it.n >= 10 ? q.opts.filter((o, i) => i !== q.ok && !it.answers[o.t]).map(o => o.t) : [];
+      return { ...it, q, p: it.right / it.n, topWrong: wrong[0] || null, avgTime: it.time / it.n, unused };
+    }).sort((a, b) => a.p - b.p);
+    const groups = {};
+    rows.forEach(r => {
+      const key = r.weakest.length ? r.weakest[0].id : '__ok';
+      (groups[key] = groups[key] || []).push(r);
+    });
+    return { C, skills, rows, N, skillStats, misStats, itemStats, groups, misMap, bankById, cur };
+  }
+
+  /** Αυτόματες προτάσεις για τον εκπαιδευτικό. */
+  function suggestions(A) {
+    const out = [];
+    const leafStats = A.skillStats.filter(x => A.C.assessable.includes(x.s));
+    leafStats.filter(x => x.counts.weak + x.counts.mid >= Math.max(1, Math.ceil(A.N * 0.4)))
+      .sort((a, b) => (a.mean ?? 1) - (b.mean ?? 1))
+      .forEach(x => out.push({ kind: 'class', text: `Επανάληψη σε όλη την τάξη: «${x.s.title}». ${x.counts.weak + x.counts.mid} από ${A.N} μαθητές δεν την έχουν κατανοήσει (μέση κατανόηση ${pct(x.mean)}).${x.s.desc ? ` Στόχος: ${x.s.desc}` : ''}` }));
+    leafStats.filter(x => {
+      const k = x.counts.weak + x.counts.mid;
+      return k > 0 && k < Math.max(1, Math.ceil(A.N * 0.4));
+    }).forEach(x => out.push({ kind: 'group', text: `Ενίσχυση σε μικρή ομάδα για «${x.s.title}»: ${x.weakNames.join(', ')}.` }));
+    A.misStats.filter(m => m.students >= Math.max(1, Math.ceil(A.N * 0.25))).forEach(m => out.push({
+      kind: 'mis', text: `Συνηθισμένο λάθος σε ${m.students} από ${A.N} μαθητές (${pct(m.students / A.N)}): «${m.text}»${m.remedy ? ` Πρόταση: ${m.remedy}` : ''}`
+    }));
+    A.itemStats.filter(it => it.n >= 3 && it.p < 0.25).slice(0, 4).forEach(it => out.push({ kind: 'item', text: `Η ερώτηση «${short(it.q ? it.q.q : it.id)}» απαντήθηκε σωστά μόνο από ${pct(it.p)}. Έλεγξε αν είναι ασαφής ή αν η έννοια δεν διδάχτηκε αρκετά.` }));
+    A.itemStats.filter(it => it.unused.length && it.n >= 10).slice(0, 3).forEach(it => out.push({ kind: 'item', text: `Στην ερώτηση «${short(it.q.q)}» κανείς δεν διάλεξε: ${it.unused.map(t => `«${short(t, 40)}»`).join(', ')}. Ίσως χρειάζεται πιο πειστική λανθασμένη επιλογή.` }));
+    const unfinished = A.rows.filter(r => !r.p.done);
+    if (unfinished.length) out.push({ kind: 'info', text: `Δεν ολοκλήρωσαν το τεστ: ${unfinished.map(r => r.p.student || '—').join(', ')}. Η εκτίμησή τους βασίζεται σε λιγότερες απαντήσεις.` });
+    const allGood = A.rows.filter(r => !r.weakest.length && r.n);
+    if (allGood.length) out.push({ kind: 'ok', text: `Κατανόησαν όλες τις έννοιες που ελέγχθηκαν: ${allGood.map(r => r.p.student || '—').join(', ')}. Πρόταση: δραστηριότητες εμβάθυνσης ή ρόλος «βοηθού» στις ομάδες.` });
+    if (!out.length) out.push({ kind: 'ok', text: 'Δεν εντοπίστηκαν σημαντικές δυσκολίες.' });
+    return out;
+  }
+
+  const short = (t, n = 70) => {
+    const s = String(t || '').replace(/\s+/g, ' ').trim();
+    return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+  };
+
+  const bar = (v, lv) => Util.h('span', { class: `dg-bar is-${lv}`, title: pct(v) }, Util.h('span', { style: { width: v === null ? '0' : `${Math.round(v * 100)}%` } }));
+  const levelTag = lv => Util.h('span', { class: `dg-level is-${lv}`, text: LEVEL[lv] });
+
+  /** Η αναφορά της τάξης ως στοιχείο DOM. */
+  function report(A) {
+    const C = A.C;
+    const avg = A.N ? A.rows.reduce((a, r) => a + (r.n ? r.right / r.n : 0), 0) / A.N : 0;
+    const tile = (label, value, sub) => Util.h('div', { class: 'dg-tile' }, Util.h('div', { class: 'dg-tile-label', text: label }), Util.h('div', { class: 'dg-tile-value', text: value }), sub ? Util.h('div', { class: 'dg-tile-sub', text: sub }) : null);
+    const ref = A.rows[0].p;
+    const sect = (title, ...kids) => Util.h('section', { class: 'dg-rsec' }, Util.h('h3', { text: title }), ...kids);
+    const table = (heads, body) => Util.h('div', { class: 'dg-tablewrap' }, Util.h('table', { class: 'dg-table' }, Util.h('thead', null, Util.h('tr', null, heads.map(h => Util.h('th', { text: h })))), Util.h('tbody', null, body)));
+    const sug = suggestions(A);
+    const groupKeys = Object.keys(A.groups).sort((a, b) => (a === '__ok') - (b === '__ok'));
+    return Util.h('div', { class: 'dg-report' },
+      Util.h('div', { class: 'dg-report-head' },
+        Util.h('h2', { text: `Αναφορά διαγνωστικού τεστ: ${ref.chapter || ref.title || ''}` }),
+        Util.h('p', { class: 'hint', text: [ref.className, ref.title, `${A.N} μαθητές`, `εκτίμηση: ${A.cur.adapt.method === 'rate' ? 'ποσοστό επιτυχίας' : 'BKT'}`, new Date().toLocaleDateString('el-GR')].filter(Boolean).join(' · ') })),
+      Util.h('div', { class: 'dg-tiles' },
+        tile('Μαθητές', String(A.N), `${A.rows.filter(r => r.p.done).length} ολοκλήρωσαν`),
+        tile('Μέση επιτυχία', pct(avg), 'σωστές απαντήσεις'),
+        tile('Ερωτήσεις ανά μαθητή', A.N ? (A.rows.reduce((a, r) => a + r.n, 0) / A.N).toFixed(1).replace('.', ',') : '0', 'κατά μέσο όρο'),
+        tile('Έννοιες για επανάληψη', String(A.skillStats.filter(x => C.assessable.includes(x.s) && x.counts.weak + x.counts.mid >= Math.ceil(A.N * 0.4)).length), 'σε όλη την τάξη')),
+      sect('Προτάσεις', Util.h('ul', { class: 'dg-sug' }, sug.map(x => Util.h('li', { class: `is-${x.kind}`, text: x.text })))),
+      sect('Κατανόηση ανά έννοια (δεντρόγραμμα)', dendrogram(A.skills, ref.chapter || 'Ενότητα', s => {
+        const x = A.skillStats.find(y => y.s.id === s.id);
+        const lv = x ? C.level(x.mean) : 'none';
+        return { level: lv, sub: x && x.mean !== null ? pct(x.mean) : '' };
+      }), Util.h('p', { class: 'dg-legend' }, ['good', 'mid', 'weak', 'none'].map(lv => levelTag(lv)))),
+      sect('Κατανόηση ανά έννοια (πίνακας)', table(['Έννοια', 'Μέση κατανόηση', '', 'Σωστές απαντήσεις', 'Κατανόησαν', 'Μερικώς', 'Ενίσχυση', 'Δεν ελέγχθηκαν'],
+        A.skillStats.map(x => {
+          const lv = C.level(x.mean);
+          return Util.h('tr', { class: x.depth ? '' : 'is-top' },
+            Util.h('td', { style: { paddingLeft: `${8 + x.depth * 16}px` }, text: x.s.title }),
+            Util.h('td', null, bar(x.mean, lv)), Util.h('td', { class: 'num', text: pct(x.mean) }),
+            Util.h('td', { class: 'num', text: x.answers ? `${pct(x.correct)} (${x.answers})` : '—' }),
+            Util.h('td', { class: 'num', text: String(x.counts.good) }), Util.h('td', { class: 'num', text: String(x.counts.mid) }),
+            Util.h('td', { class: 'num', text: String(x.counts.weak) }), Util.h('td', { class: 'num', text: String(x.counts.none) }));
+        }))),
+      sect('Συνηθισμένα λάθη που εμφανίστηκαν', A.misStats.length ? table(['Λάθος', 'Μαθητές', 'Φορές', 'Ευκαιρίες', 'Μαθητές με το λάθος', 'Προτεινόμενη ενίσχυση'],
+        A.misStats.map(m => Util.h('tr', null, Util.h('td', { text: m.text }), Util.h('td', { class: 'num', text: `${m.students} (${pct(m.students / A.N)})` }),
+          Util.h('td', { class: 'num', text: String(m.times) }), Util.h('td', { class: 'num', title: 'Πόσες φορές απαντήθηκε ερώτηση που έχει αυτό το λάθος ως επιλογή', text: m.chances ? String(m.chances) : '—' }),
+          Util.h('td', { text: m.names.join(', ') }), Util.h('td', { text: m.remedy || '—' })))) : Util.h('p', { class: 'empty-note', text: 'Δεν εμφανίστηκε κανένα από τα συνηθισμένα λάθη.' })),
+      sect('Ομάδες ενίσχυσης', Util.h('div', { class: 'dg-groups' }, groupKeys.map(k => {
+        const s = A.skills.find(x => x.id === k);
+        return Util.h('div', { class: 'dg-group' }, Util.h('b', { text: k === '__ok' ? 'Εμβάθυνση (κατανόησαν όλες τις έννοιες)' : `Ενίσχυση: ${s ? s.title : k}` }),
+          Util.h('div', { text: A.groups[k].map(r => r.p.student || '—').join(', ') }));
+      })), Util.h('p', { class: 'hint', text: 'Κάθε μαθητής μπαίνει στην ομάδα της έννοιας όπου η κατανόησή του είναι χαμηλότερη.' })),
+      sect('Ανά μαθητή', table(['Μαθητής', 'Τμήμα', 'Ερωτήσεις', 'Σωστές', 'Έννοιες για ενίσχυση', 'Λάθη', 'Κατάσταση'],
+        A.rows.slice().sort((a, b) => String(a.p.student).localeCompare(String(b.p.student), 'el')).map(r => Util.h('tr', null,
+          Util.h('td', { text: r.p.student || '—' }), Util.h('td', { text: r.p.section || '' }), Util.h('td', { class: 'num', text: String(r.n) }),
+          Util.h('td', { class: 'num', text: r.n ? `${r.right} (${pct(r.right / r.n)})` : '—' }),
+          Util.h('td', { text: r.weakest.map(s => `${s.title} (${pct(r.m[s.id])})`).join(', ') || '—' }),
+          Util.h('td', { text: Object.keys(r.mis).map(id => A.misMap[id] ? short(A.misMap[id].text, 50) : id).join(' · ') || '—' }),
+          Util.h('td', { text: r.p.done ? 'Ολοκλήρωσε' : 'Μισό' }))))),
+      sect('Ανάλυση ερωτήσεων', table(['Ερώτηση', 'Έννοια', 'Απαντήσεις', 'Σωστές', 'Συχνότερη λάθος απάντηση', 'Χρόνος'],
+        A.itemStats.map(it => {
+          const s = A.skills.find(x => x.id === it.skill);
+          return Util.h('tr', null, Util.h('td', { text: short(it.q ? it.q.q : it.id, 90) }), Util.h('td', { text: s ? s.title : '' }), Util.h('td', { class: 'num', text: String(it.n) }),
+            Util.h('td', { class: 'num', text: pct(it.p) }), Util.h('td', { text: it.topWrong ? `${short(it.topWrong[0], 50)} (${it.topWrong[1]})` : '—' }),
+            Util.h('td', { class: 'num', text: `${Math.round(it.avgTime)} s` }));
+        }))));
+  }
+
+  /** CSV: μία γραμμή ανά μαθητή, με την κατανόηση κάθε έννοιας. */
+  function csv(A) {
+    const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const head = ['Μαθητής', 'Τμήμα', 'Ολοκλήρωσε', 'Ερωτήσεις', 'Σωστές', ...A.C.order.map(s => s.title), 'Συνηθισμένα λάθη'];
+    const lines = A.rows.map(r => [r.p.student, r.p.section, r.p.done ? 'ναι' : 'όχι', r.n, r.right,
+      ...A.C.order.map(s => (r.m[s.id] === null || r.m[s.id] === undefined ? '' : Math.round(r.m[s.id] * 100))),
+      Object.keys(r.mis).map(id => (A.misMap[id] ? A.misMap[id].text : id)).join('; ')]);
+    return `﻿${[head, ...lines].map(l => l.map(q).join(';')).join('\r\n')}`;
+  }
+
+  /**
+   * Φύλλο ενίσχυσης: νέες ενότητες στο τρέχον φύλλο με υπενθύμιση, ερωτήσεις από την τράπεζα και κρυφές λύσεις.
+   * @param {Object} A
+   */
+  function remedial(A) {
+    const C = A.C;
+    const leafStats = A.skillStats.filter(x => C.assessable.includes(x.s) && x.counts.weak + x.counts.mid > 0)
+      .sort((a, b) => (b.counts.weak + b.counts.mid) - (a.counts.weak + a.counts.mid));
+    if (!leafStats.length) { Toast.show('Δεν υπάρχουν έννοιες που χρειάζονται ενίσχυση', 'info'); return; }
+    const checks = leafStats.map(x => {
+      const box = Util.h('input', { type: 'checkbox', checked: x.counts.weak + x.counts.mid >= Math.max(1, Math.ceil(A.N * 0.25)) });
+      return { x, box, el: Util.h('label', { class: 'check' }, box, `${x.s.title} — ${x.counts.weak + x.counts.mid} μαθητές (${pct(x.mean)})`) };
+    });
+    const perSkill = Util.h('select', { class: 'select' }, [2, 3, 4, 5].map(n => Util.h('option', { value: String(n), text: `${n} ερωτήσεις ανά έννοια` })));
+    perSkill.value = '3';
+    const solutions = Util.h('input', { type: 'checkbox', checked: true });
+    Modal.open({
+      title: 'Φύλλο ενίσχυσης', size: 'md',
+      body: Util.h('div', { class: 'stack' },
+        Util.h('p', { class: 'hint', text: 'Προστίθενται ενότητες στο τέλος του τρέχοντος φύλλου: για κάθε έννοια ένα πλαίσιο «Θυμήσου» με τον στόχο και τις οδηγίες για τα λάθη που φάνηκαν, και ερωτήσεις από την τράπεζα (πρώτα όσες ελέγχουν αυτά τα λάθη).' }),
+        Util.h('div', { class: 'stack dg-checks' }, checks.map(c => c.el)),
+        perSkill,
+        Util.h('label', { class: 'check' }, solutions, 'Ενότητα «Λύσεις» (συμπτυγμένη: δεν μπαίνει στο φύλλο των μαθητών)')),
+      actions: [
+        { label: 'Ακύρωση', variant: 'secondary' },
+        {
+          label: 'Δημιουργία', variant: 'primary', onClick: () => {
+            const chosen = checks.filter(c => c.box.checked).map(c => c.x);
+            if (!chosen.length) { Toast.show('Διάλεξε τουλάχιστον μία έννοια', 'warning'); return false; }
+            const k = Number(perSkill.value);
+            const sol = [];
+            let first = null;
+            chosen.forEach(x => {
+              const seenMis = A.misStats.filter(m => A.cur.bank.some(q => q.skill === x.s.id && (q.type === 'mc' ? q.opts.some(o => o.mis === m.id) : q.mis === m.id || (q.traps || []).some(t => t.mis === m.id))));
+              const tags = q => (q.type === 'mc' ? q.opts.map(o => o.mis) : [q.mis, ...(q.traps || []).map(t => t.mis)]).filter(Boolean);
+              const pool = A.cur.bank.filter(q => q.skill === x.s.id)
+                .map(q => ({ q, score: (tags(q).some(t => seenMis.some(m => m.id === t)) ? 0 : 1) + (A.itemStats.find(it => it.id === q.id)?.p ?? 0.5) }))
+                .sort((a, b) => a.score - b.score).slice(0, k).map(o => o.q);
+              const parts = [];
+              const remind = Util.h('div', { class: 'wf-card wf-card-remember' }, Util.h('p', { class: 'wf-card-title', text: 'Θυμήσου' }),
+                Util.h('p', { text: x.s.desc || x.s.title }));
+              if (seenMis.length) remind.append(Util.h('ul', null, seenMis.map(m => Util.h('li', null, Util.h('b', { text: 'Πρόσεξε: ' }), m.text))));
+              parts.push(remind);
+              pool.forEach(q => {
+                const quiz = q.type === 'mc' ? Quiz.normalize({ type: 'mc', q: q.q, opts: q.opts.map((o, j) => ({ t: o.t, c: j === q.ok, f: j === q.ok ? '' : (q.expl || '') })) })
+                  : (q.type === 'tf' ? Quiz.normalize({ type: 'tf', q: q.q, answer: q.answer, fb: q.expl || '' }) : null);
+                if (quiz) {
+                  parts.push(Quiz.build(quiz));
+                } else {
+                  parts.push(Util.h('p', null, Util.h('b', { text: q.q })));
+                  parts.push(Util.h('p', null, 'Απάντηση: ', Util.h('span', { class: 'wf-field wf-field-inline', contenteditable: 'false', 'data-width': '40', style: 'width: 40mm' }), q.unit ? ` ${q.unit}` : ''));
+                }
+                sol.push(`${x.s.title} – ${short(q.q, 80)}: ${q.type === 'mc' ? q.opts[q.ok].t : (q.type === 'tf' ? (q.answer ? 'Σωστό' : 'Λάθος') : `${fmtNum(q.v)} ${q.unit || ''}`)}${q.expl ? ` (${q.expl})` : ''}`);
+              });
+              const html = parts.map(n => n.outerHTML).join('');
+              const id = AppState.addSection({ title: `Ενίσχυση: ${x.s.title}`, type: 'mixed' }, undefined, html);
+              if (!first) first = id;
+            });
+            if (solutions.checked && sol.length) {
+              AppState.addSection({ title: 'Λύσεις φύλλου ενίσχυσης', type: 'mixed', collapsed: true }, undefined, Util.h('ol', null, sol.map(t => Util.h('li', { text: t }))).outerHTML);
+            }
+            Toast.show(`Προστέθηκαν ${chosen.length} ενότητες ενίσχυσης στο τέλος του φύλλου`, 'success', 5000);
+            return true;
+          }
+        }
+      ]
+    });
+  }
+
+  /** Παράθυρο ανάλυσης των PDF των μαθητών. */
+  function openAnalysis() {
+    const files = new Map();
+    const list = Util.h('ul', { class: 'dg-files' });
+    const out = Util.h('div', { class: 'dg-out' });
+    const drop = Util.h('div', { class: 'dg-drop', tabindex: '0', role: 'button', 'aria-label': 'Προσθήκη PDF μαθητών' },
+      Util.h('b', { text: 'Σύρε εδώ τα PDF των μαθητών' }), Util.h('span', { text: 'ή κάνε κλικ για επιλογή (πολλά αρχεία μαζί)' }));
+    let current = null;
+    const addFiles = async picked => {
+      const bad = [];
+      for (const f of picked) {
+        if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { bad.push(f.name); continue; }
+        const p = extractPayload(await f.arrayBuffer());
+        if (!p) { bad.push(f.name); continue; }
+        const key = `${p.exp}|${(p.student || f.name).toLowerCase()}`;
+        files.set(key, { name: f.name, p });
+      }
+      if (bad.length) Toast.show(`Χωρίς δεδομένα διαγνωστικού τεστ: ${bad.join(', ')}. Το PDF πρέπει να έχει φτιαχτεί με το κουμπί «PDF» του διαδραστικού HTML.`, 'warning', 8000);
+      draw();
+    };
+    drop.addEventListener('click', async () => addFiles(await Util.pickFiles('.pdf,application/pdf', true)));
+    drop.addEventListener('keydown', async e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addFiles(await Util.pickFiles('.pdf,application/pdf', true)); } });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('is-over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('is-over'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      drop.classList.remove('is-over');
+      addFiles(Array.from(e.dataTransfer.files || []));
+    });
+    const draw = () => {
+      list.replaceChildren(...Array.from(files.entries()).map(([key, f]) => Util.h('li', null,
+        Util.h('span', { text: `${f.p.student || '(χωρίς όνομα)'}${f.p.section ? ` · ${f.p.section}` : ''}` }),
+        Util.h('span', { class: 'hint', text: `${f.p.log.length} απαντήσεις${f.p.done ? '' : ' · δεν ολοκληρώθηκε'}` }),
+        Util.h('button', { type: 'button', class: 'btn-icon btn-sm is-danger', title: 'Αφαίρεση', 'aria-label': 'Αφαίρεση', onclick: () => { files.delete(key); draw(); } }, Util.icon('trash', 16)))));
+      const payloads = Array.from(files.values()).map(f => f.p).filter(p => p.log.length);
+      const exps = new Set(payloads.map(p => p.chapter || p.title));
+      if (!payloads.length) {
+        current = null;
+        out.replaceChildren(Util.h('p', { class: 'empty-note', text: 'Πρόσθεσε τα PDF που σου παρέδωσαν οι μαθητές. Η ανάλυση γίνεται εδώ, στον υπολογιστή σου· τα αρχεία δεν στέλνονται πουθενά.' }));
+      } else {
+        current = analyze(payloads);
+        out.replaceChildren(exps.size > 1 ? Util.h('p', { class: 'dg-warnline', text: 'Προσοχή: τα PDF προέρχονται από διαφορετικά τεστ. Η ανάλυση τα ενώνει.' }) : '', report(current));
+      }
+      Object.values(handle.buttons).forEach(b => { if (b.dataset.needsData) b.disabled = !current; });
+    };
+    const handle = Modal.open({
+      title: 'Ανάλυση απαντήσεων μαθητών', size: 'xl', className: 'dg-modal',
+      body: Util.h('div', { class: 'stack' }, Util.h('div', { class: 'dg-intake' }, drop, list), out),
+      actions: [
+        { id: 'csv', label: 'CSV', variant: 'ghost', left: true, close: false, onClick: async () => {
+          if (current) await Util.downloadBlob(new Blob([csv(current)], { type: 'text/csv' }), Util.safeFilename(`διάγνωση-${current.rows[0].p.chapter || 'τάξη'}`, 'csv'));
+          return false;
+        } },
+        { id: 'html', label: 'Αναφορά (HTML)', variant: 'ghost', left: true, close: false, onClick: async () => {
+          if (!current) return false;
+          const css = document.getElementById('dg-style') ? document.getElementById('dg-style').textContent : '';
+          const html = `<!DOCTYPE html><html lang="el"><head><meta charset="utf-8"><title>Αναφορά διαγνωστικού</title><style>:root{--text:#1E293B;--text-2:#64748B;--text-3:#94A3B8;--border:#E2E8F0;--surface:#fff;--surface-2:#F1F5F9;--ok:#22C55E;--warn:#EAB308;--danger:#EF4444;--primary:#2563EB}body{font-family:'Segoe UI',Arial,sans-serif;color:#1E293B;margin:24px;max-width:1100px}${css}</style></head><body>${report(current).outerHTML}</body></html>`;
+          await Util.downloadBlob(new Blob([html], { type: 'text/html' }), Util.safeFilename(`αναφορά-${current.rows[0].p.chapter || 'διάγνωση'}`, 'html'));
+          return false;
+        } },
+        { id: 'remedial', label: 'Φύλλο ενίσχυσης…', variant: 'secondary', close: false, onClick: () => { if (current) remedial(current); return false; } },
+        { label: 'Κλείσιμο', variant: 'primary' }
+      ]
+    });
+    ['csv', 'html', 'remedial'].forEach(id => { handle.buttons[id].dataset.needsData = '1'; });
+    draw();
+  }
+
+  /** Στυλ για το τεστ μέσα στο διαδραστικό HTML. */
+  const CSS = `
+.wf-diag { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; border: 1px solid #CBD5E1; border-radius: 10px; padding: 16px 18px; background: #FFFFFF; }
+.wf-diag-head { font-size: 13px; color: #475569; margin-bottom: 10px; }
+.wf-diag-progress { font-size: 13px; color: #64748B; margin-bottom: 4px; }
+.wf-diag-q { font-weight: 600; margin: 4px 0 12px; }
+.wf-diag-opts { display: flex; flex-direction: column; gap: 8px; }
+.wf-diag-opt { text-align: left; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 8px; background: #F8FAFC; font: inherit; color: inherit; cursor: pointer; }
+.wf-diag-opt:hover:not(:disabled) { border-color: #2563EB; }
+.wf-diag-opt.is-picked { border-color: #2563EB; background: #DBEAFE; }
+.wf-diag-opt.is-right { border-color: #16A34A; background: #DCFCE7; }
+.wf-diag-opt.is-wrong { border-color: #DC2626; background: #FEE2E2; }
+.wf-diag-opt:disabled { cursor: default; }
+.wf-diag-input { font: inherit; padding: 8px 10px; border: 1px solid #CBD5E1; border-radius: 8px; min-width: 220px; margin: 6px 0; }
+.wf-diag-numrow { display: flex; align-items: center; gap: 8px; }
+.wf-diag-num { min-width: 0; width: 160px; }
+.wf-diag-actions { margin-top: 12px; display: flex; gap: 8px; }
+.wf-diag-btn { font: inherit; padding: 8px 16px; border-radius: 8px; border: 1px solid #CBD5E1; background: #FFFFFF; cursor: pointer; }
+.wf-diag-btn.primary { background: #2563EB; border-color: #2563EB; color: #FFFFFF; font-weight: 600; }
+.wf-diag-warn { color: #B91C1C; font-size: 13px; min-height: 1em; margin-top: 6px; }
+.wf-diag-fb { margin-top: 12px; padding: 10px 12px; border-radius: 8px; }
+.wf-diag-fb.is-right { background: #DCFCE7; color: #14532D; }
+.wf-diag-fb.is-wrong { background: #FEE2E2; color: #7F1D1D; }
+.wf-diag-note { font-size: 13px; color: #64748B; }
+.wf-diag-done { font-weight: 600; }
+.wf-diag h4 { margin: 14px 0 6px; font-size: 14px; }
+.wf-diag-skills { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.wf-diag-skill { display: grid; grid-template-columns: minmax(0, 1fr) 90px 44px 140px; gap: 8px; align-items: center; font-size: 13px; }
+.wf-diag-bar { display: block; height: 8px; border-radius: 4px; background: #E2E8F0; overflow: hidden; }
+.wf-diag-bar > span { display: block; height: 100%; border-radius: 4px; background: #94A3B8; }
+.wf-diag-skill.is-good .wf-diag-bar > span { background: #16A34A; }
+.wf-diag-skill.is-mid .wf-diag-bar > span { background: #CA8A04; }
+.wf-diag-skill.is-weak .wf-diag-bar > span { background: #DC2626; }
+.wf-diag-skill-val { text-align: right; font-variant-numeric: tabular-nums; }
+.wf-diag-tag { color: #475569; }
+.wf-diag-table { width: 100% !important; table-layout: auto !important; border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+.wf-diag-table th:nth-child(1), .wf-diag-table td:nth-child(1) { width: 5% !important; }
+.wf-diag-table th:nth-child(2), .wf-diag-table td:nth-child(2) { width: 62% !important; }
+.wf-diag-table th:nth-child(3), .wf-diag-table td:nth-child(3) { width: 27% !important; }
+.wf-diag-table th:nth-child(4), .wf-diag-table td:nth-child(4) { width: 6% !important; }
+.wf-diag-table th, .wf-diag-table td { border: 1px solid #94A3B8; padding: 3px 6px; text-align: left; vertical-align: top; }
+.wf-diag-table td.is-right { color: #15803D; font-weight: 700; text-align: center; }
+.wf-diag-table td.is-wrong { color: #B91C1C; font-weight: 700; text-align: center; }
+.wf-pdf .wf-diag { border: none; padding: 0; }
+@media (max-width: 640px) { .wf-diag-skill { grid-template-columns: minmax(0, 1fr) 60px 40px; } .wf-diag-tag { display: none; } }
+`;
+
+  return { bindPanel, renderPanel, openEditor, openAnalysis, addToExport, exportScripts, extractPayload, analyze, dendrogram, CSS };
+})();
+
+
+/**
  * Εξαγωγή: εκτύπωση/PDF μέσω browser, PDF με jsPDF + html2canvas, DOCX με docx.js,
  * προεπισκόπηση σελίδων, έλεγχος υποχρεωτικών ενοτήτων και αρχεία έργου.
  * @namespace ExportManager
@@ -15117,6 +17069,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         qz.removeAttribute('data-submitted');
         quizRefresh(qz);
       });
+      if (window.wfDiag) window.wfDiag.reset();
       recalc();
       save();
     });
@@ -15178,6 +17131,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
         if (link) el.replaceWith(link);
         else el.remove();
       });
+      if (window.wfDiag) window.wfDiag.printable(copy);
       return copy;
     };
     const fileName = () => {
@@ -15262,7 +17216,9 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
           }
         });
         addPdfLinks(pdf, root, pages, g, pxPerMm);
-        pdf.setProperties({ title: CFG.title, creator: 'Σύνταξη φύλλων εργασίας' });
+        const props = { title: CFG.title, creator: 'Σύνταξη φύλλων εργασίας' };
+        if (window.wfDiag) props.keywords = window.wfDiag.payload();
+        pdf.setProperties(props);
         download(pdf.output('blob'), fileName());
       } catch (e) {
         window.alert(`Το PDF δεν δημιουργήθηκε: ${(e && e.message) || e}`);
@@ -15347,6 +17303,7 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       await loadLogo(AppState.get().style.logo);
       const logo = headerLogo();
       const root = buildPrintable({ ...opts, liveEmbeds: true });
+      const hasDiag = Diagnostic.addToExport(root);
       stage = mountStage(root);
       await ready(root);
       await compressImages(root);
@@ -15416,9 +17373,10 @@ ul.wf-checklist > li:focus-visible { outline: 2px solid #2563EB; outline-offset:
       const scripts = libScripts.join('')
         + `<script type="application/json" id="wf-pdf-config">${JSON.stringify(cfg).replace(/</g, '\\u003c')}<\/script>\n`
         + (root.querySelector('.wf-formula') ? `<script>\n${formulaCore.toString()}\n<\/script>\n` : '')
+        + (hasDiag ? Diagnostic.exportScripts(cfg.id) : '')
         + `<script>\n(${exportRuntime.toString()})(${paginate.toString()}, ${addPdfLinks.toString()}, ${pageSlice.toString()});\n<\/script>`;
       const pageCss = `@page { size: A4 ${g.landscape ? 'landscape' : 'portrait'}; margin: ${g.top}mm ${g.right}mm ${g.bottom}mm ${g.left}mm;${logo ? ` @top-left { content: url("${logo.svg}"); vertical-align: middle; }` : ''} }`;
-      const html = `<!DOCTYPE html>\n<html lang="el">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(docTitle())}</title>\n<style>\n${css}\n${INTERACTIVE_CSS}\n${pageCss}\n</style>\n</head>\n<body class="wf-export">\n${bar}\n${page}\n${scripts}\n</body>\n</html>\n`;
+      const html = `<!DOCTYPE html>\n<html lang="el">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(docTitle())}</title>\n<style>\n${css}\n${INTERACTIVE_CSS}\n${hasDiag ? Diagnostic.CSS : ''}\n${pageCss}\n</style>\n</head>\n<body class="wf-export">\n${bar}\n${page}\n${scripts}\n</body>\n</html>\n`;
       if (await Util.downloadBlob(new Blob([html], { type: 'text/html' }), Util.safeFilename(docTitle(), 'html'))) Toast.show('Το διαδραστικό HTML δημιουργήθηκε', 'success');
     } catch (e) {
       Toast.show(`Σφάλμα κατά την εξαγωγή: ${e.message}`, 'error', 6000);
@@ -17517,6 +19475,7 @@ const UIController = (() => {
     bindMeta();
     bindStyleTab();
     bindTools();
+    Diagnostic.bindPanel();
     bindKeys();
     bindEvents();
     TemplateLibrary.init();
