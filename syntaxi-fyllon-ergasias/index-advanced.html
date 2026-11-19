@@ -1249,6 +1249,22 @@ kbd {
 .dg-secs .check { font-size: 13px; }
 .dg-csvbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border: 1px dashed var(--border-strong); border-radius: var(--radius-card); }
 .dg-csvbar .hint { flex: 1 1 260px; }
+
+.mode-switch { display: flex; flex-shrink: 0; align-self: center; border: 1px solid var(--border); border-radius: var(--radius-btn); overflow: hidden; margin: 0 8px; }
+.mode-switch button { height: 30px; padding: 0 9px; border: none; border-right: 1px solid var(--border); background: var(--surface); color: var(--text-2); font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.mode-switch button:last-child { border-right: none; }
+.mode-switch button:hover { color: var(--text); background: var(--surface-2); }
+.mode-switch button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.empty-diag { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 18px; color: var(--text-2); font-size: 13px; }
+body.app-mode-sheet #diag-editor { display: none !important; }
+body.app-mode-test #sections-container, body.app-mode-test #empty-state, body.app-mode-test #btn-preview,
+body.app-mode-test .doc-title-wrap > *, body.app-mode-test .tab:not(#tab-diag),
+body.app-mode-test #export-menu [data-export]:not([data-export="diag"]) { display: none !important; }
+body.app-mode-test .dg-editor-card { margin-top: 0; }
+.dg-test-note { display: none; }
+body.app-mode-test .dg-test-note { display: block; }
+body.app-mode-test .dg-editor-note { display: none; }
+@media (max-width: 1360px) { .doc-title-wrap { min-width: 100px; } .mode-switch { margin: 0 4px; } .mode-switch button { padding: 0 6px; font-size: 12px; } }
 </style>
 </head>
 <body>
@@ -1267,6 +1283,11 @@ kbd {
   </button>
   <div class="doc-title-wrap">
     <input id="doc-title" class="doc-title-input" type="text" maxlength="200" placeholder="Τίτλος φύλλου εργασίας" aria-label="Τίτλος φύλλου εργασίας" autocomplete="off">
+  </div>
+  <div class="mode-switch" role="group" aria-label="Τι συντάσσεις">
+    <button type="button" data-mode="sheet" aria-pressed="false" title="Μόνο το φύλλο εργασίας (κρύβεται η σύνταξη του τεστ)">Φύλλο</button>
+    <button type="button" data-mode="test" aria-pressed="false" title="Μόνο διαγνωστικό τεστ, χωρίς φύλλο εργασίας">Τεστ</button>
+    <button type="button" data-mode="both" aria-pressed="true" title="Φύλλο εργασίας και, από κάτω, η σύνταξη του τεστ">Και τα δύο</button>
   </div>
   <div class="header-actions">
     <button id="btn-open" class="btn btn-ghost has-text" type="button" title="Άνοιγμα έργου από αρχείο .json (Ctrl+O)"><span data-icon="folder"></span><span class="btn-text">Άνοιγμα</span></button>
@@ -1538,6 +1559,10 @@ kbd {
         <h2>Ξεκίνα με ένα πρότυπο</h2>
         <p>Διάλεξε τη δομή του φύλλου εργασίας. Μπορείς να προσθέσεις, να αφαιρέσεις ή να αναδιατάξεις ενότητες οποιαδήποτε στιγμή.</p>
         <div id="empty-actions" class="empty-actions"></div>
+        <div class="empty-diag">
+          <span>ή</span>
+          <button id="btn-start-test" class="btn btn-secondary" type="button" title="Χωρίς φύλλο εργασίας: μόνο η σύνταξη του διαγνωστικού τεστ">Μόνο διαγνωστικό τεστ (χωρίς φύλλο εργασίας)</button>
+        </div>
       </div>
 
       <div id="sections-container" class="sections-container"></div>
@@ -1553,6 +1578,7 @@ kbd {
           <button class="btn btn-ghost btn-sm dg-collapse" type="button" aria-expanded="true" aria-controls="diag-editor-body">Σύμπτυξη ▴</button>
         </header>
         <div class="dg-editor-main">
+          <p class="hint dg-test-note">Λειτουργία «Μόνο διαγνωστικό τεστ»: το φύλλο εργασίας είναι κρυμμένο. Τα «Στοιχεία εγγράφου» παραπάνω (σχολείο, εκπαιδευτικός, ημερομηνία, πεδία στοιχείων μαθητή) και το λογότυπο της καρτέλας «Μορφοποίηση» μπαίνουν στην κεφαλίδα του τεστ.</p>
           <p class="hint dg-editor-note">Χωριστό από το φύλλο εργασίας: δεν μπαίνει στην εκτύπωση, στο PDF ή στο DOCX του φύλλου. Οι αλλαγές αποθηκεύονται αυτόματα μαζί με το έργο.</p>
           <div id="diag-editor-body" class="dg-editor-body"></div>
         </div>
@@ -15145,6 +15171,21 @@ const Diagnostic = (() => {
     Bus.on('state-replaced', renderPanel);
     renderPanel();
     bindEditorCard();
+    document.querySelectorAll('.mode-switch [data-mode]').forEach(b => b.addEventListener('click', () => {
+      setMode(b.dataset.mode);
+      if (b.dataset.mode === 'test') window.scrollTo({ top: 0 });
+    }));
+    $('btn-start-test').addEventListener('click', () => {
+      setMode('test');
+      Diagnostic.focusEditor('unit');
+    });
+    const auto = () => {
+      const d = data();
+      if (!AppState.sections().length && (d.bank.length || d.skills.length)) setMode('test');
+    };
+    Bus.on('state-replaced', auto);
+    setMode(Prefs.get('appMode') || 'both');
+    auto();
   }
 
   function confirmDialog(title, text, okLabel) {
@@ -15785,10 +15826,35 @@ const Diagnostic = (() => {
     editorState = { refresh, flush: () => { if (timer) commit(); }, show: key => show(key) };
   }
 
+  const MODES = ['sheet', 'test', 'both'];
+
+  /**
+   * Τι συντάσσεις: μόνο φύλλο, μόνο διαγνωστικό τεστ ή και τα δύο.
+   * @param {'sheet'|'test'|'both'} mode
+   */
+  function setMode(mode) {
+    const m = MODES.includes(mode) ? mode : 'both';
+    MODES.forEach(x => document.body.classList.toggle(`app-mode-${x}`, x === m));
+    document.querySelectorAll('.mode-switch [data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+    Prefs.set('appMode', m);
+    if (m === 'test') {
+      const tab = $('tab-diag');
+      if (tab && tab.getAttribute('aria-selected') !== 'true') tab.click();
+      setCollapsed(false);
+    } else if (m === 'sheet') {
+      const first = document.querySelector('.tab');
+      const tab = $('tab-diag');
+      if (first && tab && tab.getAttribute('aria-selected') === 'true') first.click();
+    }
+  }
+
+  const mode = () => (MODES.find(m => document.body.classList.contains(`app-mode-${m}`)) || 'both');
+
   /** Ανοίγει την κάρτα σύνταξης (σε συγκεκριμένη ενότητα) και κυλά ως εκεί. */
   function focusEditor(key) {
     const card = $('diag-editor');
     if (!card) return;
+    if (mode() === 'sheet') setMode('both');
     setCollapsed(false);
     if (key && editorState) editorState.show(key);
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -16286,7 +16352,7 @@ const Diagnostic = (() => {
 @media (max-width: 640px) { .wf-diag-skill { grid-template-columns: minmax(0, 1fr) 60px 40px; } .wf-diag-tag { display: none; } }
 `;
 
-  return { bindPanel, renderPanel, focusEditor, openAnalysis, addToExport, exportScripts, extractPayload, analyze, dendrogram, testTitle, CSS };
+  return { bindPanel, renderPanel, focusEditor, setMode, openAnalysis, addToExport, exportScripts, extractPayload, analyze, dendrogram, testTitle, CSS };
 })();
 
 
