@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Δημιουργία εννοιολογικών χαρτών για την τάξη: έννοιες, λέξεις σύνδεσης, αυτόματη τακτοποίηση, φύλλο άσκησης με κενά και τράπεζα λέξεων, εξαγωγή σε PNG, SVG και JSON.">
+<meta name="generator" content="ennoiologikoi-xartes v1.0.0">
+<title>Εννοιολογικοί χάρτες</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%232347b5' stroke-width='2.2'><rect x='10' y='3' width='12' height='7' rx='2'/><rect x='2' y='22' width='12' height='7' rx='2'/><rect x='18' y='22' width='12' height='7' rx='2'/><path d='M14 10l-5 12M18 10l6 12'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Piazzolla:ital,opsz,wght@0,8..30,600;0,8..30,700;1,8..30,500&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap">
+<style>
+/* Layout: a toolbar over a dotted "graph paper" stage that fills the screen, with an inspector column on the right (below the stage on phones). */
+:root {
+  --paper: #eef2ed;
+  --grid: rgba(35, 80, 60, 0.16);
+  --surface: #fbfcfa;
+  --surface-2: #e4eae4;
+  --line: #cbd5cc;
+  --ink: #14201b;
+  --muted: #56655d;
+  --accent: #2347b5;
+  --accent-fg: #ffffff;
+  --accent-soft: #dfe6fb;
+  --danger: #b3261e;
+  --font-display: "Piazzolla", Georgia, "Times New Roman", serif;
+  --font-body: "Sofia Sans", "Segoe UI", system-ui, sans-serif;
+  --radius: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121815; --grid: rgba(170, 210, 190, 0.10); --surface: #19211d; --surface-2: #222c27;
+    --line: #2f3b35; --ink: #e2e9e5; --muted: #93a39a; --accent: #93adff; --accent-fg: #0d1530;
+    --accent-soft: #24305a; --danger: #f2877f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121815; --grid: rgba(170, 210, 190, 0.10); --surface: #19211d; --surface-2: #222c27;
+  --line: #2f3b35; --ink: #e2e9e5; --muted: #93a39a; --accent: #93adff; --accent-fg: #0d1530;
+  --accent-soft: #24305a; --danger: #f2877f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--surface); color: var(--ink); font: 15px/1.45 var(--font-body); overflow: hidden; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+
+/* Toolbar */
+.bar {
+  display: flex; align-items: center; gap: 10px 18px; flex-wrap: nowrap;
+  padding: 8px max(14px, env(safe-area-inset-right, 0px)) 8px max(14px, env(safe-area-inset-left, 0px));
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid var(--line); background: var(--surface); min-width: 0;
+}
+.brand { display: flex; align-items: center; gap: 9px; flex: none; }
+.brand svg { width: 28px; height: 28px; color: var(--accent); }
+.brand h1 { margin: 0; font: 700 1.22rem/1 var(--font-display); letter-spacing: -0.01em; white-space: nowrap; }
+.brand h1 em { font-style: italic; font-weight: 500; color: var(--accent); }
+.tools { display: flex; align-items: center; gap: 6px; overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: thin; padding: 2px; }
+.sep { width: 1px; align-self: stretch; background: var(--line); margin: 4px 4px; flex: none; }
+.tb {
+  display: inline-flex; align-items: center; gap: 6px; flex: none; height: 34px; padding: 0 10px;
+  border: 1px solid transparent; border-radius: 7px; background: transparent; cursor: pointer; white-space: nowrap;
+  font-weight: 500;
+}
+.tb svg { width: 18px; height: 18px; flex: none; }
+.tb:hover:not(:disabled) { background: var(--surface-2); }
+.tb:disabled { opacity: 0.4; cursor: default; }
+.tb[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.tb.primary { border-color: var(--line); background: var(--paper); }
+@media (max-width: 1180px) { .tb .lbl { display: none; } .tb { padding: 0 8px; } }
+@media (max-width: 560px) { .brand { display: none; } }
+
+/* Work area */
+.work { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; }
+@media (max-width: 820px) {
+  .work { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .panel { max-height: 40vh; border-left: 0 !important; border-top: 1px solid var(--line); }
+}
+.stage {
+  position: relative; overflow: hidden; min-height: 0; background-color: var(--paper);
+  background-image: radial-gradient(circle, var(--grid) 1.15px, transparent 1.4px);
+  background-size: 24px 24px;
+}
+#canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: default; }
+#canvas.panning { cursor: grabbing; }
+#canvas text { pointer-events: none; }
+#canvas [data-node] { cursor: grab; }
+#canvas [data-label] { cursor: ns-resize; }
+#canvas [data-link] { cursor: pointer; }
+#canvas [data-handle] { cursor: crosshair; }
+
+.maphead {
+  position: absolute; top: 14px; left: max(14px, env(safe-area-inset-left, 0px)); max-width: min(560px, calc(100% - 28px));
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: 4px var(--radius) var(--radius) 4px; padding: 8px 14px 9px; cursor: text;
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.maphead h2 { margin: 0; font: 700 1.15rem/1.25 var(--font-display); text-wrap: balance; }
+.maphead h2.empty { color: var(--muted); font-weight: 600; }
+.maphead p { margin: 3px 0 0; font: italic 500 0.95rem/1.35 var(--font-display); color: var(--muted); }
+.maphead p:empty { display: none; }
+
+.zoom {
+  position: absolute; right: 14px; bottom: 14px; display: flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+}
+.zoom button { border: 0; background: transparent; height: 32px; min-width: 34px; cursor: pointer; font-weight: 600; font-variant-numeric: tabular-nums; }
+.zoom button:hover { background: var(--surface-2); }
+.zoom #zoomPct { min-width: 58px; border-inline: 1px solid var(--line); font-size: 0.85rem; }
+.hint {
+  position: absolute; left: 14px; bottom: 14px; right: 170px; margin: 0; color: var(--muted); font-size: 0.84rem;
+  pointer-events: none; text-shadow: 0 0 6px var(--paper), 0 0 2px var(--paper);
+}
+@media (max-width: 820px) { .hint { display: none; } }
+
+.wordbank {
+  position: absolute; left: 50%; bottom: 58px; transform: translateX(-50%); max-width: min(760px, calc(100% - 28px));
+  background: var(--surface); border: 1.5px dashed var(--accent); border-radius: var(--radius); padding: 8px 12px 10px;
+}
+.wordbank h3 { margin: 0 0 6px; font: 700 0.8rem/1 var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.wordbank ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.wordbank li { border: 1px solid var(--line); background: var(--paper); border-radius: 5px; padding: 1px 8px; font-weight: 500; }
+
+#editor {
+  position: absolute; z-index: 5; transform: translate(-50%, -50%); resize: none; overflow: hidden;
+  background: var(--surface); border: 2px solid var(--accent); border-radius: 8px; padding: 4px 8px;
+  text-align: center; line-height: 1.27; outline: none; box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+/* Inspector */
+.panel { border-left: 1px solid var(--line); background: var(--surface); overflow-y: auto; padding: 14px 16px 24px; display: grid; gap: 18px; align-content: start; }
+.panel section { display: grid; gap: 10px; }
+.panel h2 { margin: 0; font: 700 0.78rem/1 var(--font-body); letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: baseline; }
+.panel h2 span { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.field { display: grid; gap: 4px; }
+.field > label, .field > .flabel { font-size: 0.85rem; font-weight: 600; }
+.field input[type="text"], .field textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); padding: 7px 9px;
+}
+.field textarea { resize: vertical; min-height: 58px; }
+.field input:focus, .field textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.sw { width: 30px; height: 30px; border-radius: 7px; border: 2px solid; cursor: pointer; padding: 0; position: relative; }
+.sw[aria-pressed="true"]::after { content: ""; position: absolute; inset: -5px; border: 2px solid var(--accent); border-radius: 10px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { flex: 1; border: 0; background: var(--paper); padding: 6px 4px; cursor: pointer; font-size: 0.88rem; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 0.9rem; cursor: pointer; }
+.check input { margin-top: 3px; accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.check small { display: block; color: var(--muted); }
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn { border: 1px solid var(--line); background: var(--paper); border-radius: 7px; padding: 6px 11px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.danger { color: var(--danger); }
+.btn.danger:hover { border-color: var(--danger); }
+.btn.accent { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stat { background: var(--paper); border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; }
+.stat b { display: block; font: 700 1.3rem/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.78rem; color: var(--muted); }
+.props { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 0.9rem; }
+.props button { all: unset; display: block; padding: 4px 6px; border-radius: 5px; cursor: pointer; line-height: 1.35; }
+.props button:hover, .props button:focus-visible { background: var(--surface-2); }
+.props i { color: var(--accent); }
+.props .warn i { color: var(--danger); }
+.muted { color: var(--muted); font-size: 0.88rem; margin: 0; }
+.keys { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; font-size: 0.88rem; color: var(--muted); }
+kbd { font: 600 0.78rem/1 var(--font-body); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; background: var(--paper); color: var(--ink); }
+
+/* Menus, dialog, toast */
+.menu {
+  position: fixed; z-index: 30; min-width: 230px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: 0 12px 32px rgba(0,0,0,0.18); padding: 5px; display: grid;
+}
+.menu[hidden] { display: none; }
+.menu button { text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 6px; cursor: pointer; display: grid; gap: 1px; }
+.menu button:hover, .menu button:focus-visible { background: var(--surface-2); outline: none; }
+.menu button small { color: var(--muted); font-size: 0.8rem; }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 2px; }
+.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(10, 16, 13, 0.45); display: grid; place-items: center; padding: 16px; }
+.scrim[hidden] { display: none; }
+.dialog { width: min(620px, 100%); max-height: calc(100% - 20px); overflow: auto; background: var(--surface); border-radius: 10px; border: 1px solid var(--line); padding: 18px 20px; display: grid; gap: 12px; }
+.dialog h2 { margin: 0; font: 700 1.2rem/1.25 var(--font-display); }
+.dialog p { margin: 0; color: var(--muted); }
+.dialog textarea { width: 100%; min-height: 220px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); padding: 9px 10px; font: 0.92rem/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; resize: vertical; }
+.dialog .btnrow { justify-content: flex-end; }
+.toast {
+  position: fixed; z-index: 50; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: var(--surface);
+  padding: 9px 16px; border-radius: 8px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.25); max-width: calc(100% - 32px);
+}
+.toast[hidden] { display: none; }
+.dropping .stage::after { content: "Άφησε το αρχείο για άνοιγμα"; position: absolute; inset: 10px; border: 3px dashed var(--accent); border-radius: 12px; display: grid; place-items: center; font: 700 1.3rem var(--font-display); color: var(--accent); background: color-mix(in srgb, var(--paper) 80%, transparent); }
+
+#printArea { display: none; }
+@media print {
+  @page { margin: 12mm; }
+  body { overflow: visible; background: #fff; }
+  .app, .menu, .scrim, .toast { display: none !important; }
+  #printArea { display: block; }
+  #printArea svg { width: 100%; height: auto; max-height: 260mm; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="10" y="3" width="12" height="7" rx="2"/><rect x="2" y="22" width="12" height="7" rx="2"/><rect x="18" y="22" width="12" height="7" rx="2"/><path d="M14 10l-5 12M18 10l6 12"/></svg>
+      <h1>Εννοιολογικοί <em>χάρτες</em></h1>
+    </div>
+    <nav class="tools" aria-label="Εργαλεία">
+      <button class="tb" id="btnNew" type="button" aria-haspopup="menu" title="Νέος χάρτης ή παράδειγμα"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg><span class="lbl">Νέος</span></button>
+      <button class="tb" id="btnOpen" type="button" title="Άνοιγμα αρχείου .json ή κειμένου προτάσεων"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lbl">Άνοιγμα</span></button>
+      <button class="tb" id="btnSave" type="button" title="Αποθήκευση χάρτη ως .json (Ctrl+S)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="lbl">Αποθήκευση</span></button>
+      <button class="tb" id="btnExport" type="button" aria-haspopup="menu" title="Εξαγωγή εικόνας, κειμένου, εκτύπωση"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg><span class="lbl">Εξαγωγή</span></button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="tb" id="btnUndo" type="button" title="Αναίρεση (Ctrl+Z)" aria-label="Αναίρεση"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+      <button class="tb" id="btnRedo" type="button" title="Επανάληψη (Ctrl+Y)" aria-label="Επανάληψη"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="tb primary" id="btnAdd" type="button" title="Νέα έννοια (ή διπλό κλικ στο κενό)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M12 9.5v5M9.5 12h5"/></svg><span class="lbl">Έννοια</span></button>
+      <button class="tb" id="btnLayout" type="button" title="Αυτόματη τακτοποίηση από πάνω προς τα κάτω"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="4" rx="1"/><rect x="3" y="17" width="6" height="4" rx="1"/><rect x="15" y="17" width="6" height="4" rx="1"/><path d="M12 7v5M6 17v-5h12v5"/></svg><span class="lbl">Τακτοποίηση</span></button>
+      <button class="tb" id="btnFit" type="button" title="Προσαρμογή στην οθόνη (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="lbl">Προσαρμογή</span></button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="tb" id="btnExercise" type="button" aria-pressed="false" title="Προβολή άσκησης: τα στοιχεία που σημείωσες ως κενά κρύβονται"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4M14 20h6" stroke-dasharray="2 2.5"/></svg><span class="lbl">Άσκηση</span></button>
+    </nav>
+  </header>
+
+  <main class="work">
+    <section class="stage" id="stage" aria-label="Χάρτης">
+      <svg id="canvas" role="application" aria-label="Επιφάνεια εννοιολογικού χάρτη" tabindex="0"><g id="vp"></g></svg>
+      <div class="maphead" id="maphead" title="Αλλαγή τίτλου και ερώτησης εστίασης"><h2 id="mhTitle"></h2><p id="mhFocus"></p></div>
+      <textarea id="editor" rows="1" spellcheck="true" hidden aria-label="Επεξεργασία κειμένου"></textarea>
+      <div class="wordbank" id="wordbank" hidden><h3>Τράπεζα λέξεων</h3><ul id="wordlist"></ul></div>
+      <p class="hint" id="hint"></p>
+      <div class="zoom" role="group" aria-label="Ζουμ">
+        <button type="button" id="zoomOut" aria-label="Σμίκρυνση">−</button>
+        <button type="button" id="zoomPct" title="Επαναφορά στο 100%">100%</button>
+        <button type="button" id="zoomIn" aria-label="Μεγέθυνση">+</button>
+      </div>
+    </section>
+    <aside class="panel" id="panel" aria-label="Ιδιότητες">
+      <section>
+        <h2>Χάρτης</h2>
+        <div class="field"><label for="inTitle">Τίτλος</label><input type="text" id="inTitle" placeholder="π.χ. Ενέργεια – Α΄ Λυκείου"></div>
+        <div class="field"><label for="inFocus">Ερώτηση εστίασης</label><textarea id="inFocus" rows="2" placeholder="Η ερώτηση που απαντά ο χάρτης, π.χ. «Πώς μετατρέπεται η ενέργεια;»"></textarea></div>
+      </section>
+      <div id="dyn"></div>
+    </aside>
+  </main>
+</div>
+
+<div class="menu" id="menuNew" role="menu" hidden>
+  <button type="button" role="menuitem" data-new="blank">Κενός χάρτης<small>Ξεκινά με μία κεντρική έννοια</small></button>
+  <button type="button" role="menuitem" data-new="text">Από κείμενο…<small>Γράψε προτάσεις «έννοια | λέξεις | έννοια»</small></button>
+  <hr>
+  <button type="button" role="menuitem" data-new="energy">Παράδειγμα: Ενέργεια<small>Α΄ Λυκείου, με κενά για άσκηση</small></button>
+  <button type="button" role="menuitem" data-new="circuit">Παράδειγμα: Ηλεκτρικό κύκλωμα<small>Γ΄ Γυμνασίου</small></button>
+</div>
+<div class="menu" id="menuExport" role="menu" hidden>
+  <button type="button" role="menuitem" data-exp="png">Εικόνα PNG<small>Για προβολή ή επικόλληση σε φύλλο εργασίας</small></button>
+  <button type="button" role="menuitem" data-exp="svg">Διανυσματικό SVG<small>Καθαρό σε κάθε μέγεθος</small></button>
+  <button type="button" role="menuitem" data-exp="text">Προτάσεις (κείμενο)<small>Λίστα «έννοια | λέξεις | έννοια»</small></button>
+  <button type="button" role="menuitem" data-exp="print" id="expPrint">Εκτύπωση / PDF<small>Από τον διάλογο εκτύπωσης του browser</small></button>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <h2 id="dlgTitle"></h2>
+    <p id="dlgText"></p>
+    <textarea id="dlgArea" spellcheck="false" aria-labelledby="dlgTitle"></textarea>
+    <div class="btnrow" id="dlgButtons"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<input type="file" id="fileIn" accept=".json,.txt,application/json,text/plain" hidden>
+<div id="printArea"></div>
+
+<script>
+'use strict';
+(() => {
+const $ = s => document.querySelector(s);
+const STORE_KEY = 'ennoiologikoi-xartes:v1';
+const inViewer = window.self !== window.top || typeof window.claude?.use === 'function';
+
+/* ---------- Fonts, measuring, wrapping ---------- */
+const FAMILY = '"Sofia Sans", "Segoe UI", system-ui, sans-serif';
+const FAMILY_SVG = "'Sofia Sans', 'Segoe UI', Arial, sans-serif";
+const DISPLAY = '"Piazzolla", Georgia, serif';
+const DISPLAY_SVG = "Piazzolla, Georgia, 'Times New Roman', serif";
+const NODE_FONT = { size: 15, weight: 600, style: 'normal', lh: 19 };
+const LINK_FONT = { size: 13, weight: 500, style: 'italic', lh: 16 };
+const fontStr = (f, fam = FAMILY) => `${f.style} ${f.weight} ${f.size}px ${fam}`;
+const mctx = document.createElement('canvas').getContext('2d');
+const mcache = new Map();
+function measure(text, font) {
+  const key = font + '\u0001' + text;
+  let w = mcache.get(key);
+  if (w === undefined) { mctx.font = font; w = mctx.measureText(text).width; mcache.set(key, w); }
+  return w;
+}
+function wrap(text, f, maxW, fam) {
+  const font = fontStr(f, fam), out = [];
+  for (const para of String(text).split('\n')) {
+    const words = para.split(/\s+/).filter(Boolean);
+    if (!words.length) { out.push(''); continue; }
+    let line = '';
+    for (let w of words) {
+      const t = line ? line + ' ' + w : w;
+      if (measure(t, font) <= maxW) { line = t; continue; }
+      if (line) { out.push(line); line = ''; }
+      while (measure(w, font) > maxW && w.length > 1) {
+        let i = w.length - 1;
+        while (i > 1 && measure(w.slice(0, i), font) > maxW) i--;
+        out.push(w.slice(0, i)); w = w.slice(i);
+      }
+      line = w;
+    }
+    out.push(line);
+  }
+  return out;
+}
+const widest = (lines, f, fam) => lines.reduce((m, l) => Math.max(m, measure(l, fontStr(f, fam))), 0);
+
+/* ---------- Palettes ---------- */
+const COLOR_KEYS = ['ink', 'blue', 'green', 'amber', 'red', 'violet'];
+const COLOR_NAMES = { ink: 'Μελάνι', blue: 'Μπλε', green: 'Πράσινο', amber: 'Κεχριμπαρί', red: 'Κόκκινο', violet: 'Μωβ' };
+const PAL_LIGHT = {
+  paper: '#eef2ed', link: '#46564e', label: '#26332d', muted: '#7b8a82', accent: '#2347b5', accentSoft: 'rgba(35,71,181,0.10)',
+  colors: {
+    ink: { fill: '#ffffff', stroke: '#2b3a33', text: '#14201b' },
+    blue: { fill: '#e3ebff', stroke: '#2347b5', text: '#13235e' },
+    green: { fill: '#dcf1e3', stroke: '#2f7d4f', text: '#123b23' },
+    amber: { fill: '#fdefd0', stroke: '#a26800', text: '#4a3000' },
+    red: { fill: '#fde3e0', stroke: '#b3362b', text: '#5a1510' },
+    violet: { fill: '#efe5fb', stroke: '#6d3fb0', text: '#331a59' }
+  }
+};
+const PAL_DARK = {
+  paper: '#121815', link: '#9fb0a7', label: '#d3ddd7', muted: '#7d8d85', accent: '#93adff', accentSoft: 'rgba(147,173,255,0.14)',
+  colors: {
+    ink: { fill: '#1c2521', stroke: '#b9c7bf', text: '#e7eee9' },
+    blue: { fill: '#1d2850', stroke: '#8aa6ff', text: '#dfe6ff' },
+    green: { fill: '#16341f', stroke: '#6cc28c', text: '#d9f3e2' },
+    amber: { fill: '#3a2c0c', stroke: '#e3ab4f', text: '#fbe9c7' },
+    red: { fill: '#3d1a17', stroke: '#f08a80', text: '#fde0dc' },
+    violet: { fill: '#2c1f45', stroke: '#b996f0', text: '#ece2fb' }
+  }
+};
+const PAL_EXPORT = { ...PAL_LIGHT, paper: '#ffffff' };
+function isDark() {
+  const t = document.documentElement.dataset.theme;
+  if (t === 'dark') return true;
+  if (t === 'light') return false;
+  return matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+/* ---------- State ---------- */
+let doc = { title: '', focus: '', nodes: [], links: [] };
+let view = { x: 0, y: 0, k: 1 };
+let sel = new Set();
+let exercise = false;
+let undoStack = [], redoStack = [];
+let lastGeo = new Map(), lastLinkGeo = new Map();
+let ghost = null, marquee = null, connectHover = null;
+let editing = null;
+
+const uid = p => p + Math.random().toString(36).slice(2, 8);
+const nodeById = id => doc.nodes.find(n => n.id === id);
+const linkById = id => doc.links.find(l => l.id === id);
+const isNodeId = id => !!nodeById(id);
+const selNodes = () => doc.nodes.filter(n => sel.has(n.id));
+const selLinks = () => doc.links.filter(l => sel.has(l.id));
+
+/* ---------- Geometry ---------- */
+function nodeGeo(n) {
+  const plain = n.shape === 'plain';
+  const padX = plain ? 6 : 14, padY = plain ? 4 : 9;
+  const text = n.text.trim() ? n.text : '';
+  const lines = text ? wrap(text, NODE_FONT, 190) : [];
+  const tw = lines.length ? widest(lines, NODE_FONT) : 92;
+  const w = Math.max(Math.ceil(tw) + 2 * padX, plain ? 30 : 64);
+  const h = Math.max(lines.length, 1) * NODE_FONT.lh + 2 * padY;
+  return { id: n.id, cx: n.x, cy: n.y, x: n.x - w / 2, y: n.y - h / 2, w, h, lines };
+}
+function rectExit(g, px, py) {
+  const dx = px - g.cx, dy = py - g.cy;
+  if (!dx && !dy) return { x: g.cx, y: g.cy };
+  const hw = g.w / 2 + 3, hh = g.h / 2 + 3;
+  let t = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
+  if (t > 1) t = 1;
+  return { x: g.cx + dx * t, y: g.cy + dy * t };
+}
+// Labels sit a little past the middle, towards the target: links that fan out from one concept then keep their labels apart.
+const LABEL_T = 0.6;
+function linkGeo(l, a, b) {
+  const dx = b.cx - a.cx, dy = b.cy - a.cy, len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;
+  const mx = (a.cx + b.cx) / 2, my = (a.cy + b.cy) / 2, bend = l.bend || 0;
+  const c = { x: mx + nx * bend * 2, y: my + ny * bend * 2 };
+  const s = rectExit(a, c.x, c.y), e = rectExit(b, c.x, c.y);
+  const t = LABEL_T, a0 = (1 - t) * (1 - t), a1 = 2 * t * (1 - t), a2 = t * t;
+  const p = { x: a0 * s.x + a1 * c.x + a2 * e.x, y: a0 * s.y + a1 * c.y + a2 * e.y };
+  const lines = l.label.trim() ? wrap(l.label, LINK_FONT, 150) : [];
+  const lw = lines.length ? widest(lines, LINK_FONT) : 0;
+  const q = { x: s.x + (e.x - s.x) * t, y: s.y + (e.y - s.y) * t };
+  return { s, e, c, p, q, m: { x: mx, y: my }, n: { x: nx, y: ny }, lines, lw, lh: lines.length * LINK_FONT.lh };
+}
+function arrowAt(tip, from) {
+  let ux = tip.x - from.x, uy = tip.y - from.y; const L = Math.hypot(ux, uy) || 1; ux /= L; uy /= L;
+  const bx = tip.x - ux * 10, by = tip.y - uy * 10;
+  return { pts: [[tip.x, tip.y], [bx - uy * 5, by + ux * 5], [bx + uy * 5, by - ux * 5]], back: { x: tip.x - ux * 6, y: tip.y - uy * 6 } };
+}
+
+/* ---------- Scene (shared by screen, SVG and PNG) ---------- */
+function buildOps(opt) {
+  const { screen, pal } = opt, ex = opt.exercise, ops = [];
+  const geo = new Map(), lgeo = new Map();
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const grow = (x, y, w = 0, h = 0) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + w); y1 = Math.max(y1, y + h); };
+  for (const n of doc.nodes) { const g = nodeGeo(n); geo.set(n.id, g); grow(g.x, g.y, g.w + 3, g.h + 3); }
+
+  for (const l of doc.links) {
+    const a = geo.get(l.from), b = geo.get(l.to);
+    if (!a || !b) continue;
+    const L = linkGeo(l, a, b); lgeo.set(l.id, L);
+    const on = screen && opt.sel.has(l.id);
+    const col = on ? pal.accent : pal.link;
+    let s = L.s, e = L.e;
+    const arrows = [];
+    if (l.dir !== 'none') { const ar = arrowAt(L.e, L.c.x === L.e.x && L.c.y === L.e.y ? L.s : L.c); arrows.push(ar.pts); e = ar.back; }
+    if (l.dir === 'both') { const ar = arrowAt(L.s, L.c.x === L.s.x && L.c.y === L.s.y ? L.e : L.c); arrows.push(ar.pts); s = ar.back; }
+    const d = { sx: s.x, sy: s.y, cx: L.c.x, cy: L.c.y, ex: e.x, ey: e.y };
+    if (screen) ops.push({ k: 'path', d, stroke: 'transparent', sw: 16, attrs: { 'data-link': l.id } });
+    ops.push({ k: 'path', d, stroke: col, sw: on ? 2.4 : 1.6 });
+    for (const pts of arrows) ops.push({ k: 'poly', pts, fill: col });
+    grow(L.s.x, L.s.y); grow(L.e.x, L.e.y); grow(L.p.x, L.p.y);
+
+    const hideLbl = ex && l.blank;
+    if (L.lines.length || screen) {
+      let w = L.lines.length ? L.lw + 12 : 26, h = L.lines.length ? L.lh + 6 : 20;
+      if (hideLbl) w = Math.max(w, 70);
+      const rx = L.p.x - w / 2, ry = L.p.y - h / 2;
+      ops.push({ k: 'rect', x: rx, y: ry, w, h, r: 5, fill: pal.paper, stroke: on ? pal.accent : 'none', sw: 1.4, attrs: screen ? { 'data-label': l.id } : null });
+      grow(rx, ry, w, h);
+      if (hideLbl) ops.push({ k: 'line', x1: rx + 6, y1: ry + h - 5, x2: rx + w - 6, y2: ry + h - 5, stroke: pal.link, sw: 1.2, dash: '3 3' });
+      else if (L.lines.length) ops.push({ k: 'text', x: L.p.x, y: L.p.y, lines: L.lines, f: LINK_FONT, color: on ? pal.accent : pal.label });
+      else ops.push({ k: 'text', x: L.p.x, y: L.p.y, lines: ['…'], f: LINK_FONT, color: pal.muted });
+      if (screen && l.blank && !ex) ops.push({ k: 'line', x1: rx + 4, y1: ry + h + 1, x2: rx + w - 4, y2: ry + h + 1, stroke: pal.accent, sw: 1.6, dash: '4 3' });
+    }
+  }
+
+  for (const n of doc.nodes) {
+    const g = geo.get(n.id), c = pal.colors[n.color] || pal.colors.ink;
+    const on = screen && opt.sel.has(n.id), plain = n.shape === 'plain';
+    const r = n.shape === 'pill' ? g.h / 2 : 9;
+    if (!plain) ops.push({ k: 'rect', x: g.x + 2.5, y: g.y + 2.5, w: g.w, h: g.h, r, fill: c.stroke, opacity: 0.2 });
+    ops.push({
+      k: 'rect', x: g.x, y: g.y, w: g.w, h: g.h, r: plain ? 4 : r,
+      fill: plain ? 'transparent' : c.fill, stroke: plain ? (screen && !ex ? pal.muted : 'none') : c.stroke,
+      sw: plain ? 1 : 1.6, dash: plain ? '2 3' : null, attrs: screen ? { 'data-node': n.id } : null
+    });
+    if (on) ops.push({ k: 'rect', x: g.x - 4, y: g.y - 4, w: g.w + 8, h: g.h + 8, r: r + 4, fill: 'none', stroke: pal.accent, sw: 2 });
+    if (screen && connectHover === n.id) ops.push({ k: 'rect', x: g.x - 5, y: g.y - 5, w: g.w + 10, h: g.h + 10, r: r + 5, fill: pal.accentSoft, stroke: pal.accent, sw: 2, dash: '5 4' });
+    if (ex && n.blank) {
+      ops.push({ k: 'line', x1: g.x + 12, y1: g.y + g.h - 8, x2: g.x + g.w - 12, y2: g.y + g.h - 8, stroke: c.stroke, sw: 1.1, dash: '2 3', opacity: 0.8 });
+    } else if (g.lines.length) {
+      ops.push({ k: 'text', x: g.cx, y: g.cy, lines: g.lines, f: NODE_FONT, color: c.text });
+    } else if (screen) {
+      ops.push({ k: 'text', x: g.cx, y: g.cy, lines: ['Νέα έννοια'], f: { ...NODE_FONT, weight: 500, style: 'italic' }, color: pal.muted });
+    }
+    if (screen && n.blank && !ex) {
+      ops.push({ k: 'circle', cx: g.x + g.w, cy: g.y, r: 8, fill: pal.accent, stroke: pal.paper, sw: 2 });
+      ops.push({ k: 'text', x: g.x + g.w, y: g.y + 0.5, lines: ['?'], f: { size: 11, weight: 700, style: 'normal', lh: 12 }, color: pal.paper });
+    }
+  }
+
+  if (screen && sel.size === 1) {
+    const n = selNodes()[0];
+    if (n && !editing) {
+      const g = geo.get(n.id), hx = g.cx, hy = g.y + g.h + 15;
+      ops.push({ k: 'line', x1: hx, y1: g.y + g.h + 4, x2: hx, y2: hy - 9, stroke: pal.accent, sw: 1.5 });
+      ops.push({ k: 'circle', cx: hx, cy: hy, r: 10, fill: pal.accent, stroke: pal.paper, sw: 2, attrs: { 'data-handle': n.id } });
+      ops.push({ k: 'line', x1: hx - 4.5, y1: hy, x2: hx + 4.5, y2: hy, stroke: pal.paper, sw: 2 });
+      ops.push({ k: 'line', x1: hx, y1: hy - 4.5, x2: hx, y2: hy + 4.5, stroke: pal.paper, sw: 2 });
+    }
+  }
+  if (screen && ghost) ops.push({ k: 'line', x1: ghost.x1, y1: ghost.y1, x2: ghost.x2, y2: ghost.y2, stroke: pal.accent, sw: 2, dash: '6 5' });
+  if (screen && marquee) {
+    const m = normRect(marquee);
+    ops.push({ k: 'rect', x: m.x, y: m.y, w: m.w, h: m.h, r: 2, fill: pal.accentSoft, stroke: pal.accent, sw: 1, dash: '4 3' });
+  }
+  if (x0 === Infinity) { x0 = y0 = 0; x1 = y1 = 1; }
+  return { ops, geo, lgeo, bounds: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } };
+}
+const normRect = m => ({ x: Math.min(m.x1, m.x2), y: Math.min(m.y1, m.y2), w: Math.abs(m.x2 - m.x1), h: Math.abs(m.y2 - m.y1) });
+
+/* ---------- Backends ---------- */
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const r2 = v => Math.round(v * 100) / 100;
+function attrStr(a) { if (!a) return ''; return Object.entries(a).map(([k, v]) => ` ${k}="${esc(v)}"`).join(''); }
+function opsToSVG(ops, fam = FAMILY_SVG) {
+  let s = '';
+  for (const o of ops) {
+    const op = o.opacity != null ? ` opacity="${o.opacity}"` : '';
+    const dash = o.dash ? ` stroke-dasharray="${o.dash}"` : '';
+    if (o.k === 'rect') s += `<rect x="${r2(o.x)}" y="${r2(o.y)}" width="${r2(o.w)}" height="${r2(o.h)}" rx="${r2(Math.min(o.r || 0, o.h / 2, o.w / 2))}" fill="${o.fill}" stroke="${o.stroke || 'none'}" stroke-width="${o.sw || 0}"${dash}${op}${attrStr(o.attrs)}/>`;
+    else if (o.k === 'path') { const d = o.d; s += `<path d="M${r2(d.sx)} ${r2(d.sy)}Q${r2(d.cx)} ${r2(d.cy)} ${r2(d.ex)} ${r2(d.ey)}" fill="none" stroke="${o.stroke}" stroke-width="${o.sw}" stroke-linecap="round"${dash}${attrStr(o.attrs)}/>`; }
+    else if (o.k === 'line') s += `<line x1="${r2(o.x1)}" y1="${r2(o.y1)}" x2="${r2(o.x2)}" y2="${r2(o.y2)}" stroke="${o.stroke}" stroke-width="${o.sw}" stroke-linecap="round"${dash}${op}/>`;
+    else if (o.k === 'poly') s += `<polygon points="${o.pts.map(p => r2(p[0]) + ',' + r2(p[1])).join(' ')}" fill="${o.fill}"/>`;
+    else if (o.k === 'circle') s += `<circle cx="${r2(o.cx)}" cy="${r2(o.cy)}" r="${o.r}" fill="${o.fill}" stroke="${o.stroke || 'none'}" stroke-width="${o.sw || 0}"${attrStr(o.attrs)}/>`;
+    else if (o.k === 'text') {
+      const f = o.f, n = o.lines.length, anchor = o.anchor || 'middle', family = o.family || fam;
+      o.lines.forEach((line, i) => {
+        const y = o.y - (n - 1) * f.lh / 2 + i * f.lh;
+        s += `<text x="${r2(o.x)}" y="${r2(y)}" font-family="${family}" font-size="${f.size}" font-weight="${f.weight}" font-style="${f.style}" fill="${o.color}" text-anchor="${anchor}" dominant-baseline="central">${esc(line)}</text>`;
+      });
+    }
+  }
+  return s;
+}
+function roundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, h / 2, w / 2);
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function opsToCanvas(ctx, ops) {
+  for (const o of ops) {
+    ctx.save();
+    if (o.opacity != null) ctx.globalAlpha = o.opacity;
+    ctx.setLineDash(o.dash ? o.dash.split(' ').map(Number) : []);
+    ctx.lineCap = 'round';
+    if (o.k === 'rect') {
+      roundRect(ctx, o.x, o.y, o.w, o.h, o.r || 0);
+      if (o.fill && o.fill !== 'none' && o.fill !== 'transparent') { ctx.fillStyle = o.fill; ctx.fill(); }
+      if (o.stroke && o.stroke !== 'none') { ctx.strokeStyle = o.stroke; ctx.lineWidth = o.sw; ctx.stroke(); }
+    } else if (o.k === 'path') {
+      if (o.stroke !== 'transparent') { const d = o.d; ctx.beginPath(); ctx.moveTo(d.sx, d.sy); ctx.quadraticCurveTo(d.cx, d.cy, d.ex, d.ey); ctx.strokeStyle = o.stroke; ctx.lineWidth = o.sw; ctx.stroke(); }
+    } else if (o.k === 'line') {
+      ctx.beginPath(); ctx.moveTo(o.x1, o.y1); ctx.lineTo(o.x2, o.y2); ctx.strokeStyle = o.stroke; ctx.lineWidth = o.sw; ctx.stroke();
+    } else if (o.k === 'poly') {
+      ctx.beginPath(); o.pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = o.fill; ctx.fill();
+    } else if (o.k === 'circle') {
+      ctx.beginPath(); ctx.arc(o.cx, o.cy, o.r, 0, Math.PI * 2); ctx.fillStyle = o.fill; ctx.fill();
+    } else if (o.k === 'text') {
+      const f = o.f, n = o.lines.length;
+      ctx.font = fontStr(f, o.family === DISPLAY_SVG ? DISPLAY : FAMILY); ctx.fillStyle = o.color;
+      ctx.textAlign = o.anchor === 'start' ? 'left' : 'center'; ctx.textBaseline = 'middle';
+      o.lines.forEach((line, i) => ctx.fillText(line, o.x, o.y - (n - 1) * f.lh / 2 + i * f.lh));
+    }
+    ctx.restore();
+  }
+}
+
+/* ---------- Screen rendering ---------- */
+const svg = $('#canvas'), vp = $('#vp'), stage = $('#stage');
+let raf = 0;
+function render() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; renderNow(); }); }
+function renderNow() {
+  const pal = isDark() ? PAL_DARK : PAL_LIGHT;
+  const { ops, geo, lgeo } = buildOps({ screen: true, pal, exercise, sel });
+  lastGeo = geo; lastLinkGeo = lgeo;
+  vp.innerHTML = opsToSVG(ops);
+  applyView();
+  $('#mhTitle').textContent = doc.title.trim() || 'Χωρίς τίτλο';
+  $('#mhTitle').classList.toggle('empty', !doc.title.trim());
+  $('#mhFocus').textContent = doc.focus.trim();
+  renderWordbank();
+  renderHint();
+  if (editing) positionEditor();
+}
+function applyView() {
+  vp.setAttribute('transform', `translate(${r2(view.x)} ${r2(view.y)}) scale(${r2(view.k * 1000) / 1000})`);
+  const gs = 24 * view.k;
+  stage.style.backgroundSize = `${gs}px ${gs}px`;
+  stage.style.backgroundPosition = `${view.x % gs}px ${view.y % gs}px`;
+  $('#zoomPct').textContent = Math.round(view.k * 100) + '%';
+}
+function hiddenWords() {
+  const w = [];
+  doc.nodes.forEach(n => { if (n.blank && n.text.trim()) w.push(n.text.trim().replace(/\s+/g, ' ')); });
+  doc.links.forEach(l => { if (l.blank && l.label.trim()) w.push(l.label.trim().replace(/\s+/g, ' ')); });
+  return w.sort((a, b) => a.localeCompare(b, 'el'));
+}
+function renderWordbank() {
+  const wb = $('#wordbank'), words = hiddenWords();
+  wb.hidden = !exercise;
+  $('#wordlist').innerHTML = words.length ? words.map(w => `<li>${esc(w)}</li>`).join('') : '<li>Δεν υπάρχουν κενά. Επίλεξε μια έννοια ή σύνδεση και σημείωσε «Κενό στην άσκηση».</li>';
+}
+function renderHint() {
+  let t;
+  if (exercise) t = 'Προβολή άσκησης: τα στοιχεία με «?» εμφανίζονται κενά. Η εξαγωγή και η εκτύπωση βγάζουν το φύλλο με την τράπεζα λέξεων.';
+  else if (sel.size === 1 && selNodes().length) t = 'Enter: επεξεργασία · Tab: νέα έννοια από κάτω · σύρε το ⊕ πάνω σε άλλη έννοια για σύνδεση · Delete: διαγραφή';
+  else if (sel.size === 1 && selLinks().length) t = 'Σύρε τις λέξεις σύνδεσης για να καμπυλώσει η γραμμή · διπλό κλικ: επεξεργασία · Delete: διαγραφή';
+  else if (sel.size > 1) t = 'Σύρε για να μετακινήσεις όλα τα επιλεγμένα · Delete: διαγραφή';
+  else t = 'Διπλό κλικ στο κενό: νέα έννοια · σύρσιμο φόντου: μετακίνηση · ροδέλα: ζουμ · Shift+σύρσιμο: επιλογή περιοχής';
+  $('#hint').textContent = t;
+}
+
+/* ---------- History & persistence ---------- */
+const snapshot = () => JSON.stringify(doc);
+function checkpoint() { undoStack.push(snapshot()); if (undoStack.length > 200) undoStack.shift(); redoStack.length = 0; updateUndoUI(); }
+function undo() {
+  if (editing) commitEdit();
+  if (!undoStack.length) return;
+  redoStack.push(snapshot()); doc = JSON.parse(undoStack.pop()); afterHistory();
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(snapshot()); doc = JSON.parse(redoStack.pop()); afterHistory();
+}
+function afterHistory() {
+  sel = new Set([...sel].filter(id => nodeById(id) || linkById(id)));
+  syncMapFields(); changed(true);
+}
+function updateUndoUI() { $('#btnUndo').disabled = !undoStack.length; $('#btnRedo').disabled = !redoStack.length; }
+let saveTimer = 0;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { try { localStorage.setItem(STORE_KEY, JSON.stringify({ doc, view, exercise })); } catch (e) { /* storage unavailable */ } }, 400);
+}
+function changed(panelToo) { render(); scheduleSave(); updateUndoUI(); if (panelToo) renderPanel(); }
+
+/* ---------- Model operations ---------- */
+function addNode(x, y, text = '', color = 'ink', shape = 'rect') {
+  const n = { id: uid('n'), text, x: Math.round(x), y: Math.round(y), color, shape, blank: false };
+  doc.nodes.push(n); return n;
+}
+function addLink(from, to, label = '') {
+  const l = { id: uid('l'), from, to, label, dir: 'forward', bend: 0, blank: false };
+  doc.links.push(l); return l;
+}
+function deleteSelection() {
+  if (!sel.size) return;
+  checkpoint();
+  doc.nodes = doc.nodes.filter(n => !sel.has(n.id));
+  const alive = new Set(doc.nodes.map(n => n.id));
+  doc.links = doc.links.filter(l => !sel.has(l.id) && alive.has(l.from) && alive.has(l.to));
+  sel.clear(); changed(true);
+}
+function overlaps(x, y, w, h, ignore) {
+  for (const n of doc.nodes) {
+    if (n.id === ignore) continue;
+    const g = nodeGeo(n);
+    if (x - w / 2 < g.x + g.w + 24 && x + w / 2 > g.x - 24 && y - h / 2 < g.y + g.h + 18 && y + h / 2 > g.y - 18) return true;
+  }
+  return false;
+}
+function childSpot(parent) {
+  const g = nodeGeo(parent), y = g.y + g.h + 110;
+  for (const dx of [0, 170, -170, 340, -340, 510, -510, 680, -680]) if (!overlaps(parent.x + dx, y, 130, 40)) return { x: parent.x + dx, y };
+  return { x: parent.x + 850, y };
+}
+function addChild(parent) {
+  checkpoint();
+  const p = childSpot(parent);
+  const n = addNode(p.x, p.y, '', parent.color === 'ink' ? 'ink' : parent.color);
+  const l = addLink(parent.id, n.id);
+  sel = new Set([n.id]); changed(true);
+  ensureVisible(n);
+  startEdit('node', n.id, { isNew: true, noCheckpoint: true, next: { kind: 'link', id: l.id } });
+}
+
+/* ---------- Inline editor ---------- */
+const editor = $('#editor');
+function startEdit(kind, id, o = {}) {
+  if (editing) commitEdit();
+  const item = kind === 'node' ? nodeById(id) : linkById(id);
+  if (!item) return;
+  if (!o.noCheckpoint) checkpoint();
+  const field = kind === 'node' ? 'text' : 'label';
+  editing = { kind, id, field, before: item[field], isNew: !!o.isNew, next: o.next || null, cpPushed: !o.noCheckpoint };
+  sel = new Set([id]);
+  editor.value = item[field];
+  editor.hidden = false;
+  renderNow(); renderPanel();
+  editor.focus(); editor.select();
+}
+function positionEditor() {
+  if (!editing) return;
+  const k = view.k;
+  let cx, cy, w, f;
+  if (editing.kind === 'node') {
+    const g = lastGeo.get(editing.id); if (!g) return;
+    cx = g.cx; cy = g.cy; w = Math.max(g.w + 20, 170); f = NODE_FONT;
+  } else {
+    const L = lastLinkGeo.get(editing.id); if (!L) return;
+    cx = L.p.x; cy = L.p.y; w = Math.max(L.lw + 30, 150); f = LINK_FONT;
+  }
+  editor.style.left = (view.x + cx * k) + 'px';
+  editor.style.top = (view.y + cy * k) + 'px';
+  editor.style.width = (w * k) + 'px';
+  editor.style.font = `${f.style} ${f.weight} ${Math.max(f.size * k, 12)}px ${FAMILY}`;
+  editor.style.height = 'auto';
+  editor.style.height = (editor.scrollHeight + 4) + 'px';
+}
+editor.addEventListener('input', () => {
+  if (!editing) return;
+  const item = editing.kind === 'node' ? nodeById(editing.id) : linkById(editing.id);
+  if (item) { item[editing.field] = editor.value; render(); }
+});
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+  else if (e.key === 'Tab' && editing?.kind === 'node') {
+    e.preventDefault(); const id = editing.id; editing.next = null; commitEdit();
+    const n = nodeById(id); if (n) addChild(n);
+  }
+  e.stopPropagation();
+});
+editor.addEventListener('blur', () => { if (editing && !editor._skipBlur) commitEdit(true); });
+function finishEditUI() { editor._skipBlur = true; editor.hidden = true; editor._skipBlur = false; svg.focus({ preventScroll: true }); }
+function commitEdit(fromBlur) {
+  if (!editing) return;
+  const ed = editing; editing = null;
+  const item = ed.kind === 'node' ? nodeById(ed.id) : linkById(ed.id);
+  finishEditUI();
+  if (item) {
+    item[ed.field] = item[ed.field].replace(/[ \t]+\n/g, '\n').trim();
+    if (ed.kind === 'node' && !item.text && ed.isNew) {
+      doc.nodes = doc.nodes.filter(n => n.id !== ed.id);
+      doc.links = doc.links.filter(l => l.from !== ed.id && l.to !== ed.id);
+      sel.clear();
+    } else if (item[ed.field] === ed.before && ed.cpPushed && !ed.isNew) {
+      undoStack.pop();
+    }
+  }
+  changed(true);
+  if (!fromBlur && ed.next && item && nodeById(ed.id) && linkById(ed.next.id)) {
+    setTimeout(() => startEdit(ed.next.kind, ed.next.id, { noCheckpoint: true }), 0);
+  }
+}
+function cancelEdit() {
+  if (!editing) return;
+  const ed = editing; editing = null;
+  finishEditUI();
+  const item = ed.kind === 'node' ? nodeById(ed.id) : linkById(ed.id);
+  if (item) item[ed.field] = ed.before;
+  if (ed.isNew && ed.kind === 'node') {
+    doc.nodes = doc.nodes.filter(n => n.id !== ed.id);
+    doc.links = doc.links.filter(l => l.from !== ed.id && l.to !== ed.id);
+    sel.clear();
+  }
+  if (ed.cpPushed && !ed.isNew) undoStack.pop();
+  changed(true);
+}
+
+/* ---------- View helpers ---------- */
+function stageSize() { const r = svg.getBoundingClientRect(); return { w: r.width, h: r.height, left: r.left, top: r.top }; }
+function toWorld(cx, cy) { const s = stageSize(); return { x: (cx - s.left - view.x) / view.k, y: (cy - s.top - view.y) / view.k }; }
+const clampK = k => Math.min(3, Math.max(0.2, k));
+function zoomAt(px, py, f) {
+  const k2 = clampK(view.k * f);
+  view.x = px - (px - view.x) * (k2 / view.k); view.y = py - (py - view.y) * (k2 / view.k); view.k = k2;
+  applyView(); if (editing) positionEditor(); scheduleSave();
+}
+function fitView(animate) {
+  const { bounds: b } = buildOps({ screen: false, pal: PAL_LIGHT, exercise, sel: new Set() });
+  const s = stageSize(); if (!s.w || !s.h) return;
+  const head = $('#maphead').getBoundingClientRect();
+  const top = Math.min(head.height + 30, s.h * 0.3), pad = 30, bottom = exercise ? $('#wordbank').offsetHeight + 70 : 54;
+  const k = clampK(Math.min((s.w - 2 * pad) / Math.max(b.w, 1), (s.h - top - bottom) / Math.max(b.h, 1), 1.4));
+  const target = { k, x: (s.w - b.w * k) / 2 - b.x * k, y: top + (s.h - top - bottom - b.h * k) / 2 - b.y * k };
+  tweenView(target, animate);
+}
+function tweenView(target, animate) {
+  if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { view = target; applyView(); scheduleSave(); return; }
+  const from = { ...view }, t0 = performance.now(), D = 320;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 3);
+    view = { x: from.x + (target.x - from.x) * e, y: from.y + (target.y - from.y) * e, k: from.k + (target.k - from.k) * e };
+    applyView(); if (t < 1) requestAnimationFrame(step); else scheduleSave();
+  };
+  requestAnimationFrame(step);
+}
+function ensureVisible(n) {
+  const s = stageSize(), sx = view.x + n.x * view.k, sy = view.y + n.y * view.k;
+  if (sx < 60 || sx > s.w - 60 || sy < 60 || sy > s.h - 60) { view.x += s.w / 2 - sx; view.y += s.h / 2 - sy; applyView(); }
+}
+
+/* ---------- Pointer interaction ---------- */
+const pointers = new Map();
+let ps = null, lastTap = null;
+function hitNode(w) {
+  const arr = [...lastGeo.values()];
+  for (let i = arr.length - 1; i >= 0; i--) { const g = arr[i]; if (w.x >= g.x && w.x <= g.x + g.w && w.y >= g.y && w.y <= g.y + g.h) return g.id; }
+  return null;
+}
+svg.addEventListener('pointerdown', e => {
+  if (e.button > 0 && e.pointerType === 'mouse') return;
+  closeMenus();
+  e.preventDefault();
+  if (editing) commitEdit(true);
+  if (document.activeElement !== svg) svg.focus({ preventScroll: true });
+  svg.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()], s = stageSize();
+    ps = { mode: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, m0: { x: (a.x + b.x) / 2 - s.left, y: (a.y + b.y) / 2 - s.top }, v0: { ...view } };
+    ghost = marquee = null; render(); return;
+  }
+  if (pointers.size > 2) return;
+  const w = toWorld(e.clientX, e.clientY), t = e.target;
+  const handle = t.closest('[data-handle]'), nodeEl = t.closest('[data-node]');
+  const labelEl = t.closest('[data-label]'), linkEl = t.closest('[data-link]');
+  const key = handle ? 'h' : nodeEl ? nodeEl.dataset.node : labelEl ? labelEl.dataset.label : linkEl ? linkEl.dataset.link : 'bg';
+  const now = performance.now();
+  const dbl = lastTap && now - lastTap.t < 380 && Math.hypot(lastTap.x - e.clientX, lastTap.y - e.clientY) < 12 && lastTap.key === key;
+  lastTap = dbl ? null : { t: now, x: e.clientX, y: e.clientY, key };
+  const before = [...sel].join();
+
+  if (handle) {
+    const id = handle.dataset.handle, g = lastGeo.get(id);
+    ps = { mode: 'connect', from: id, sx: e.clientX, sy: e.clientY, moved: false };
+    ghost = { x1: g.cx, y1: g.cy, x2: w.x, y2: w.y };
+  } else if (nodeEl) {
+    const id = nodeEl.dataset.node;
+    if (dbl) { ps = null; startEdit('node', id); return; }
+    if (e.shiftKey || e.ctrlKey || e.metaKey) { sel.has(id) ? sel.delete(id) : sel.add(id); }
+    else if (!sel.has(id)) sel = new Set([id]);
+    const orig = new Map(selNodes().map(n => [n.id, { x: n.x, y: n.y }]));
+    ps = { mode: 'drag', start: w, orig, moved: false, sx: e.clientX, sy: e.clientY };
+  } else if (labelEl || linkEl) {
+    const id = (labelEl || linkEl).dataset[labelEl ? 'label' : 'link'];
+    if (dbl) { ps = null; startEdit('link', id); return; }
+    sel = new Set([id]);
+    ps = { mode: labelEl ? 'bend' : 'none', id, moved: false, sx: e.clientX, sy: e.clientY };
+  } else {
+    if (dbl) {
+      ps = null; checkpoint();
+      const n = addNode(w.x, w.y); sel = new Set([n.id]); changed(true);
+      startEdit('node', n.id, { isNew: true, noCheckpoint: true }); return;
+    }
+    if (e.shiftKey) { ps = { mode: 'marquee', base: new Set(sel) }; marquee = { x1: w.x, y1: w.y, x2: w.x, y2: w.y }; }
+    else { ps = { mode: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false }; svg.classList.add('panning'); }
+  }
+  render();
+  if ([...sel].join() !== before) renderPanel();
+});
+svg.addEventListener('pointermove', e => {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!ps) return;
+  if (ps.mode === 'pinch') {
+    if (pointers.size < 2) return;
+    const [a, b] = [...pointers.values()], s = stageSize();
+    const d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2 - s.left, y: (a.y + b.y) / 2 - s.top };
+    const k = clampK(ps.v0.k * d / ps.d0);
+    const wx = (ps.m0.x - ps.v0.x) / ps.v0.k, wy = (ps.m0.y - ps.v0.y) / ps.v0.k;
+    view = { k, x: m.x - wx * k, y: m.y - wy * k }; applyView(); return;
+  }
+  const w = toWorld(e.clientX, e.clientY);
+  const far = Math.hypot(e.clientX - (ps.sx ?? e.clientX), e.clientY - (ps.sy ?? e.clientY)) > 4;
+  if (ps.mode === 'drag') {
+    if (!ps.moved && !far) return;
+    if (!ps.moved) { checkpoint(); ps.moved = true; }
+    const dx = w.x - ps.start.x, dy = w.y - ps.start.y;
+    for (const n of doc.nodes) { const o = ps.orig.get(n.id); if (o) { n.x = Math.round(o.x + dx); n.y = Math.round(o.y + dy); } }
+    render();
+  } else if (ps.mode === 'bend') {
+    if (!ps.moved && !far) return;
+    if (!ps.moved) { checkpoint(); ps.moved = true; }
+    const l = linkById(ps.id), L = lastLinkGeo.get(ps.id); if (!l || !L) return;
+    let b = ((w.x - L.q.x) * L.n.x + (w.y - L.q.y) * L.n.y) / (4 * LABEL_T * (1 - LABEL_T));
+    if (Math.abs(b) < 8) b = 0;
+    l.bend = Math.round(b); render();
+  } else if (ps.mode === 'pan') {
+    if (!ps.moved && !far) return;
+    ps.moved = true;
+    view.x = ps.vx + e.clientX - ps.sx; view.y = ps.vy + e.clientY - ps.sy; applyView(); if (editing) positionEditor();
+  } else if (ps.mode === 'connect') {
+    if (far) ps.moved = true;
+    ghost.x2 = w.x; ghost.y2 = w.y;
+    const h = hitNode(w); connectHover = h && h !== ps.from ? h : null; render();
+  } else if (ps.mode === 'marquee') {
+    marquee.x2 = w.x; marquee.y2 = w.y;
+    const m = normRect(marquee);
+    sel = new Set(ps.base);
+    for (const g of lastGeo.values()) if (g.x >= m.x && g.y >= m.y && g.x + g.w <= m.x + m.w && g.y + g.h <= m.y + m.h) sel.add(g.id);
+    render();
+  }
+});
+function endPointer(e) {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.delete(e.pointerId);
+  svg.classList.remove('panning');
+  if (!ps) return;
+  if (ps.mode === 'pinch') { if (pointers.size === 0) { ps = null; scheduleSave(); } return; }
+  const mode = ps.mode, st = ps; ps = null;
+  const w = toWorld(e.clientX, e.clientY);
+  if (mode === 'connect') {
+    const from = nodeById(st.from); ghost = null; connectHover = null;
+    const target = hitNode(w);
+    if (target && target !== st.from) {
+      const exist = doc.links.find(l => (l.from === st.from && l.to === target) || (l.from === target && l.to === st.from));
+      if (exist) { sel = new Set([exist.id]); changed(true); toast('Οι δύο έννοιες είναι ήδη συνδεδεμένες.'); }
+      else { checkpoint(); const l = addLink(st.from, target); sel = new Set([l.id]); changed(true); startEdit('link', l.id, { noCheckpoint: true }); }
+    } else if (!target && st.moved && from) {
+      checkpoint();
+      const n = addNode(w.x, w.y, '', from.color);
+      const l = addLink(from.id, n.id);
+      sel = new Set([n.id]); changed(true);
+      startEdit('node', n.id, { isNew: true, noCheckpoint: true, next: { kind: 'link', id: l.id } });
+    } else if (!st.moved && from) { addChild(from); }
+    else render();
+  } else if (mode === 'pan') {
+    if (!st.moved && sel.size) { sel.clear(); render(); renderPanel(); }
+    scheduleSave();
+  } else if (mode === 'marquee') { marquee = null; render(); renderPanel(); }
+  else if (mode === 'drag' || mode === 'bend') { if (st.moved) changed(false); }
+}
+svg.addEventListener('pointerup', endPointer);
+svg.addEventListener('pointercancel', endPointer);
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const s = stageSize();
+  if (e.ctrlKey || e.metaKey || e.deltaMode !== 0 || Math.abs(e.deltaY) >= 50 && !e.deltaX) {
+    zoomAt(e.clientX - s.left, e.clientY - s.top, Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.0018)));
+  } else {
+    view.x -= e.deltaX; view.y -= e.deltaY; applyView(); if (editing) positionEditor(); scheduleSave();
+  }
+}, { passive: false });
+svg.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ---------- Keyboard ---------- */
+document.addEventListener('keydown', e => {
+  const t = e.target, typing = t.matches?.('input, textarea, select, [contenteditable]');
+  const mod = e.ctrlKey || e.metaKey;
+  if (e.key === 'Escape') { if (!$('#scrim').hidden) { closeDialog(); return; } closeMenus(); }
+  if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); saveJSON(); return; }
+  if (typing) return;
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
+  if (mod && e.key.toLowerCase() === 'a') { e.preventDefault(); sel = new Set(doc.nodes.map(n => n.id)); render(); renderPanel(); return; }
+  if (!$('#scrim').hidden || t.closest?.('.menu, .bar')) return;
+  if (e.key === 'Tab' && t !== svg && t !== document.body) return;
+  if (e.key === 'Delete' || e.key === 'Backspace') { if (sel.size) { e.preventDefault(); deleteSelection(); } return; }
+  if (e.key === 'Escape') { if (sel.size) { sel.clear(); render(); renderPanel(); } return; }
+  const one = sel.size === 1 ? [...sel][0] : null;
+  if ((e.key === 'Enter' || e.key === 'F2') && one) { e.preventDefault(); startEdit(isNodeId(one) ? 'node' : 'link', one); return; }
+  if (e.key === 'Tab' && one && isNodeId(one)) { e.preventDefault(); addChild(nodeById(one)); return; }
+  if (e.key.toLowerCase() === 'f' && !mod) { fitView(true); return; }
+  if (e.key === '+' || e.key === '=') { const s = stageSize(); zoomAt(s.w / 2, s.h / 2, 1.2); return; }
+  if (e.key === '-') { const s = stageSize(); zoomAt(s.w / 2, s.h / 2, 1 / 1.2); return; }
+  const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (arrows[e.key] && selNodes().length) {
+    e.preventDefault(); checkpoint();
+    const st = e.shiftKey ? 1 : 10, [dx, dy] = arrows[e.key];
+    selNodes().forEach(n => { n.x += dx * st; n.y += dy * st; }); changed(false);
+  }
+});
+
+/* ---------- Inspector panel ---------- */
+const dyn = $('#dyn');
+function syncMapFields() { $('#inTitle').value = doc.title; $('#inFocus').value = doc.focus; }
+function bindLive(el, apply) {
+  el.addEventListener('focus', () => { el._cp = false; });
+  el.addEventListener('input', () => { if (!el._cp) { checkpoint(); el._cp = true; } apply(el.value); render(); scheduleSave(); });
+}
+bindLive($('#inTitle'), v => { doc.title = v; });
+bindLive($('#inFocus'), v => { doc.focus = v; });
+$('#maphead').addEventListener('click', () => { $('#inTitle').focus(); $('#inTitle').select(); });
+
+function swatchHTML(current) {
+  const pal = isDark() ? PAL_DARK : PAL_LIGHT;
+  return `<div class="swatches" role="group" aria-label="Χρώμα">${COLOR_KEYS.map(k => {
+    const c = pal.colors[k];
+    return `<button type="button" class="sw" data-color="${k}" aria-pressed="${current === k}" title="${COLOR_NAMES[k]}" aria-label="${COLOR_NAMES[k]}" style="background:${c.fill};border-color:${c.stroke}"></button>`;
+  }).join('')}</div>`;
+}
+const LINK_WORDS = ['είναι', 'περιλαμβάνει', 'αποτελείται από', 'εμφανίζεται ως', 'μετριέται σε', 'μετριέται με', 'έχει μονάδα', 'εξαρτάται από', 'προκαλεί', 'μετατρέπεται σε', 'οδηγεί σε', 'υπολογίζεται από', 'χαρακτηρίζεται από', 'για παράδειγμα', 'ισούται με', 'επηρεάζει', 'χρειάζεται'];
+function nameOf(id) { const n = nodeById(id); return n ? (n.text.trim() || 'Νέα έννοια') : '?'; }
+function renderPanel() {
+  if (editing && document.activeElement === editor) { /* keep the panel coherent but cheap */ }
+  const ns = selNodes(), ls = selLinks();
+  let h = '';
+  if (ns.length === 1 && ls.length === 0) {
+    const n = ns[0];
+    h = `<section><h2>Έννοια</h2>
+      <div class="field"><label for="pnText">Κείμενο</label><textarea id="pnText" rows="2">${esc(n.text)}</textarea></div>
+      <div class="field"><span class="flabel">Χρώμα</span>${swatchHTML(n.color)}</div>
+      <div class="field"><span class="flabel">Σχήμα</span><div class="seg" role="group" aria-label="Σχήμα">
+        ${[['rect', 'Πλαίσιο'], ['pill', 'Κάψουλα'], ['plain', 'Χωρίς πλαίσιο']].map(([k, t]) => `<button type="button" data-shape="${k}" aria-pressed="${n.shape === k}">${t}</button>`).join('')}
+      </div></div>
+      <label class="check"><input type="checkbox" id="pnBlank" ${n.blank ? 'checked' : ''}><span>Κενό στην άσκηση<small>Στην προβολή άσκησης το κείμενο κρύβεται και μπαίνει στην τράπεζα λέξεων.</small></span></label>
+      <div class="btnrow"><button type="button" class="btn accent" id="pnChild">Νέα έννοια από κάτω</button><button type="button" class="btn danger" id="pnDel">Διαγραφή</button></div>
+      <p class="muted">${degreeText(n)}</p></section>`;
+  } else if (ls.length === 1 && ns.length === 0) {
+    const l = ls[0];
+    h = `<section><h2>Σύνδεση</h2>
+      <p class="muted"><b>${esc(nameOf(l.from))}</b> → <b>${esc(nameOf(l.to))}</b></p>
+      <div class="field"><label for="plLabel">Λέξεις σύνδεσης</label><input type="text" id="plLabel" list="linkWords" value="${esc(l.label)}" placeholder="π.χ. μετριέται σε">
+      <datalist id="linkWords">${LINK_WORDS.map(w => `<option value="${esc(w)}"></option>`).join('')}</datalist></div>
+      <div class="field"><span class="flabel">Βέλος</span><div class="seg" role="group" aria-label="Βέλος">
+        ${[['forward', '→ Προς τα εμπρός'], ['both', '↔ Διπλό'], ['none', '— Χωρίς']].map(([k, t]) => `<button type="button" data-dir="${k}" aria-pressed="${l.dir === k}">${t}</button>`).join('')}
+      </div></div>
+      <label class="check"><input type="checkbox" id="plBlank" ${l.blank ? 'checked' : ''}><span>Κενό στην άσκηση<small>Οι λέξεις σύνδεσης κρύβονται στην προβολή άσκησης.</small></span></label>
+      <div class="btnrow"><button type="button" class="btn" id="plRev">Αντιστροφή</button><button type="button" class="btn" id="plStraight" ${l.bend ? '' : 'disabled'}>Ευθεία γραμμή</button><button type="button" class="btn danger" id="plDel">Διαγραφή</button></div></section>`;
+  } else if (sel.size > 1) {
+    h = `<section><h2>Επιλογή <span>${ns.length} έννοιες, ${ls.length} συνδέσεις</span></h2>
+      ${ns.length ? `<div class="field"><span class="flabel">Χρώμα για όλες</span>${swatchHTML(null)}</div>
+      <div class="btnrow"><button type="button" class="btn" id="pmBlankOn">Όλες κενές</button><button type="button" class="btn" id="pmBlankOff">Καμία κενή</button></div>` : ''}
+      <div class="btnrow"><button type="button" class="btn danger" id="pmDel">Διαγραφή επιλεγμένων</button></div></section>`;
+  } else {
+    const props = doc.links.map(l => ({ l, a: nodeById(l.from), b: nodeById(l.to) })).filter(p => p.a && p.b);
+    const missing = props.filter(p => !p.l.label.trim()).length;
+    const blanks = doc.nodes.filter(n => n.blank).length + doc.links.filter(l => l.blank).length;
+    h = `<section><h2>Σύνοψη</h2>
+      <div class="stats"><div class="stat"><b>${doc.nodes.length}</b><span>έννοιες</span></div><div class="stat"><b>${props.length}</b><span>προτάσεις</span></div><div class="stat"><b>${blanks}</b><span>κενά</span></div></div>
+      ${missing ? `<p class="muted">${missing === 1 ? 'Μία σύνδεση δεν έχει' : missing + ' συνδέσεις δεν έχουν'} λέξεις σύνδεσης. Ένας χάρτης διαβάζεται σωστά όταν κάθε σύνδεση σχηματίζει πρόταση.</p>` : ''}
+      </section>
+      <section><h2>Προτάσεις του χάρτη</h2>
+      ${props.length ? `<ul class="props">${props.slice(0, 80).map(p => `<li${p.l.label.trim() ? '' : ' class="warn"'}><button type="button" data-goto="${p.l.id}">${esc(p.a.text || 'Νέα έννοια')} <i>${esc(p.l.label.trim() || '(χωρίς λέξεις)')}</i> ${esc(p.b.text || 'Νέα έννοια')}</button></li>`).join('')}</ul>` : '<p class="muted">Δεν υπάρχουν ακόμη συνδέσεις.</p>'}
+      </section>
+      <section><h2>Συντομεύσεις</h2><ul class="keys">
+        <li><kbd>Διπλό κλικ</kbd> στο κενό: νέα έννοια</li>
+        <li><kbd>Tab</kbd> νέα έννοια κάτω από την επιλεγμένη</li>
+        <li><kbd>Enter</kbd> επεξεργασία · <kbd>Shift</kbd>+<kbd>Enter</kbd> νέα γραμμή</li>
+        <li><kbd>Delete</kbd> διαγραφή · <kbd>Ctrl</kbd>+<kbd>Z</kbd> αναίρεση</li>
+        <li><kbd>F</kbd> προσαρμογή · <kbd>Shift</kbd>+σύρσιμο: επιλογή περιοχής</li>
+      </ul></section>`;
+  }
+  dyn.innerHTML = h;
+  bindPanel();
+}
+function degreeText(n) {
+  const out = doc.links.filter(l => l.from === n.id).length, inn = doc.links.filter(l => l.to === n.id).length;
+  if (!out && !inn) return 'Η έννοια δεν συνδέεται ακόμη. Σύρε το ⊕ κάτω από την έννοια πάνω σε μια άλλη.';
+  return `Συνδέσεις: ${out} προς τα έξω, ${inn} προς τα μέσα.`;
+}
+function bindPanel() {
+  const n = selNodes().length === 1 ? selNodes()[0] : null, l = selLinks().length === 1 ? selLinks()[0] : null;
+  const pnText = $('#pnText');
+  if (pnText && n) bindLive(pnText, v => { n.text = v; });
+  const plLabel = $('#plLabel');
+  if (plLabel && l) bindLive(plLabel, v => { l.label = v; });
+  dyn.querySelectorAll('[data-color]').forEach(b => b.addEventListener('click', () => {
+    checkpoint(); selNodes().forEach(x => { x.color = b.dataset.color; }); changed(true);
+  }));
+  dyn.querySelectorAll('[data-shape]').forEach(b => b.addEventListener('click', () => { checkpoint(); n.shape = b.dataset.shape; changed(true); }));
+  dyn.querySelectorAll('[data-dir]').forEach(b => b.addEventListener('click', () => { checkpoint(); l.dir = b.dataset.dir; changed(true); }));
+  $('#pnBlank')?.addEventListener('change', e => { checkpoint(); n.blank = e.target.checked; changed(true); });
+  $('#plBlank')?.addEventListener('change', e => { checkpoint(); l.blank = e.target.checked; changed(true); });
+  $('#pnChild')?.addEventListener('click', () => addChild(n));
+  $('#pnDel')?.addEventListener('click', deleteSelection);
+  $('#plDel')?.addEventListener('click', deleteSelection);
+  $('#pmDel')?.addEventListener('click', deleteSelection);
+  $('#plRev')?.addEventListener('click', () => { checkpoint(); [l.from, l.to] = [l.to, l.from]; l.bend = -(l.bend || 0); changed(true); });
+  $('#plStraight')?.addEventListener('click', () => { checkpoint(); l.bend = 0; changed(true); });
+  $('#pmBlankOn')?.addEventListener('click', () => { checkpoint(); selNodes().forEach(x => { x.blank = true; }); changed(true); });
+  $('#pmBlankOff')?.addEventListener('click', () => { checkpoint(); selNodes().forEach(x => { x.blank = false; }); changed(true); });
+  dyn.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => {
+    const lk = linkById(b.dataset.goto); sel = new Set([b.dataset.goto]);
+    const L = lastLinkGeo.get(lk.id);
+    if (L) { const s = stageSize(), sx = view.x + L.p.x * view.k, sy = view.y + L.p.y * view.k; if (sx < 40 || sx > s.w - 40 || sy < 40 || sy > s.h - 40) { view.x += s.w / 2 - sx; view.y += s.h / 2 - sy; } }
+    render(); renderPanel();
+  }));
+}
+
+/* ---------- Auto layout (layered, top-down) ---------- */
+function layoutTargets() {
+  const geo = new Map(doc.nodes.map(n => [n.id, nodeGeo(n)]));
+  const out = new Map(), inn = new Map(), nb = new Map();
+  doc.nodes.forEach(n => { out.set(n.id, []); inn.set(n.id, []); nb.set(n.id, []); });
+  doc.links.forEach(l => {
+    if (!out.has(l.from) || !out.has(l.to) || l.from === l.to) return;
+    out.get(l.from).push(l.to); inn.get(l.to).push(l.from);
+    nb.get(l.from).push(l.to); nb.get(l.to).push(l.from);
+  });
+  const score = id => (out.get(id).length - inn.get(id).length) * 10 + nb.get(id).length;
+  const level = new Map(), comps = [];
+  const byScore = [...doc.nodes].sort((a, b) => score(b.id) - score(a.id) || a.y - b.y || a.x - b.x);
+  for (const root of byScore) {
+    if (level.has(root.id)) continue;
+    const comp = [root.id]; level.set(root.id, 0);
+    for (let i = 0; i < comp.length; i++) {
+      const u = comp[i];
+      const kids = [...out.get(u), ...nb.get(u)].filter((v, j, a) => a.indexOf(v) === j);
+      kids.sort((a, b) => nodeById(a).x - nodeById(b).x);
+      for (const v of kids) if (!level.has(v)) { level.set(v, level.get(u) + 1); comp.push(v); }
+    }
+    comps.push(comp);
+  }
+  const lblW = new Map();
+  doc.links.forEach(l => {
+    if (!l.label.trim() || !level.has(l.from) || !level.has(l.to)) return;
+    const child = level.get(l.to) >= level.get(l.from) ? l.to : l.from;
+    const lw = widest(wrap(l.label, LINK_FONT, 150), LINK_FONT) + 16;
+    lblW.set(child, Math.max(lblW.get(child) || 0, lw));
+  });
+  const W = id => Math.max(geo.get(id).w, (lblW.get(id) || 0) / LABEL_T - 20);
+  const target = new Map();
+  let offsetX = 0;
+  const GAP = 30, VGAP = 112;
+  for (const comp of comps) {
+    const rows = [];
+    comp.forEach(id => { const L = level.get(id); (rows[L] = rows[L] || []).push(id); });
+    const idx = new Map();
+    const reindex = () => rows.forEach(r => r.forEach((id, i) => idx.set(id, i)));
+    reindex();
+    for (let it = 0; it < 4; it++) {
+      for (let L = 1; L < rows.length; L++) sortRow(rows[L], L - 1);
+      for (let L = rows.length - 2; L >= 0; L--) sortRow(rows[L], L + 1);
+    }
+    function sortRow(row, ref) {
+      const key = new Map();
+      row.forEach(id => {
+        const ns = nb.get(id).filter(v => level.get(v) === ref);
+        key.set(id, ns.length ? ns.reduce((s, v) => s + idx.get(v), 0) / ns.length : idx.get(id));
+      });
+      row.sort((a, b) => key.get(a) - key.get(b) || idx.get(a) - idx.get(b));
+      row.forEach((id, i) => idx.set(id, i));
+    }
+    const X = new Map();
+    rows.forEach(row => { let x = 0; row.forEach((id, i) => { const w = W(id); if (i) x += w / 2; X.set(id, x); x += w / 2 + GAP; }); });
+    const place = (row, refLevel) => {
+      const desired = row.map(id => {
+        const ns = nb.get(id).filter(v => level.get(v) === refLevel);
+        return ns.length ? ns.reduce((s, v) => s + X.get(v), 0) / ns.length : X.get(id);
+      });
+      const pos = [];
+      row.forEach((id, i) => {
+        pos[i] = i ? Math.max(desired[i], pos[i - 1] + (W(row[i - 1]) + W(id)) / 2 + GAP) : desired[i];
+      });
+      const shift = row.reduce((s, id, i) => s + (desired[i] - pos[i]), 0) / row.length;
+      row.forEach((id, i) => X.set(id, pos[i] + shift));
+    };
+    for (let it = 0; it < 3; it++) {
+      for (let L = 1; L < rows.length; L++) place(rows[L], L - 1);
+      for (let L = rows.length - 2; L >= 0; L--) place(rows[L], L + 1);
+    }
+    let minX = Infinity, maxX = -Infinity;
+    comp.forEach(id => { const w = W(id); minX = Math.min(minX, X.get(id) - w / 2); maxX = Math.max(maxX, X.get(id) + w / 2); });
+    let y = 0;
+    rows.forEach((row, L) => {
+      const hMax = Math.max(...row.map(id => geo.get(id).h));
+      if (L) y += hMax / 2;
+      row.forEach(id => target.set(id, { x: Math.round(X.get(id) - minX + offsetX), y: Math.round(y) }));
+      y += hMax / 2 + VGAP;
+    });
+    offsetX += maxX - minX + 90;
+  }
+  // A straight link that would cut through another concept gets a curve instead.
+  const bends = new Map();
+  doc.links.forEach(l => {
+    const a = target.get(l.from), b = target.get(l.to);
+    if (!a || !b) return;
+    const hits = doc.nodes.some(n => {
+      if (n.id === l.from || n.id === l.to) return false;
+      const t = target.get(n.id), g = geo.get(n.id);
+      return segHitsRect(a, b, t.x - g.w / 2 - 8, t.y - g.h / 2 - 8, g.w + 16, g.h + 16);
+    });
+    if (hits) { const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1, ny = dx / len; bends.set(l.id, (ny >= 0 ? 1 : -1) * 48); }
+  });
+  target.bends = bends;
+  return target;
+}
+function segHitsRect(a, b, x, y, w, h) {
+  for (let i = 1; i < 40; i++) {
+    const t = i / 40, px = a.x + (b.x - a.x) * t, py = a.y + (b.y - a.y) * t;
+    if (px > x && px < x + w && py > y && py < y + h) return true;
+  }
+  return false;
+}
+function applyLayout() {
+  const t = layoutTargets();
+  doc.nodes.forEach(n => Object.assign(n, t.get(n.id)));
+  doc.links.forEach(l => { l.bend = t.bends.get(l.id) || 0; });
+}
+function autoLayout() {
+  if (!doc.nodes.length) return;
+  checkpoint();
+  const tgt = layoutTargets();
+  doc.links.forEach(l => { l.bend = tgt.bends.get(l.id) || 0; });
+  const from = new Map(doc.nodes.map(n => [n.id, { x: n.x, y: n.y }]));
+  const done = () => { changed(true); fitView(true); };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { doc.nodes.forEach(n => Object.assign(n, tgt.get(n.id))); done(); return; }
+  const t0 = performance.now(), D = 420;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 3);
+    doc.nodes.forEach(n => { const a = from.get(n.id), b = tgt.get(n.id); n.x = Math.round(a.x + (b.x - a.x) * e); n.y = Math.round(a.y + (b.y - a.y) * e); });
+    renderNow();
+    if (t < 1) requestAnimationFrame(step); else done();
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- Documents: examples, text import, JSON ---------- */
+function buildDoc(title, focus, concepts, links) {
+  const d = { title, focus, nodes: [], links: [] }, ids = {};
+  concepts.forEach(([key, text, color = 'ink', shape = 'rect', blank = false], i) => {
+    const id = uid('n'); ids[key] = id;
+    d.nodes.push({ id, text, x: i * 10, y: 0, color, shape, blank });
+  });
+  links.forEach(([a, label, b, blank = false]) => d.links.push({ id: uid('l'), from: ids[a], to: ids[b], label, dir: 'forward', bend: 0, blank }));
+  return d;
+}
+const EXAMPLES = {
+  energy: () => buildDoc('Ενέργεια', 'Ποιες μορφές έχει η μηχανική ενέργεια και πώς μετατρέπεται;', [
+    ['E', 'Ενέργεια', 'blue', 'pill'],
+    ['J', 'Joule (J)', 'ink', 'plain', true],
+    ['K', 'Κινητική ενέργεια', 'green'],
+    ['U', 'Βαρυτική δυναμική ενέργεια', 'green'],
+    ['Q', 'Θερμική ενέργεια', 'red'],
+    ['A', 'Αρχή διατήρησης της ενέργειας', 'amber'],
+    ['W', 'Έργο δύναμης', 'violet'],
+    ['m', 'Μάζα'], ['v', 'Ταχύτητα', 'ink', 'rect', true], ['h', 'Ύψος'],
+    ['Kf', 'K = ½·m·υ²', 'ink', 'plain'], ['Uf', 'U = m·g·h', 'ink', 'plain'],
+    ['T', 'Τριβή', 'red']
+  ], [
+    ['E', 'μετριέται σε', 'J'], ['E', 'εμφανίζεται ως', 'K'], ['E', 'εμφανίζεται ως', 'U'], ['E', 'εμφανίζεται ως', 'Q'],
+    ['E', 'υπακούει στην', 'A'], ['W', 'μεταφέρει', 'E'],
+    ['K', 'εξαρτάται από', 'm'], ['K', 'εξαρτάται από', 'v'], ['U', 'εξαρτάται από', 'm'], ['U', 'εξαρτάται από', 'h'],
+    ['K', 'υπολογίζεται από', 'Kf'], ['U', 'υπολογίζεται από', 'Uf'],
+    ['T', 'μετατρέπει μηχανική ενέργεια σε', 'Q', true]
+  ]),
+  circuit: () => buildDoc('Ηλεκτρικό κύκλωμα', 'Τι χρειάζεται για να διαρρέεται ένα κύκλωμα από ρεύμα και πώς το μετράμε;', [
+    ['C', 'Ηλεκτρικό κύκλωμα', 'blue', 'pill'],
+    ['P', 'Ηλεκτρική πηγή'], ['R', 'Καταναλωτές'], ['Wr', 'Καλώδια (αγωγοί)'], ['S', 'Διακόπτης'],
+    ['V', 'Ηλεκτρική τάση', 'green'], ['I', 'Ηλεκτρικό ρεύμα', 'green'],
+    ['e', 'Προσανατολισμένη κίνηση ελεύθερων ηλεκτρονίων', 'ink', 'plain'],
+    ['Am', 'Αμπερόμετρο', 'amber', 'rect', true], ['Vm', 'Βολτόμετρο', 'amber'],
+    ['Res', 'Αντίσταση', 'green'], ['Ohm', 'Νόμος του Ohm: I = V / R', 'violet'],
+    ['uA', 'Ampere (A)', 'ink', 'plain'], ['uV', 'Volt (V)', 'ink', 'plain', true], ['uO', 'Ohm (Ω)', 'ink', 'plain']
+  ], [
+    ['C', 'αποτελείται από', 'P'], ['C', 'αποτελείται από', 'R'], ['C', 'αποτελείται από', 'Wr'], ['C', 'αποτελείται από', 'S'],
+    ['P', 'δημιουργεί', 'V'], ['V', 'προκαλεί', 'I', true], ['S', 'ελέγχει', 'I'], ['I', 'είναι', 'e'],
+    ['I', 'μετριέται με', 'Am'], ['V', 'μετριέται με', 'Vm'], ['I', 'έχει μονάδα', 'uA'], ['V', 'έχει μονάδα', 'uV'],
+    ['R', 'παρουσιάζουν', 'Res'], ['Res', 'έχει μονάδα', 'uO'], ['Res', 'περιγράφεται από τον', 'Ohm']
+  ]),
+  blank: () => ({ title: '', focus: '', nodes: [{ id: uid('n'), text: 'Κεντρική έννοια', x: 0, y: 0, color: 'blue', shape: 'pill', blank: false }], links: [] })
+};
+function loadDoc(d, { layout = false, keepHistory = true } = {}) {
+  if (editing) cancelEdit();
+  if (keepHistory) checkpoint();
+  doc = d; sel.clear();
+  if (layout) applyLayout();
+  syncMapFields(); changed(true); fitView(false);
+}
+function normalizeDoc(raw) {
+  if (!raw || !Array.isArray(raw.nodes)) throw new Error('Το αρχείο δεν περιέχει εννοιολογικό χάρτη.');
+  const nodes = raw.nodes.filter(n => n && n.id != null).map(n => ({
+    id: String(n.id), text: String(n.text ?? ''), x: Number(n.x) || 0, y: Number(n.y) || 0,
+    color: COLOR_KEYS.includes(n.color) ? n.color : 'ink', shape: ['rect', 'pill', 'plain'].includes(n.shape) ? n.shape : 'rect', blank: !!n.blank
+  }));
+  const ids = new Set(nodes.map(n => n.id));
+  const links = (Array.isArray(raw.links) ? raw.links : []).filter(l => l && ids.has(String(l.from)) && ids.has(String(l.to)) && l.from !== l.to).map(l => ({
+    id: String(l.id ?? uid('l')), from: String(l.from), to: String(l.to), label: String(l.label ?? ''),
+    dir: ['forward', 'both', 'none'].includes(l.dir) ? l.dir : 'forward', bend: Number(l.bend) || 0, blank: !!l.blank
+  }));
+  return { title: String(raw.title ?? ''), focus: String(raw.focus ?? ''), nodes, links };
+}
+function parseProps(text) {
+  const d = { title: '', focus: '', nodes: [], links: [] }, byName = new Map();
+  const node = name => {
+    const key = name.trim().toLocaleLowerCase('el').normalize('NFD').replace(/\p{M}/gu, '');
+    if (!byName.has(key)) { const n = { id: uid('n'), text: name.trim(), x: 0, y: 0, color: 'ink', shape: 'rect', blank: false }; d.nodes.push(n); byName.set(key, n); }
+    return byName.get(key);
+  };
+  for (let line of text.split(/\r?\n/)) {
+    line = line.trim(); if (!line) continue;
+    if (line.startsWith('#')) { if (!d.title) d.title = line.replace(/^#+\s*/, ''); continue; }
+    if (line.startsWith('?')) { d.focus = line.replace(/^\?\s*/, ''); continue; }
+    const parts = line.split(/\s*(?:\||\t|->|→)\s*/).map(s => s.trim());
+    const clean = parts.filter((p, i) => p || i === 1);
+    if (clean.length >= 3) {
+      const a = node(clean[0]), b = node(clean[clean.length - 1]);
+      if (a !== b) d.links.push({ id: uid('l'), from: a.id, to: b.id, label: clean.slice(1, -1).join(' '), dir: 'forward', bend: 0, blank: false });
+    } else if (clean.length === 2) {
+      const a = node(clean[0]), b = node(clean[1]);
+      if (a !== b) d.links.push({ id: uid('l'), from: a.id, to: b.id, label: '', dir: 'forward', bend: 0, blank: false });
+    } else if (clean[0]) node(clean[0]);
+  }
+  if (d.nodes.length) {
+    const score = n => d.links.filter(l => l.from === n.id).length - d.links.filter(l => l.to === n.id).length;
+    const root = [...d.nodes].sort((a, b) => score(b) - score(a))[0];
+    root.color = 'blue'; root.shape = 'pill';
+  }
+  return d;
+}
+function propsText() {
+  const lines = [];
+  if (doc.title.trim()) lines.push('# ' + doc.title.trim());
+  if (doc.focus.trim()) lines.push('? ' + doc.focus.trim());
+  const flat = s => s.replace(/\s*\n\s*/g, ' ').trim();
+  doc.links.forEach(l => { const a = nodeById(l.from), b = nodeById(l.to); if (a && b) lines.push(`${flat(a.text)} | ${flat(l.label)} | ${flat(b.text)}`); });
+  const linked = new Set(doc.links.flatMap(l => [l.from, l.to]));
+  doc.nodes.filter(n => !linked.has(n.id) && n.text.trim()).forEach(n => lines.push(flat(n.text)));
+  return lines.join('\n');
+}
+
+/* ---------- Export ---------- */
+function exportScene() {
+  const { ops, bounds: b } = buildOps({ screen: false, pal: PAL_EXPORT, exercise, sel: new Set() });
+  const PAD = 36, head = [], foot = [];
+  const titleF = { size: 24, weight: 700, style: 'normal', lh: 30 }, focusF = { size: 15, weight: 500, style: 'italic', lh: 20 };
+  const contentW = Math.max(b.w, 480);
+  let y = PAD;
+  if (doc.title.trim()) {
+    const lines = wrap(doc.title.trim(), titleF, contentW, DISPLAY);
+    head.push({ k: 'text', x: PAD, y: y + lines.length * titleF.lh / 2, lines, f: titleF, color: '#14201b', anchor: 'start', family: DISPLAY_SVG });
+    y += lines.length * titleF.lh + 4;
+  }
+  if (doc.focus.trim()) {
+    const lines = wrap(doc.focus.trim(), focusF, contentW, DISPLAY);
+    head.push({ k: 'text', x: PAD, y: y + lines.length * focusF.lh / 2, lines, f: focusF, color: '#56655d', anchor: 'start', family: DISPLAY_SVG });
+    y += lines.length * focusF.lh;
+  }
+  if (head.length) { head.push({ k: 'line', x1: PAD, y1: y + 10, x2: PAD + contentW, y2: y + 10, stroke: '#cbd5cc', sw: 1 }); y += 34; }
+  const mapDX = PAD + (contentW - b.w) / 2 - b.x, mapDY = y - b.y;
+  y += b.h + 10;
+  if (exercise) {
+    const words = hiddenWords();
+    if (words.length) {
+      y += 18;
+      const hf = { size: 12, weight: 700, style: 'normal', lh: 14 }, wf = { size: 14, weight: 500, style: 'normal', lh: 18 };
+      const top = y;
+      foot.push({ k: 'text', x: PAD + 14, y: y + 16, lines: ['ΤΡΑΠΕΖΑ ΛΕΞΕΩΝ'], f: hf, color: '#2347b5', anchor: 'start' });
+      let x = PAD + 14, rowY = y + 34;
+      words.forEach(w => {
+        const ww = measure(w, fontStr(wf)) + 18;
+        if (x + ww > PAD + contentW - 14 && x > PAD + 14) { x = PAD + 14; rowY += 30; }
+        foot.push({ k: 'rect', x, y: rowY, w: ww, h: 24, r: 5, fill: '#f3f6f2', stroke: '#cbd5cc', sw: 1 });
+        foot.push({ k: 'text', x: x + 9, y: rowY + 12, lines: [w], f: wf, color: '#14201b', anchor: 'start' });
+        x += ww + 8;
+      });
+      y = rowY + 24 + 12;
+      foot.unshift({ k: 'rect', x: PAD, y: top, w: contentW, h: y - top, r: 8, fill: 'none', stroke: '#2347b5', sw: 1.4, dash: '5 4' });
+    }
+  }
+  const W = Math.ceil(contentW + 2 * PAD), H = Math.ceil(y + PAD - 10);
+  return { W, H, layers: [{ dx: 0, dy: 0, ops: head }, { dx: mapDX, dy: mapDY, ops }, { dx: 0, dy: 0, ops: foot }] };
+}
+function sceneToSVG(sc) {
+  const body = sc.layers.map(L => `<g transform="translate(${r2(L.dx)} ${r2(L.dy)})">${opsToSVG(L.ops)}</g>`).join('');
+  const t = esc(doc.title.trim() || 'Εννοιολογικός χάρτης');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${sc.W}" height="${sc.H}" viewBox="0 0 ${sc.W} ${sc.H}"><title>${t}</title><rect width="100%" height="100%" fill="#ffffff"/>${body}</svg>`;
+}
+function sceneToPNG(sc, scale = 2) {
+  const c = document.createElement('canvas');
+  c.width = sc.W * scale; c.height = sc.H * scale;
+  const ctx = c.getContext('2d');
+  ctx.scale(scale, scale); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, sc.W, sc.H);
+  sc.layers.forEach(L => { ctx.save(); ctx.translate(L.dx, L.dy); opsToCanvas(ctx, L.ops); ctx.restore(); });
+  return new Promise(res => c.toBlob(res, 'image/png'));
+}
+function baseName() {
+  const t = (doc.title.trim() || 'εννοιολογικός χάρτης').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-').slice(0, 60);
+  return (t || 'xartis') + (exercise ? '-askisi' : '');
+}
+let downloadsNS;
+async function getDownloads() {
+  if (downloadsNS !== undefined) return downloadsNS;
+  if (typeof window.claude?.use !== 'function') return (downloadsNS = null);
+  try { downloadsNS = await window.claude.use('downloads'); } catch (e) { downloadsNS = null; }
+  return downloadsNS;
+}
+async function saveFile(filename, data, mime, fallbackText) {
+  if (!inViewer) {
+    const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Αποθηκεύτηκε: ' + filename); return;
+  }
+  const dl = await getDownloads();
+  if (dl) {
+    try { const r = await dl.save({ filename, data }); if (r.status === 'saved') toast('Αποθηκεύτηκε: ' + filename); return; }
+    catch (err) {
+      if (err?.code === 'declined') { toast('Η αποθήκευση ακυρώθηκε.'); return; }
+      if (err?.code === 'rate_limited') { toast('Ένα παράθυρο αποθήκευσης είναι ήδη ανοιχτό. Δοκίμασε ξανά σε λίγο.'); return; }
+    }
+  }
+  if (fallbackText != null) showDialog({ title: 'Αντιγραφή περιεχομένου', text: 'Η λήψη αρχείων δεν είναι διαθέσιμη εδώ. Αντίγραψε το περιεχόμενο και αποθήκευσέ το σε αρχείο ' + filename.split('.').pop().toUpperCase() + '.', value: fallbackText, readOnly: true, copy: true });
+  else toast('Η λήψη αρχείων δεν είναι διαθέσιμη εδώ. Άνοιξε το αρχείο index.html τοπικά.');
+}
+function saveJSON() {
+  if (editing) commitEdit();
+  const data = JSON.stringify({ app: 'ennoiologikoi-xartes', version: 1, ...doc }, null, 2);
+  saveFile(baseName().replace(/-askisi$/, '') + '.json', data, 'application/json', data);
+}
+async function doExport(kind) {
+  if (editing) commitEdit();
+  if (kind === 'text') {
+    showDialog({ title: 'Προτάσεις του χάρτη', text: 'Μία πρόταση ανά γραμμή: έννοια | λέξεις σύνδεσης | έννοια. Το ίδιο κείμενο ανοίγει ξανά ως χάρτης από «Νέος → Από κείμενο».', value: propsText(), readOnly: true, copy: true, download: 'txt' });
+    return;
+  }
+  const sc = exportScene();
+  if (kind === 'svg') { const s = sceneToSVG(sc); saveFile(baseName() + '.svg', s, 'image/svg+xml', s); }
+  else if (kind === 'png') { const blob = await sceneToPNG(sc); if (blob) saveFile(baseName() + '.png', blob, 'image/png'); }
+  else if (kind === 'print') {
+    $('#printArea').innerHTML = sceneToSVG(sc).replace(/^<\?xml[^>]*>\s*/, '');
+    setTimeout(() => window.print(), 50);
+  }
+}
+
+/* ---------- Menus, dialog, toast ---------- */
+function openMenu(menu, btn) {
+  const was = !menu.hidden; closeMenus(); if (was) return;
+  const r = btn.getBoundingClientRect();
+  menu.hidden = false;
+  const mw = menu.offsetWidth;
+  menu.style.left = Math.max(8, Math.min(r.left, innerWidth - mw - 8)) + 'px';
+  menu.style.top = (r.bottom + 6) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+  menu.querySelector('button')?.focus();
+}
+function closeMenus() { document.querySelectorAll('.menu').forEach(m => { m.hidden = true; }); document.querySelectorAll('[aria-expanded]').forEach(b => b.setAttribute('aria-expanded', 'false')); }
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.menu, [aria-haspopup]')) closeMenus(); });
+$('#btnNew').addEventListener('click', e => openMenu($('#menuNew'), e.currentTarget));
+$('#btnExport').addEventListener('click', e => openMenu($('#menuExport'), e.currentTarget));
+$('#menuNew').addEventListener('click', e => {
+  const b = e.target.closest('[data-new]'); if (!b) return; closeMenus();
+  const k = b.dataset.new;
+  if (k === 'text') { openTextImport(); return; }
+  loadDoc(EXAMPLES[k](), { layout: k !== 'blank' });
+  if (k === 'blank') { const n = doc.nodes[0]; sel = new Set([n.id]); render(); renderPanel(); }
+  toast(k === 'blank' ? 'Νέος χάρτης. Με «Αναίρεση» επιστρέφεις στον προηγούμενο.' : 'Φορτώθηκε το παράδειγμα. Με «Αναίρεση» επιστρέφεις στον προηγούμενο χάρτη.');
+});
+$('#menuExport').addEventListener('click', e => { const b = e.target.closest('[data-exp]'); if (!b) return; closeMenus(); doExport(b.dataset.exp); });
+if (inViewer) $('#expPrint').remove();
+
+let dlgHandlers = [];
+function showDialog({ title, text, value = '', readOnly = false, copy = false, download = null, actions = [] }) {
+  $('#dlgTitle').textContent = title; $('#dlgText').textContent = text;
+  const area = $('#dlgArea'); area.value = value; area.readOnly = readOnly; area.placeholder = '';
+  const bar = $('#dlgButtons'); bar.innerHTML = ''; dlgHandlers = [];
+  const add = (label, cls, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (cls || ''); b.textContent = label; b.addEventListener('click', fn); bar.appendChild(b); return b; };
+  add(actions.length ? 'Άκυρο' : 'Κλείσιμο', '', closeDialog);
+  if (download) add('Λήψη .' + download, '', () => saveFile(baseName().replace(/-askisi$/, '') + '.' + download, area.value, 'text/plain', null));
+  if (copy) add('Αντιγραφή', 'accent', async () => {
+    try { await navigator.clipboard.writeText(area.value); toast('Αντιγράφηκε.'); }
+    catch (e) { area.focus(); area.select(); try { document.execCommand('copy'); toast('Αντιγράφηκε.'); } catch (e2) { toast('Επίλεξε το κείμενο και πάτησε Ctrl+C.'); } }
+  });
+  actions.forEach(a => add(a.label, 'accent', () => a.run(area.value)));
+  $('#scrim').hidden = false;
+  setTimeout(() => (readOnly ? bar.lastElementChild : area).focus(), 30);
+  return area;
+}
+function closeDialog() { $('#scrim').hidden = true; svg.focus({ preventScroll: true }); }
+$('#scrim').addEventListener('pointerdown', e => { if (e.target === $('#scrim')) closeDialog(); });
+function openTextImport() {
+  const area = showDialog({
+    title: 'Χάρτης από κείμενο',
+    text: 'Μία πρόταση ανά γραμμή: έννοια | λέξεις σύνδεσης | έννοια. Γραμμή με # γίνεται τίτλος, με ? ερώτηση εστίασης. Οι ίδιες έννοιες ενώνονται αυτόματα.',
+    value: '', actions: [{ label: 'Δημιουργία χάρτη', run: v => {
+      const d = parseProps(v);
+      if (!d.nodes.length) { toast('Γράψε τουλάχιστον μία έννοια.'); return; }
+      closeDialog(); loadDoc(d, { layout: true });
+      toast(`Δημιουργήθηκαν ${d.nodes.length} έννοιες και ${d.links.length} συνδέσεις.`);
+    } }]
+  });
+  area.placeholder = '# Φωτοσύνθεση\n? Πώς τρέφονται τα φυτά;\nΦωτοσύνθεση | γίνεται στους | Χλωροπλάστες\nΦωτοσύνθεση | χρειάζεται | Φως\nΦωτοσύνθεση | παράγει | Γλυκόζη\nΦωτοσύνθεση | απελευθερώνει | Οξυγόνο';
+}
+let toastTimer = 0;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200); }
+
+/* ---------- Open files ---------- */
+async function openFile(file) {
+  try {
+    const text = await file.text();
+    let d;
+    try { d = normalizeDoc(JSON.parse(text)); loadDoc(d); }
+    catch (e) {
+      if (/\.json$/i.test(file.name)) throw e;
+      d = parseProps(text); if (!d.nodes.length) throw new Error('empty'); loadDoc(d, { layout: true });
+    }
+    toast('Άνοιξε: ' + file.name);
+  } catch (e) { toast('Δεν ήταν δυνατό να ανοίξει το αρχείο. Χρειάζεται .json από αυτή την εφαρμογή ή κείμενο προτάσεων.'); }
+}
+$('#btnOpen').addEventListener('click', () => $('#fileIn').click());
+$('#fileIn').addEventListener('change', e => { const f = e.target.files[0]; if (f) openFile(f); e.target.value = ''; });
+document.addEventListener('dragover', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); document.body.classList.add('dropping'); } });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dropping'); });
+document.addEventListener('drop', e => { document.body.classList.remove('dropping'); const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); openFile(f); } });
+
+/* ---------- Toolbar ---------- */
+$('#btnSave').addEventListener('click', saveJSON);
+$('#btnUndo').addEventListener('click', undo);
+$('#btnRedo').addEventListener('click', redo);
+$('#btnLayout').addEventListener('click', autoLayout);
+$('#btnFit').addEventListener('click', () => fitView(true));
+$('#btnAdd').addEventListener('click', () => {
+  const s = stageSize(); let w = toWorld(s.left + s.w / 2, s.top + s.h / 2);
+  for (let i = 0; i < 12 && overlaps(w.x, w.y, 130, 40); i++) w = { x: w.x + 30, y: w.y + 50 };
+  checkpoint(); const n = addNode(w.x, w.y); sel = new Set([n.id]); changed(true);
+  startEdit('node', n.id, { isNew: true, noCheckpoint: true });
+});
+$('#btnExercise').addEventListener('click', e => {
+  if (editing) commitEdit();
+  exercise = !exercise; e.currentTarget.setAttribute('aria-pressed', String(exercise));
+  changed(false);
+  if (exercise && !hiddenWords().length) toast('Δεν υπάρχουν κενά ακόμη. Επίλεξε έννοιες ή συνδέσεις και σημείωσε «Κενό στην άσκηση».');
+});
+$('#zoomIn').addEventListener('click', () => { const s = stageSize(); zoomAt(s.w / 2, s.h / 2, 1.2); });
+$('#zoomOut').addEventListener('click', () => { const s = stageSize(); zoomAt(s.w / 2, s.h / 2, 1 / 1.2); });
+$('#zoomPct').addEventListener('click', () => { const s = stageSize(); zoomAt(s.w / 2, s.h / 2, 1 / view.k); });
+
+/* ---------- Theme changes ---------- */
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { render(); renderPanel(); });
+new MutationObserver(() => { render(); renderPanel(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+new ResizeObserver(() => { if (editing) positionEditor(); }).observe(stage);
+
+/* ---------- Boot ---------- */
+window.claude?.hot?.snapshot?.(() => ({ doc, view, exercise }));
+function start(data) {
+  const fontsReady = document.fonts?.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]) : Promise.resolve();
+  fontsReady.then(() => {
+    mcache.clear();
+    let saved = data && data.doc ? data : null;
+    if (!saved) { try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { saved = null; } }
+    let fit = true;
+    if (saved && saved.doc) {
+      try {
+        doc = normalizeDoc(saved.doc);
+        if (saved.view && Number.isFinite(saved.view.k)) { view = { x: +saved.view.x || 0, y: +saved.view.y || 0, k: clampK(+saved.view.k) }; fit = false; }
+        exercise = !!saved.exercise;
+      } catch (e) { saved = null; }
+    }
+    if (!saved) {
+      doc = EXAMPLES.energy();
+      applyLayout();
+      fit = true;
+    }
+    $('#btnExercise').setAttribute('aria-pressed', String(exercise));
+    syncMapFields(); renderNow(); renderPanel(); updateUndoUI();
+    if (fit) fitView(false);
+    getDownloads();
+  });
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
