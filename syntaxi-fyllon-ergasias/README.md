@@ -18,7 +18,8 @@
 
 ## Διαδικτυακή έκδοση
 
-https://claude.ai/artifact/92wvuBZcerU1CoQzCaG2hV
+- Απλή: https://claude.ai/artifact/92wvuBZcerU1CoQzCaG2hV
+- Advanced (με το διαγνωστικό τεστ): https://claude.ai/artifact/7rHFZN4G8G726tUqKsAZph
 
 Διαφορές από το τοπικό αρχείο:
 - Τα αρχεία (PDF, DOCX, HTML, JSON) αποθηκεύονται αφού επιβεβαιώσεις στο παράθυρο του claude.ai.

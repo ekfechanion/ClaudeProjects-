@@ -14,7 +14,7 @@ Tags: #φυσική #εκφε #λύκειο #γυμνάσιο
 - Εσωτερικό όνομα: `worksheet-forge` (πεδίο `app` στα αρχεία JSON, κλειδιά `worksheetforge_*` στο localStorage)
 - Έκδοση: `v1.0.0` (meta `generator`)
 - Παραδοτέα: `syntaxi-fyllon-ergasias/index.html` (απλή έκδοση, περίπου 2,7 MB) και `syntaxi-fyllon-ergasias/index-advanced.html` (Advanced, περίπου 2,8 MB: η απλή και επιπλέον το διαγνωστικό τεστ του §6.5δ). Αυτόνομα αρχεία HTML.
-- Διαδικτυακή έκδοση: https://claude.ai/artifact/92wvuBZcerU1CoQzCaG2hV
+- Διαδικτυακή έκδοση: https://claude.ai/artifact/92wvuBZcerU1CoQzCaG2hV (απλή), https://claude.ai/artifact/7rHFZN4G8G726tUqKsAZph (Advanced)
 - Favicon: SVG με μολύβι πάνω σε έγγραφο, χρώμα `#2563EB`
 
 ---
